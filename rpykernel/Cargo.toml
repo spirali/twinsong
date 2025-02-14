@@ -1,0 +1,21 @@
+[package]
+name = "rpykernel"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "rpykernel"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.23", features = ["abi3-py310", "extension-module"] }
+tokio = { workspace = true, features = ["full"] }
+serde = { workspace = true }
+anyhow = { workspace = true }
+comm = { path = "../comm" }
+tokio-util = { workspace = true, features = ["codec"] }
+futures-util = { workspace = true, features = ["tokio-io", "sink"] }
+uuid = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing = { workspace = true }

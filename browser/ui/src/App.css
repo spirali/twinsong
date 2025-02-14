@@ -1,0 +1,59 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+table {
+  border-collapse: collapse;
+  border: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  margin: 10px 0;
+  border-bottom: 1px solid #c0c0c0;
+  width: auto;
+}
+
+/* Header styling */
+thead {
+  border-bottom: 1px solid #c0c0c0;
+  vertical-align: bottom;
+}
+
+thead th {
+  font-weight: bold;
+  padding: 6px 13px;
+  text-align: right;
+  background-color: #f9f9f9;
+}
+
+thead th:first-child {
+  border-left: none;
+  text-align: left;
+}
+
+/* Alternating row styling */
+tbody tr:nth-child(even) {
+  background-color: #f5f5f5;
+}
+
+tbody tr:hover {
+  background-color: #e6f7ff;
+}
+
+/* Cell styling */
+td, th {
+  padding: 6px 13px;
+  border: none;
+  text-align: right;
+  max-width: 400px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+td:first-child, th:first-child {
+  text-align: left;
+  font-weight: 500;
+}

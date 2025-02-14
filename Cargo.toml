@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+members = ["rsjp", "rpykernel", "comm"]
+
+[workspace.dependencies]
+tokio = "1"
+serde = "1.0"
+anyhow = "1.0"
+tokio-util = "0.7"
+futures-util = "0.3"
+uuid = { version = "1.13", features = ["v4", "serde"] }
+tracing-subscriber = "0.3"
+tracing = "0.1"
+
+[profile.release]
+panic = 'abort'
