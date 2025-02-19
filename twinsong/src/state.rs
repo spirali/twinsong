@@ -3,7 +3,7 @@ use anyhow::anyhow;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-pub struct AppState {
+pub(crate) struct AppState {
     notebooks: HashMap<NotebookId, Notebook>,
     runs: HashMap<RunId, Run>,
     id_counter: u32,
@@ -11,7 +11,7 @@ pub struct AppState {
     http_port: u16,
 }
 
-pub type AppStateRef = Arc<Mutex<AppState>>;
+pub(crate) type AppStateRef = Arc<Mutex<AppState>>;
 
 impl AppState {
     pub fn new(http_port: u16) -> Self {

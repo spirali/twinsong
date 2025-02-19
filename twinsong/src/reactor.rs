@@ -5,7 +5,7 @@ use crate::state::{AppState, AppStateRef};
 use anyhow::bail;
 use comm::messages::{ComputeMsg, FromKernelMessage, ToKernelMessage};
 
-pub fn start_kernel(
+pub(crate) fn start_kernel(
     state: &mut AppState,
     state_ref: &AppStateRef,
     notebook_id: NotebookId,
@@ -21,7 +21,7 @@ pub fn start_kernel(
     Ok(())
 }
 
-pub fn run_code(state: &mut AppState, msg: RunCellMsg) -> anyhow::Result<()> {
+pub(crate) fn run_code(state: &mut AppState, msg: RunCellMsg) -> anyhow::Result<()> {
     let run = state.find_run_by_id_mut(msg.run_id)?;
     if let Some(kernel) = run.kernel_mut() {
         kernel.send_message(ToKernelMessage::Compute(ComputeMsg {
@@ -32,7 +32,7 @@ pub fn run_code(state: &mut AppState, msg: RunCellMsg) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn process_kernel_message(
+pub(crate) fn process_kernel_message(
     state: &mut AppState,
     run_id: RunId,
     msg: FromKernelMessage,

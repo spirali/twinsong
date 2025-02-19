@@ -19,13 +19,13 @@ use tracing::log;
 
 define_id_type!(KernelId, u32);
 
-pub enum KernelHandleState {
+pub(crate) enum KernelHandleState {
     Init(Vec<ToKernelMessage>),
     Ready(UnboundedSender<ToKernelMessage>),
     Failed(String),
 }
 
-pub struct KernelHandle {
+pub(crate) struct KernelHandle {
     state: KernelHandleState,
     kill_sender: oneshot::Sender<()>,
     pending_messages: Vec<ToKernelMessage>,
@@ -79,7 +79,6 @@ pub fn spawn_kernel(
     run_id: RunId,
     kernel_port: u16,
 ) -> anyhow::Result<KernelHandle> {
-    //let mut cmd = tokio::process::Command::new("/home/ada/projects/minuet/venv/bin/python");
     let program = which::which("python")?;
     let mut cmd = tokio::process::Command::new(program);
     cmd.env("RUN_ID", run_id.to_string())
@@ -90,9 +89,9 @@ pub fn spawn_kernel(
     tracing::debug!("Spawning new kernel {:?}", &cmd);
     let child = cmd.spawn()?;
 
+    // TODO: Implement kill switch
     let (sender, receiver) = oneshot::channel();
     let state_ref = state_ref.clone();
-    // TODO: Implement kill switch
     spawn(async move {
         let r = kernel_guard(child).await;
         let mut state = state_ref.lock().unwrap();
@@ -120,7 +119,7 @@ async fn kernel_guard(mut child: Child) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub async fn init_kernel_manager(state_ref: &AppStateRef) -> anyhow::Result<()> {
+pub(crate) async fn init_kernel_manager(state_ref: &AppStateRef) -> anyhow::Result<()> {
     let listener = TcpListener::bind("127.0.0.1:0").await?;
     let port = listener.local_addr()?.port();
 
@@ -132,7 +131,7 @@ pub async fn init_kernel_manager(state_ref: &AppStateRef) -> anyhow::Result<()> 
     Ok(())
 }
 
-pub async fn kernel_manager_main(listener: TcpListener, state_ref: AppStateRef) {
+pub(crate) async fn kernel_manager_main(listener: TcpListener, state_ref: AppStateRef) {
     while let Ok((stream, _)) = listener.accept().await {
         tracing::debug!("New kernel connection");
         let state_ref = state_ref.clone();
@@ -144,7 +143,10 @@ pub async fn kernel_manager_main(listener: TcpListener, state_ref: AppStateRef) 
     }
 }
 
-pub async fn handle_connection(stream: TcpStream, state_ref: AppStateRef) -> anyhow::Result<()> {
+pub(crate) async fn handle_connection(
+    stream: TcpStream,
+    state_ref: AppStateRef,
+) -> anyhow::Result<()> {
     let (sender, mut receiver) = make_protocol_builder().new_framed(stream).split();
 
     let (c_receiver, run_id) = if let Some(msg) = receiver.next().await {
@@ -158,7 +160,7 @@ pub async fn handle_connection(stream: TcpStream, state_ref: AppStateRef) -> any
                 let run = state.find_run_by_id_mut(run_id)?;
                 if let Some(kernel) = run.kernel_mut() {
                     if !kernel.is_init() {
-                        anyhow::bail!("Kernel {} is not in init state", run_id);
+                        bail!("Kernel {} is not in init state", run_id);
                     }
                     let (c_sender, c_receiver) = unbounded_channel();
                     kernel.set_to_ready(c_sender);
@@ -168,10 +170,10 @@ pub async fn handle_connection(stream: TcpStream, state_ref: AppStateRef) -> any
                         .send_message(ToClientMessage::KernelReady { run_id });
                     (c_receiver, run_id)
                 } else {
-                    anyhow::bail!("Run {} has not attached kernel", run_id);
+                    bail!("Run {} has not attached kernel", run_id);
                 }
             }
-            _ => anyhow::bail!("Invalid first message"),
+            _ => bail!("Invalid first message"),
         }
     } else {
         tracing::debug!("connection closed without sending message");

@@ -13,7 +13,10 @@ pyo3 = { version = "0.23", features = ["abi3-py310", "extension-module"] }
 tokio = { workspace = true, features = ["full"] }
 serde = { workspace = true }
 anyhow = { workspace = true }
+
 comm = { path = "../comm" }
+twinsong = { path = "../twinsong" }
+
 tokio-util = { workspace = true, features = ["codec"] }
 futures-util = { workspace = true, features = ["tokio-io", "sink"] }
 uuid = { workspace = true }

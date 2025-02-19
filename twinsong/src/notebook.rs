@@ -23,7 +23,7 @@ define_id_type!(NotebookId, u32);
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[serde(transparent)]
 #[repr(transparent)]
-pub struct RunId(Uuid);
+pub(crate) struct RunId(Uuid);
 
 impl Default for RunId {
     fn default() -> Self {
