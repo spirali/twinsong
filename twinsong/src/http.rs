@@ -15,6 +15,8 @@ use axum::Router;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::SinkExt;
 use futures_util::StreamExt;
+use std::io::Write;
+use termcolor::{Color, ColorChoice, ColorSpec, HyperlinkSpec, StandardStream, WriteColor};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tracing::log;
 
@@ -26,7 +28,18 @@ pub(crate) async fn http_server_main(state: AppStateRef, port: u16) -> anyhow::R
         .route("/ws", any(ws_handler))
         .with_state(state);
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}")).await?;
-    println!("Listening on {port}");
+
+    {
+        let mut stdout = StandardStream::stdout(ColorChoice::Always);
+        stdout.set_color(ColorSpec::new().set_fg(Some(Color::Ansi256(75))))?;
+        write!(&mut stdout, "\n  Twin")?;
+        stdout.set_color(ColorSpec::new().set_fg(Some(Color::Ansi256(214))))?;
+        write!(&mut stdout, "Song")?;
+        stdout.set_color(ColorSpec::new().set_fg(None))?;
+        write!(&mut stdout, " v{}", env!("CARGO_PKG_VERSION"))?;
+        stdout.set_color(ColorSpec::new().set_bold(true))?;
+        writeln!(&mut stdout, "\n\n   ➜ http://127.0.0.1:{port}\n")?;
+    }
     axum::serve(listener, app).await?;
     Ok(())
 }
