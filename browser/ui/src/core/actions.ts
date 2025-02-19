@@ -1,4 +1,4 @@
-import { EditorCell, RunId } from "./notebook";
+import { EditorCell, OutputCellState, RunId } from "./notebook";
 import { State } from "./state";
 import { Dispatch } from "react";
 import { StateAction } from "./state";
@@ -24,8 +24,14 @@ export function newRun(state: State, dispatch: Dispatch<StateAction>, send_comma
 
 export function runCell(cell: EditorCell, state: State, dispatch: Dispatch<StateAction>, send_command: SendCommand) {
     let run_id = state.current_run_id;
+    let status: OutputCellState = "pending";
     if (run_id == null) {
         run_id = newRun(state, dispatch, send_command)
+    } else {
+        let run = state.notebook!.runs.find(r => r.id == run_id)!;
+        if (run.kernel_state == "ready" && run.output_cells.find(c => c.status == "running") == null) {
+            status = "running";
+        }
     }
     let cell_id = uuidv4();
     dispatch({
@@ -33,7 +39,7 @@ export function runCell(cell: EditorCell, state: State, dispatch: Dispatch<State
         cell: {
             id: cell_id,
             values: [],
-            status: "pending",
+            status,
             editor_cell: cell,
         },
         run_id: run_id,

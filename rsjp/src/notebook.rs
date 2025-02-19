@@ -109,7 +109,7 @@ impl Notebook {
             EditorCell {
                 id: Uuid::new_v4(),
                 value:
-                "import time\n\nfor x in range(4):\n    print(x)\n    time.sleep(1)\n"
+                "import time\nfor x in range(4):\n    print(x)\n    time.sleep(1)\n"
                     .to_string(),
             },
 

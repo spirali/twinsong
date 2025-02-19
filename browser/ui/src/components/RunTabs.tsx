@@ -55,7 +55,6 @@ const RunTabs: React.FC = () => {
           src="./twinsong.jpeg"
           width={200}
           alt="TwinSong logo"
-          className="rounded-lg shadow-md object-cover"
         />
     </div>
       </div>):

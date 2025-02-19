@@ -142,6 +142,7 @@ export function stateReducer(state: State, action: StateAction): State {
             }
         }
         case 'new_output': {
+            let finished = action.status == "success" || action.status == "error";
             const runs = state.notebook.runs.map(r => {
                 if (r.id == action.run_id) {
                     const output_cells = r.output_cells.map(c => {
@@ -161,6 +162,9 @@ export function stateReducer(state: State, action: StateAction): State {
                                 values = [...c.values, action.value];
                             }
                             return { ...c, status: action.status, values } as OutputCell;
+                        } if (finished && c.status == "pending") {
+                            finished = false;
+                            return { ...c, status: "running" } as OutputCell;
                         } else {
                             return c;
                         }
