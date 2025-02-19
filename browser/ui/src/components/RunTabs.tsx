@@ -5,7 +5,7 @@ import RunView from './RunView';
 import { Plus } from 'lucide-react';
 import twinsong_logo from './twinsong.jpeg';
 import { useSendCommand } from './WsProvider';
-import { new_run } from '../core/actions';
+import { newRun } from '../core/actions';
 
 const RunTabs: React.FC = () => {
   const state = useGlobalState();
@@ -32,7 +32,7 @@ const RunTabs: React.FC = () => {
         <button
           key=""
           onClick={() => {
-              new_run(state, dispatch, sendCommand)
+              newRun(state, dispatch, sendCommand)
           }}
           className={`py-2 px-5 text-sm font-medium transition-colors duration-200 
              'bg-gray-50 text-gray-600 hover:bg-orange-50 hover:text-orange-700'}`}

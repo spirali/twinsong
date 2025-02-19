@@ -39,9 +39,14 @@ interface NewOutputAction {
     value: OutputValue,
 }
 
-interface SetCurrentRun {
+interface SetCurrentRunAction {
     type: "set_current_run",
     run_id: RunId
+}
+
+interface NewEditorCellAction {
+    type: "new_editor_cell",
+    editor_cell: EditorCell,
 }
 
 export interface State {
@@ -49,7 +54,7 @@ export interface State {
     current_run_id: RunId | null,
 }
 
-export type StateAction = EditCellAction | SetNotebookAction | FreshRunAction | KernelStateChangedAction | NewOutputAction | NewOutputCellAction | SetCurrentRun;
+export type StateAction = EditCellAction | SetNotebookAction | FreshRunAction | KernelStateChangedAction | NewOutputAction | NewOutputCellAction | SetCurrentRunAction | NewEditorCellAction;
 
 
 export function stateReducer(state: State, action: StateAction): State {
@@ -107,7 +112,7 @@ export function stateReducer(state: State, action: StateAction): State {
             let runs = state.notebook.runs.map(r => {
                 if (r.id == action.run_id) {
                     if (action.kernel_state == "ready" && r.output_cells.length > 0) {
-                        const output_cells = r.output_cells.map((cell, index) => 
+                        const output_cells = r.output_cells.map((cell, index) =>
                             index === 0 ? { ...cell, status: "running" } : cell
                         );
                         return { ...r, kernel_state: action.kernel_state, output_cells, kernel_state_message: action.message };
@@ -174,6 +179,12 @@ export function stateReducer(state: State, action: StateAction): State {
             return {
                 ...state,
                 current_run_id: action.run_id,
+            }
+        }
+        case 'new_editor_cell': {
+            return {
+                ...state,
+                notebook: { ...state.notebook, editor_cells: [...state.notebook.editor_cells, action.editor_cell] },
             }
         }
         default: {
