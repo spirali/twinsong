@@ -63,9 +63,9 @@ const OutputCellView: React.FC<{ cell: OutputCell }> = (props: { cell: OutputCel
   };
 
   return (
-    <div ref={ref} className="border border-gray-300 shadow-sm mb-4">
+    <div ref={ref} className="border border-gray-300 shadow-sm mb-2">
       {/* Smaller Status Bar */}
-      <div className="flex items-center justify-between px-1 py-1 bg-gray-50 border-b border-gray-300">
+      <div className={`flex items-center justify-between px-1 py-1 border-b border-gray-300 ${props.cell.status === 'running' ? 'bg-yellow-50' : 'bg-gray-50'}`}>
         <div className="flex items-center space-x-1">
           {getStatusIcon()}
           {getStatusText()}
