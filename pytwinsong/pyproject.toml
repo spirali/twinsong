@@ -3,7 +3,7 @@ requires = ["maturin>=1.8,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "rpykernel"
+name = "twinsong"
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Rust",
@@ -14,4 +14,3 @@ dynamic = ["version"]
 [tool.maturin]
 features = ["pyo3/extension-module"]
 python-source = "python"
-

@@ -805,6 +805,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "pytwinsong"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "comm",
+ "futures-util",
+ "pyo3",
+ "serde",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -850,40 +866,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "03a862b389f93e68874fbf580b9de08dd02facb9a788ebadaf4a3fd33cf58834"
 dependencies = [
  "bitflags",
-]
-
-[[package]]
-name = "rpykernel"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "comm",
- "futures-util",
- "pyo3",
- "serde",
- "tokio",
- "tokio-util",
- "tracing",
- "tracing-subscriber",
- "uuid",
-]
-
-[[package]]
-name = "rsjp"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "clap",
- "comm",
- "futures-util",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "uuid",
- "which",
 ]
 
 [[package]]
@@ -1261,6 +1243,24 @@ dependencies = [
  "sha1",
  "thiserror",
  "utf-8",
+]
+
+[[package]]
+name = "twinsong"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "clap",
+ "comm",
+ "futures-util",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "which",
 ]
 
 [[package]]
