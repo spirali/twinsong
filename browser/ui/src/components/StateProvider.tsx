@@ -1,26 +1,23 @@
-import { ActionDispatch, createContext, useContext, useReducer } from 'react';
-import { INITIAL_STATE, State, StateAction, stateReducer } from '../core/state';
+import { ActionDispatch, createContext, useContext, useReducer } from "react";
+import { INITIAL_STATE, State, StateAction, stateReducer } from "../core/state";
 import { JSX } from "react";
 
 const StateContext = createContext<State>(INITIAL_STATE);
-const DispatchContext = createContext<ActionDispatch<[action: StateAction]> | null>(null);
+const DispatchContext = createContext<ActionDispatch<
+  [action: StateAction]
+> | null>(null);
 
 export const NotebookProvider = (props: { children: JSX.Element }) => {
-  const [tasks, dispatch] = useReducer(
-    stateReducer,
-    INITIAL_STATE,
-  );
+  const [tasks, dispatch] = useReducer(stateReducer, INITIAL_STATE);
 
   return (
     <StateContext.Provider value={tasks}>
-      <DispatchContext.Provider
-        value={dispatch}
-      >
+      <DispatchContext.Provider value={dispatch}>
         {props.children}
       </DispatchContext.Provider>
     </StateContext.Provider>
   );
-}
+};
 
 export function useGlobalState(): State {
   return useContext(StateContext);

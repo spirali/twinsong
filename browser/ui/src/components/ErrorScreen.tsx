@@ -1,5 +1,5 @@
-import React from 'react';
-import { AlertCircle, RefreshCcw } from 'lucide-react';
+import React from "react";
+import { AlertCircle, RefreshCcw } from "lucide-react";
 
 interface ErrorScreenProps {
   title?: string;
@@ -7,25 +7,25 @@ interface ErrorScreenProps {
   onRetry?: () => void;
 }
 
-const ErrorScreen: React.FC<ErrorScreenProps> = ({ 
+const ErrorScreen: React.FC<ErrorScreenProps> = ({
   title,
-    message,
+  message,
   onRetry = () => window.location.reload(),
 }) => {
   return (
-    <div className={`fixed inset-0 bg-white dark:bg-gray-900 flex flex-col items-center justify-center min-h-screen p-4`}>
+    <div
+      className={`fixed inset-0 bg-white dark:bg-gray-900 flex flex-col items-center justify-center min-h-screen p-4`}
+    >
       <div className="max-w-md w-full space-y-8 text-center">
         <div className="flex flex-col items-center space-y-4">
           <AlertCircle className="h-16 w-16 text-red-500" />
-          
+
           <div className="space-y-2">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
               {title}
             </h1>
-            
-            <p className="text-gray-500 dark:text-gray-400">
-              {message}
-            </p>
+
+            <p className="text-gray-500 dark:text-gray-400">{message}</p>
           </div>
         </div>
 

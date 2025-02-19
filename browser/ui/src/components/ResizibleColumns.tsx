@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 
 interface Props {
   leftContent?: React.ReactNode;
@@ -8,10 +8,10 @@ interface Props {
 }
 
 const ResizableColumns: React.FC<Props> = ({
-  leftContent = 'Left Column',
-  rightContent = 'Right Column',
+  leftContent = "Left Column",
+  rightContent = "Right Column",
   initialLeftWidth = 50,
-  minWidth = 20
+  minWidth = 20,
 }) => {
   const [leftWidth, setLeftWidth] = useState(initialLeftWidth);
   const [isDragging, setIsDragging] = useState(false);
@@ -25,47 +25,46 @@ const ResizableColumns: React.FC<Props> = ({
     setIsDragging(false);
   }, []);
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging) return;
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (!isDragging) return;
 
-    const container = document.getElementById('resizable-container');
-    if (!container) return;
+      const container = document.getElementById("resizable-container");
+      if (!container) return;
 
-    const containerRect = container.getBoundingClientRect();
-    const newLeftWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+      const containerRect = container.getBoundingClientRect();
+      const newLeftWidth =
+        ((e.clientX - containerRect.left) / containerRect.width) * 100;
 
-    // Ensure the width stays within bounds
-    if (newLeftWidth >= minWidth && newLeftWidth <= (100 - minWidth)) {
-      setLeftWidth(newLeftWidth);
-    }
-  }, [isDragging, minWidth]);
+      // Ensure the width stays within bounds
+      if (newLeftWidth >= minWidth && newLeftWidth <= 100 - minWidth) {
+        setLeftWidth(newLeftWidth);
+      }
+    },
+    [isDragging, minWidth],
+  );
 
   useEffect(() => {
     if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
     }
 
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
   return (
     <div className="fixed inset-0 w-screen h-screen overflow-hidden">
-      <div 
-        id="resizable-container"
-        className="flex w-full h-full"
-      >
+      <div id="resizable-container" className="flex w-full h-full">
         {/* Left Column */}
-        <div 
+        <div
           className="h-full overflow-auto"
           style={{ width: `${leftWidth}%` }}
         >
-          <div className="h-full">
-            {leftContent}
-          </div>
+          <div className="h-full">{leftContent}</div>
         </div>
 
         {/* Resizer */}
@@ -75,13 +74,11 @@ const ResizableColumns: React.FC<Props> = ({
         />
 
         {/* Right Column */}
-        <div 
+        <div
           className="h-full overflow-auto"
           style={{ width: `${100 - leftWidth}%` }}
         >
-          <div className="h-full">
-            {rightContent}
-          </div>
+          <div className="h-full">{rightContent}</div>
         </div>
       </div>
     </div>

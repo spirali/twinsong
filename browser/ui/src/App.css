@@ -8,7 +8,9 @@
 table {
   border-collapse: collapse;
   border: none;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
   font-size: 14px;
   margin: 10px 0;
   border-bottom: 1px solid #c0c0c0;
@@ -43,7 +45,8 @@ tbody tr:hover {
 }
 
 /* Cell styling */
-td, th {
+td,
+th {
   padding: 6px 13px;
   border: none;
   text-align: right;
@@ -53,7 +56,8 @@ td, th {
   text-overflow: ellipsis;
 }
 
-td:first-child, th:first-child {
+td:first-child,
+th:first-child {
   text-align: left;
   font-weight: 500;
 }
