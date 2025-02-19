@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { EditorCell } from "../core/notebook";
 import { useGlobalState, useDispatch } from "./StateProvider";
 import Editor from "react-simple-code-editor";

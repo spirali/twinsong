@@ -1,14 +1,16 @@
 use crate::client_messages::{
-    parse_client_message, serialize_client_message, FromClientMessage,
-    NotebookDesc, ToClientMessage,
+    parse_client_message, serialize_client_message, FromClientMessage, NotebookDesc,
+    ToClientMessage,
 };
 use crate::notebook::Notebook;
 use crate::reactor::{run_code, start_kernel};
 use crate::state::AppStateRef;
+use axum::body::Body;
 use axum::extract::ws::{Message, WebSocket};
-use axum::extract::{State, WebSocketUpgrade};
-use axum::response::IntoResponse;
-use axum::routing::any;
+use axum::extract::{Path, State, WebSocketUpgrade};
+use axum::http::header;
+use axum::response::{Html, IntoResponse, Response};
+use axum::routing::{any, get};
 use axum::Router;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::SinkExt;
@@ -18,12 +20,53 @@ use tracing::log;
 
 pub(crate) async fn http_server_main(state: AppStateRef, port: u16) -> anyhow::Result<()> {
     let app = Router::new()
+        .route("/", get(index))
+        .route("/assets/{name}", get(get_assets))
+        .route("/twinsong.jpeg", get(twinsong_jpeg))
         .route("/ws", any(ws_handler))
         .with_state(state);
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}")).await?;
     println!("Listening on {port}");
     axum::serve(listener, app).await?;
     Ok(())
+}
+
+async fn get_assets(Path(name): Path<String>) -> impl IntoResponse {
+    let (data, content_type) = if name.ends_with("css") {
+        (
+            include_bytes!("../../browser/ui/dist/assets/index.css.gz").as_ref(),
+            "text/css",
+        )
+    } else {
+        (
+            include_bytes!("../../browser/ui/dist/assets/index.js.gz").as_ref(),
+            "text/javascript",
+        )
+    };
+    Response::builder()
+        .header(header::CONTENT_TYPE, content_type)
+        .header(header::CONTENT_ENCODING, "gzip")
+        .body(Body::from(data))
+        .unwrap()
+}
+
+async fn index(State(state): State<AppStateRef>) -> impl IntoResponse {
+    let port = state.lock().unwrap().http_port();
+    let html = include_str!("../../browser/ui/dist/index.html")
+        .replace("%URL%", format!("ws://127.0.0.1:{port}/ws").as_str());
+    Response::builder()
+        .header(header::CONTENT_TYPE, "text/html")
+        .body(Body::from(html))
+        .unwrap()
+}
+
+async fn twinsong_jpeg(State(state): State<AppStateRef>) -> impl IntoResponse {
+    Response::builder()
+        .header(header::CONTENT_TYPE, "image/jpeg")
+        .body(Body::from(
+            include_bytes!("../../browser/ui/dist/twinsong.jpeg").as_ref(),
+        ))
+        .unwrap()
 }
 
 async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppStateRef>) -> impl IntoResponse {

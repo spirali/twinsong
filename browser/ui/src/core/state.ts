@@ -141,13 +141,13 @@ export function stateReducer(state: State, action: StateAction): State {
               kernel_state: action.kernel_state,
               output_cells,
               kernel_state_message: action.message,
-            };
+            } as Run;
           } else {
             return {
               ...r,
               kernel_state: action.kernel_state,
               kernel_state_message: action.message,
-            };
+            } as Run;
           }
         } else {
           return r;
@@ -161,7 +161,7 @@ export function stateReducer(state: State, action: StateAction): State {
     case "new_output_cell": {
       const runs = state.notebook.runs.map((r) => {
         if (r.id == action.run_id) {
-          return { ...r, output_cells: [...r.output_cells, action.cell] };
+          return { ...r, output_cells: [...r.output_cells, action.cell] } as Run;
         } else {
           return r;
         }
@@ -234,7 +234,7 @@ export function stateReducer(state: State, action: StateAction): State {
       };
     }
     default: {
-      throw Error("Unknown action: " + action.type);
+      throw Error("Unknown action");
     }
   }
 }

@@ -1,6 +1,18 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      let url = "%URL%";
+      // Here we expect that serving code will replace %URL% pattern
+      // If it is not replaced, then place a default here
+      // Note: We cannot check for %URL% in the following "if" otherwise it would
+      // be also replaces
+      if (url.startsWith("%")) {
+        window.SERVER_URL = "ws://127.0.0.1:4050/ws";
+      } else {
+        window.SERVER_URL = url;
+      }
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/twinsong.jpeg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

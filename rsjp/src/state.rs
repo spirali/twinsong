@@ -8,17 +8,19 @@ pub struct AppState {
     runs: HashMap<RunId, Run>,
     id_counter: u32,
     kernel_port: u16,
+    http_port: u16,
 }
 
 pub type AppStateRef = Arc<Mutex<AppState>>;
 
 impl AppState {
-    pub fn new() -> Self {
+    pub fn new(http_port: u16) -> Self {
         AppState {
             notebooks: HashMap::new(),
             runs: HashMap::new(),
             id_counter: 0,
             kernel_port: 0,
+            http_port,
         }
     }
 
@@ -56,6 +58,10 @@ impl AppState {
 
     pub fn kernel_port(&self) -> u16 {
         self.kernel_port
+    }
+
+    pub fn http_port(&self) -> u16 {
+        self.http_port
     }
 
     pub fn run_by_id(&self, id: RunId) -> &Run {

@@ -5,9 +5,7 @@ import {
   Notebook,
   NotebookId,
   OutputCellState,
-  OutputFlag,
   OutputValue,
-  Run,
   RunId,
 } from "./notebook";
 import { StateAction } from "./state";

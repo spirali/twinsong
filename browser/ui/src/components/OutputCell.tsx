@@ -4,7 +4,6 @@ import {
   CheckCircle,
   Clock,
   PlayCircle,
-  Info,
 } from "lucide-react";
 import { OutputCell, OutputValue } from "../core/notebook";
 import Editor from "react-simple-code-editor";

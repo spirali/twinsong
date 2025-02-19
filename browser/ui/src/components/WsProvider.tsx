@@ -7,13 +7,17 @@ import ErrorScreen from "./ErrorScreen";
 
 const WsContext = createContext<SendJsonMessage | null>(null);
 
+declare global {
+  interface Window { SERVER_URL: string; }
+}
+
 export const WsProvider = (props: { children: JSX.Element }) => {
+  console.log("XXXXXX", window.SERVER_URL);
   const [error, setError] = useState<string | null>(null);
-  const WS_URL = "ws://127.0.0.1:4500/ws";
   //    const [error, setError] = useState<string | null>(null);
   const dispatch = useDispatch()!;
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(
-    WS_URL,
+    window.SERVER_URL,
     {
       share: false,
       shouldReconnect: () => false,

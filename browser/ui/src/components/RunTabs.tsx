@@ -1,8 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { useDispatch, useGlobalState } from "./StateProvider";
 import RunView from "./RunView";
 import { Plus } from "lucide-react";
-import twinsong_logo from "./twinsong.jpeg";
 import { useSendCommand } from "./WsProvider";
 import { newRun } from "../core/actions";
 

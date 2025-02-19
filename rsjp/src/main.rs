@@ -18,7 +18,7 @@ pub use utils::ids::{AsIdVec, ItemId};
 #[command(version, about, long_about = None)]
 struct Args {
     /// Sets a custom config file
-    #[arg(long, default_value = "4500")]
+    #[arg(long, default_value = "4050")]
     port: u16,
 }
 
@@ -29,7 +29,7 @@ async fn main() {
         .run_until(async move {
             let args = Args::parse();
             tracing_subscriber::fmt::init();
-            let state = Arc::new(Mutex::new(AppState::new()));
+            let state = Arc::new(Mutex::new(AppState::new(args.port)));
             init_kernel_manager(&state).await.unwrap();
             http_server_main(state, args.port).await.unwrap();
         })
