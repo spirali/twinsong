@@ -1,10 +1,8 @@
 use crate::control::start_control_process;
 use crate::stdio::RedirectedStdio;
-use comm::messages::{
-    ComputeMsg, Exception, FromKernelMessage, OutputFlag, OutputValue,
-};
-use pyo3::types::{PyAnyMethods, PyDict, PyListMethods, PyTracebackMethods};
+use comm::messages::{ComputeMsg, Exception, FromKernelMessage, OutputFlag, OutputValue};
 use pyo3::types::PyStringMethods;
+use pyo3::types::{PyAnyMethods, PyDict, PyListMethods, PyTracebackMethods};
 use pyo3::{Bound, Py, PyAny, PyErr, PyResult, Python};
 use tokio::runtime::Builder;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
@@ -42,7 +40,7 @@ fn eval_code<'a>(
     code: &str,
     stdout: RedirectedStdio,
 ) -> PyResult<Bound<'a, PyAny>> {
-    let run_module = py.import("rpykernel.run")?;
+    let run_module = py.import("twinsong.driver.run")?;
     run_module.getattr("run_code")?.call1((code, stdout))
 }
 

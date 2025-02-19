@@ -1,8 +1,8 @@
 use crate::client_messages::ToClientMessage;
+use crate::define_id_type;
 use crate::notebook::RunId;
 use crate::reactor::process_kernel_message;
 use crate::state::AppStateRef;
-use crate::define_id_type;
 use anyhow::bail;
 use axum::body::Bytes;
 use comm::messages::{FromKernelMessage, ToKernelMessage};
@@ -85,7 +85,7 @@ pub fn spawn_kernel(
     cmd.env("RUN_ID", run_id.to_string())
         .env("KERNEL_CONNECT", format!("127.0.0.1:{}", kernel_port))
         .arg("-m")
-        .arg("rpykernel")
+        .arg("twinsong.driver")
         .kill_on_drop(true);
     tracing::debug!("Spawning new kernel {:?}", &cmd);
     let child = cmd.spawn()?;

@@ -8,7 +8,7 @@ import uuid
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(TESTS_DIR)
-BIN_DIR = os.path.join(ROOT_DIR, "target", "debug", "rsjp")
+BIN_DIR = os.path.join(ROOT_DIR, "target", "debug", "twinsong")
 
 PORT = 4511
 
@@ -54,13 +54,15 @@ class Kernel:
                 {"type": "RunCell", "run_id": self.run_id, "code": code, "cell_id": cell_id,
                  "editor_cell": editor_cell})
             r = self.client.receive_message()
+            print(r)
             assert r["type"] == "Output"
             outputs.append(r["value"])
             if r["flag"] != "Stream":
                 return outputs
 
     def run_code_simple(self, code):
-        return self.run_code(code)[-1]["Text"]["value"]
+        r = self.run_code(code)[-1]
+        return r["Text"]["value"]
 
 
 class Client:
