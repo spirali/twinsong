@@ -34,10 +34,6 @@ macro_rules! define_id_type {
             }
         }
 
-        impl $crate::ItemId for $name {
-            type IdType = $type;
-        }
-
         impl ::std::convert::From<$type> for $name {
             #[inline]
             fn from(value: $type) -> Self {
@@ -73,23 +69,5 @@ macro_rules! define_id_type {
                 Ok($name(s.parse::<$type>()?))
             }
         }
-
-        impl $crate::AsIdVec<$name> for ::std::vec::Vec<$type> {
-            #[inline]
-            fn to_ids(self) -> ::std::vec::Vec<$name> {
-                self.into_iter().map(|id| id.into()).collect()
-            }
-        }
     };
-}
-
-/// Represents a newtype ID defined by `define_id_type`.
-pub trait ItemId {
-    /// Returns the inner type of the ID.
-    type IdType;
-}
-
-/// Converts a vector of integers into a vector of a corresponding newtype index
-pub trait AsIdVec<IdType: ItemId> {
-    fn to_ids(self) -> Vec<IdType>;
 }

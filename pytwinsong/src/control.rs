@@ -1,9 +1,6 @@
 use anyhow::anyhow;
 use comm::messages::{ComputeMsg, FromKernelMessage, ToKernelMessage};
-use comm::{
-    make_protocol_builder, parse_to_kernel_message,
-    serialize_from_kernel_message, Codec,
-};
+use comm::{make_protocol_builder, parse_to_kernel_message, serialize_from_kernel_message, Codec};
 use futures_util::stream::{SplitSink, SplitStream, StreamExt};
 use futures_util::SinkExt;
 use tokio::net::TcpStream;
@@ -38,8 +35,8 @@ async fn controller_main(
 ) -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
     let addr = std::env::var("KERNEL_CONNECT")
-        .map_err(|e| anyhow!("Variable KERNEL_CONNECT not defined"))?;
-    let run_id_str = std::env::var("RUN_ID").map_err(|e| anyhow!("Variable RUN_ID not defined"))?;
+        .map_err(|_| anyhow!("Variable KERNEL_CONNECT not defined"))?;
+    let run_id_str = std::env::var("RUN_ID").map_err(|_| anyhow!("Variable RUN_ID not defined"))?;
     let run_id = Uuid::parse_str(&run_id_str)?;
     let socket = TcpStream::connect(&addr).await?;
     let (mut sender, receiver) = make_protocol_builder().new_framed(socket).split();

@@ -51,9 +51,6 @@ pub(crate) enum ToClientMessage<'a> {
     KernelReady {
         run_id: RunId,
     },
-    KernelStopped {
-        run_id: RunId,
-    },
     KernelCrashed {
         run_id: RunId,
         message: String,

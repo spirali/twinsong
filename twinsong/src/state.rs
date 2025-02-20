@@ -38,10 +38,6 @@ impl AppState {
         self.notebooks.get(&id).unwrap()
     }
 
-    pub fn find_notebook_by_id(&self, id: NotebookId) -> anyhow::Result<&Notebook> {
-        self.notebooks.get(&id).ok_or(anyhow!("Notebook not found"))
-    }
-
     pub fn find_notebook_by_id_mut(&mut self, id: NotebookId) -> anyhow::Result<&mut Notebook> {
         self.notebooks
             .get_mut(&id)
@@ -64,16 +60,8 @@ impl AppState {
         self.http_port
     }
 
-    pub fn run_by_id(&self, id: RunId) -> &Run {
-        self.runs.get(&id).unwrap()
-    }
-
     pub fn get_run_by_id(&self, id: RunId) -> Option<&Run> {
         self.runs.get(&id)
-    }
-
-    pub fn find_run_by_id(&self, id: RunId) -> anyhow::Result<&Run> {
-        self.runs.get(&id).ok_or(anyhow!("Kernel not found"))
     }
 
     pub fn find_run_by_id_mut(&mut self, id: RunId) -> anyhow::Result<&mut Run> {

@@ -2,7 +2,6 @@ mod control;
 mod executor;
 mod stdio;
 
-use crate::control::start_control_process;
 use crate::executor::start_executor;
 use pyo3::prelude::*;
 use tokio::runtime::Builder;

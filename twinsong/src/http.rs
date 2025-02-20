@@ -9,14 +9,14 @@ use axum::body::Body;
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::{Path, State, WebSocketUpgrade};
 use axum::http::header;
-use axum::response::{Html, IntoResponse, Response};
+use axum::response::{IntoResponse, Response};
 use axum::routing::{any, get};
 use axum::Router;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::SinkExt;
 use futures_util::StreamExt;
 use std::io::Write;
-use termcolor::{Color, ColorChoice, ColorSpec, HyperlinkSpec, StandardStream, WriteColor};
+use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tracing::log;
 
@@ -73,7 +73,7 @@ async fn index(State(state): State<AppStateRef>) -> impl IntoResponse {
         .unwrap()
 }
 
-async fn twinsong_jpeg(State(state): State<AppStateRef>) -> impl IntoResponse {
+async fn twinsong_jpeg() -> impl IntoResponse {
     Response::builder()
         .header(header::CONTENT_TYPE, "image/jpeg")
         .body(Body::from(
@@ -94,11 +94,11 @@ async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppStateRef>) -> i
 async fn handle_socket(mut socket: WebSocket, state_ref: &AppStateRef) -> anyhow::Result<()> {
     if let Some(msg) = socket.recv().await {
         let msg = msg?;
-        if let Message::Text(text) = msg {
+        if let Message::Text(_text) = msg {
+            // TODO: Implement loging with TOKEN
         } else {
             tracing::error!("Invalid first message");
         }
-        // TODO: Token check
     } else {
         tracing::debug!("Connection terminated without hello message");
         return Ok(());

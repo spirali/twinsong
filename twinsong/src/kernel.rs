@@ -22,9 +22,9 @@ define_id_type!(KernelId, u32);
 pub(crate) enum KernelHandleState {
     Init(Vec<ToKernelMessage>),
     Ready(UnboundedSender<ToKernelMessage>),
-    Failed(String),
 }
 
+#[allow(dead_code)] // TODO: After kill sender is used, removed this
 pub(crate) struct KernelHandle {
     state: KernelHandleState,
     kill_sender: oneshot::Sender<()>,
@@ -57,9 +57,9 @@ impl KernelHandle {
         self.state = KernelHandleState::Ready(sender);
     }
 
-    pub fn set_failed(&mut self, message: String) {
-        self.state = KernelHandleState::Failed(message)
-    }
+    // pub fn set_failed(&mut self, message: String) {
+    //     self.state = KernelHandleState::Failed(message)
+    // }
 
     pub fn send_message(&mut self, message: ToKernelMessage) {
         match &mut self.state {
@@ -69,7 +69,6 @@ impl KernelHandle {
             KernelHandleState::Ready(sender) => {
                 let _ = sender.send(message);
             }
-            KernelHandleState::Failed(_) => {}
         }
     }
 }
@@ -90,10 +89,10 @@ pub fn spawn_kernel(
     let child = cmd.spawn()?;
 
     // TODO: Implement kill switch
-    let (sender, receiver) = oneshot::channel();
+    let (sender, _receiver) = oneshot::channel();
     let state_ref = state_ref.clone();
     spawn(async move {
-        let r = kernel_guard(child).await;
+        let _r = kernel_guard(child).await;
         let mut state = state_ref.lock().unwrap();
         if let Ok(run) = state.find_run_by_id_mut(run_id) {
             // TODO: Remove kernel from state

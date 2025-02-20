@@ -1,6 +1,6 @@
+use crate::messages::{FromKernelMessage, ToKernelMessage};
 use tokio_util::codec::length_delimited::Builder;
 use tokio_util::codec::LengthDelimitedCodec;
-use crate::messages::{FromKernelMessage, ToKernelMessage};
 
 pub fn make_protocol_builder() -> Builder {
     *LengthDelimitedCodec::builder()

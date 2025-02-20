@@ -2,8 +2,8 @@ use crate::control::start_control_process;
 use crate::stdio::RedirectedStdio;
 use comm::messages::{ComputeMsg, Exception, FromKernelMessage, OutputFlag, OutputValue};
 use pyo3::types::PyStringMethods;
-use pyo3::types::{PyAnyMethods, PyDict, PyListMethods, PyTracebackMethods};
-use pyo3::{Bound, Py, PyAny, PyErr, PyResult, Python};
+use pyo3::types::{PyAnyMethods, PyTracebackMethods};
+use pyo3::{Bound, PyAny, PyErr, PyResult, Python};
 use tokio::runtime::Builder;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
@@ -28,11 +28,6 @@ fn try_repr_html(obj: &Bound<PyAny>) -> PyResult<Option<String>> {
     } else {
         Ok(None)
     }
-}
-
-struct State {
-    globals: Py<PyDict>,
-    locals: Py<PyDict>,
 }
 
 fn eval_code<'a>(

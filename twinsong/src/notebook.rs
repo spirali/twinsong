@@ -78,6 +78,7 @@ impl Display for OutputCellId {
     }
 }
 
+#[allow(dead_code)] // TODO: Remove this when Run saving is implemented
 pub(crate) struct Run {
     title: String,
     output_cells: Vec<OutputCell>,
@@ -155,10 +156,6 @@ impl Run {
 
     pub fn kernel_mut(&mut self) -> Option<&mut KernelHandle> {
         self.kernel.as_mut()
-    }
-
-    pub fn kernel(&self) -> Option<&KernelHandle> {
-        self.kernel.as_ref()
     }
 
     pub fn notebook_id(&self) -> NotebookId {
