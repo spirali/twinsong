@@ -60,9 +60,15 @@ interface NewEditorCellAction {
   editor_cell: EditorCell;
 }
 
+interface SelectEditorCellAction {
+  type: "select_editor_cell";
+  editor_cell_id: CellId | null;
+}
+
 export interface State {
   notebook: Notebook | null;
   current_run_id: RunId | null;
+  selected_editor_cell_id: CellId | null;
 }
 
 export type StateAction =
@@ -73,7 +79,8 @@ export type StateAction =
   | NewOutputAction
   | NewOutputCellAction
   | SetCurrentRunAction
-  | NewEditorCellAction;
+  | NewEditorCellAction
+  | SelectEditorCellAction;
 
 export function stateReducer(state: State, action: StateAction): State {
   console.log(action);
@@ -233,6 +240,13 @@ export function stateReducer(state: State, action: StateAction): State {
         },
       };
     }
+    case "select_editor_cell": {
+      return {
+        ...state,
+        selected_editor_cell_id: action.editor_cell_id
+      };
+    }
+
     default: {
       throw Error("Unknown action");
     }
@@ -242,4 +256,5 @@ export function stateReducer(state: State, action: StateAction): State {
 export const INITIAL_STATE: State = {
   notebook: null,
   current_run_id: null,
+  selected_editor_cell_id: null
 };

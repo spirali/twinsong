@@ -37,10 +37,18 @@ const EditorCellRenderer: React.FC<{
   const dispatch = useDispatch()!;
   const sendCommand = useSendCommand()!;
   const state = useGlobalState();
-
   return (
-    <div className="mb-2 border border-gray-200 rounded-md overflow-hidden">
+      <div className={`border-l-6 pl-1 ${state.selected_editor_cell_id == cell.id?"border-blue-200":"border-white"}`}>
+      <div className="mb-2 border border-gray-200 rounded-md overflow-hidden">
       <Editor
+        onFocus={() => dispatch({
+          type: "select_editor_cell",
+          editor_cell_id: cell.id
+        })}
+        onBlur={() => dispatch({
+          type: "select_editor_cell",
+          editor_cell_id: null
+        })}
         id={cell.id}
         value={cell.value}
         onValueChange={(code) => {
@@ -82,6 +90,7 @@ const EditorCellRenderer: React.FC<{
           }
         }}
       />
+    </div>
     </div>
   );
 };

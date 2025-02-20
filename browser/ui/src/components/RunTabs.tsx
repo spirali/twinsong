@@ -53,7 +53,7 @@ const RunTabs: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="flex-grow p-2 bg-white overflow-auto">
+        <div className="flex-grow p-1 bg-white overflow-auto">
           <RunView
             run={
               state.notebook!.runs.find((r) => r.id === state.current_run_id)!

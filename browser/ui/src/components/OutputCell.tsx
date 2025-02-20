@@ -9,6 +9,7 @@ import { OutputCell, OutputValue } from "../core/notebook";
 import Editor from "react-simple-code-editor";
 import { highlight, languages } from "prismjs/components/prism-core";
 import "prismjs/components/prism-python";
+import { useGlobalState } from "./StateProvider";
 
 const OutputValueView: React.FC<{ value: OutputValue }> = (props: {
   value: OutputValue;
@@ -34,6 +35,7 @@ const OutputValueView: React.FC<{ value: OutputValue }> = (props: {
 const OutputCellView: React.FC<{ cell: OutputCell }> = (props: {
   cell: OutputCell;
 }) => {
+  const state = useGlobalState();
   const [showMetadata, setShowMetadata] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -75,6 +77,7 @@ const OutputCellView: React.FC<{ cell: OutputCell }> = (props: {
   };
 
   return (
+    <div className={`border-l-6 pl-1 ${state.selected_editor_cell_id == props.cell.editor_cell.id?"border-orange-200":"border-white"}`}>
     <div ref={ref} className="border border-gray-300 shadow-sm mb-2">
       {/* Smaller Status Bar */}
       <div
@@ -118,6 +121,7 @@ const OutputCellView: React.FC<{ cell: OutputCell }> = (props: {
           <OutputValueView key={index} value={value} />
         ))}
       </div>
+    </div>
     </div>
   );
 };
