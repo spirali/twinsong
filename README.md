@@ -34,7 +34,7 @@ $ pip install twinsong
 Start TwinSong itself:
 
 ```
-python -m twinsong
+twinsong
 ```
 
 ## Building locally

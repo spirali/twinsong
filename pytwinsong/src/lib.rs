@@ -12,8 +12,13 @@ fn start_kernel() -> PyResult<()> {
     Ok(())
 }
 
+fn get_argv(py: Python) -> PyResult<Vec<String>> {
+    py.import("sys")?.getattr("argv")?.extract()
+}
+
 #[pyfunction]
-fn start_server(args: Vec<String>) -> PyResult<()> {
+fn start_server() -> PyResult<()> {
+    let args: Vec<String> = Python::with_gil(get_argv)?;
     Builder::new_current_thread()
         .enable_all()
         .build()
