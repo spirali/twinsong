@@ -15,7 +15,7 @@ TwinSong is an alternative to Jupyter Notebook that separates code and outputs f
 - **Compact Code** – Code remains uncluttered as outputs are displayed separately.
 - **Preserved Results** – Re-evaluating a cell does not overwrite previous results. TwinSong tracks the code that generated past outputs.
 - **Multiple Kernel Instances** – The separation of code and outputs allows multiple kernel instances to run over the same code at once.
-- **Rust Backend** – The backend is written in Rust. Package is statically linked, no dependencies needed. 
+- **Rust Backend** – The backend is written in Rust. Package is statically linked, no dependencies needed.
 - **Clean Python Kernel** - The Python kernel is a clean Python instance with a Rust module that avoids loading additional Python modules or starting additional Python threads.
 
 ## Status
@@ -56,13 +56,11 @@ pip install maturin
 cd pytwinsong
 maturin develop -r
 
-# Building standalone server 
+# Building standalone server
 # (This is optional; python package already contains server)
 
 cargo build --release --package twinsong
 ```
-
-TwinSong core do not need Python, you can ...
 
 
 ## License
