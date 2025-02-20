@@ -19,7 +19,9 @@ def http_service(tmp_path):
     log = open(log_path, "w")
     env = os.environ.copy()
     env["RUST_LOG"] = "DEBUG"
-    p = subprocess.Popen([BIN_DIR, "--port", str(PORT)], stdout=log, stderr=subprocess.STDOUT, env=env)
+    p = subprocess.Popen(
+        [BIN_DIR, "--port", str(PORT)], stdout=log, stderr=subprocess.STDOUT, env=env
+    )
     time.sleep(0.1)
     yield p
     print("Shutting down http service")
@@ -36,7 +38,6 @@ def ws(http_service):
 
 
 class Kernel:
-
     def __init__(self, client: "Client", notebook_id, run_id):
         self.client = client
         self.notebook_id = notebook_id
@@ -44,15 +45,18 @@ class Kernel:
 
     def run_code(self, code):
         cell_id = str(uuid.uuid4())
-        editor_cell = {
-            "id": str(uuid.uuid4()),
-            "value": code
-        }
+        editor_cell = {"id": str(uuid.uuid4()), "value": code}
         outputs = []
         while True:
             self.client.send_message(
-                {"type": "RunCell", "run_id": self.run_id, "code": code, "cell_id": cell_id,
-                 "editor_cell": editor_cell})
+                {
+                    "type": "RunCell",
+                    "run_id": self.run_id,
+                    "code": code,
+                    "cell_id": cell_id,
+                    "editor_cell": editor_cell,
+                }
+            )
             r = self.client.receive_message()
             print(r)
             assert r["type"] == "Output"
@@ -85,7 +89,13 @@ class Client:
     def create_new_kernel(self, notebook_id) -> Kernel:
         run_id = str(uuid.uuid4())
         self.send_message(
-            {"type": "CreateNewKernel", "notebook_id": notebook_id, "run_id": run_id, "run_title": "Run Test"})
+            {
+                "type": "CreateNewKernel",
+                "notebook_id": notebook_id,
+                "run_id": run_id,
+                "run_title": "Run Test",
+            }
+        )
         r = self.receive_message()
         assert r["type"] == "KernelReady"
         return Kernel(self, notebook_id, run_id)

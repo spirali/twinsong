@@ -1,3 +1,4 @@
 pytest
 websockets
 maturin
+ruff

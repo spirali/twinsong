@@ -11,5 +11,8 @@ def run_code(code, stdout):
             if isinstance(tree.body[-1], ast.Expr):
                 last_expr = tree.body.pop().value
                 exec(compile(tree, filename="<cell>", mode="exec"), VARIABLES)
-                return eval(compile(ast.Expression(last_expr), filename="<cell>", mode="eval"), VARIABLES)
+                return eval(
+                    compile(ast.Expression(last_expr), filename="<cell>", mode="eval"),
+                    VARIABLES,
+                )
             exec(compile(tree, filename="<cell>", mode="exec"), VARIABLES)
