@@ -118,7 +118,7 @@ const EditorPanel: React.FC = () => {
       </div>
 
       {/* Cells Container */}
-      <div className="p-4 space-y-4 overflow-auto">
+      <div className="pl-1 pr-2 pt-2 pb-2 space-y-4 overflow-auto">
         {state.notebook!.editor_cells.map((cell, index) => (
           <EditorCellRenderer
             key={cell.id}
