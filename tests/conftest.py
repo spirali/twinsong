@@ -8,7 +8,10 @@ import uuid
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(TESTS_DIR)
-BIN_DIR = os.path.join(ROOT_DIR, "target", "debug", "twinsong")
+if os.environ.get("TWINSONG_TEST_BIN") == "release":
+    BIN_DIR = os.path.join(ROOT_DIR, "target", "release", "twinsong")
+else:
+    BIN_DIR = os.path.join(ROOT_DIR, "target", "debug", "twinsong")
 
 PORT = 4511
 

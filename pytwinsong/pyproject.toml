@@ -4,7 +4,8 @@ build-backend = "maturin"
 
 [project]
 name = "twinsong"
-requires-python = ">=3.8"
+uthors = [{name = "Ada Böhm", email = "ada@kreatrix.org"}]
+requires-python = ">=3.10"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
