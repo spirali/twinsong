@@ -15,3 +15,5 @@ tracing = "0.1"
 [profile.release]
 panic = 'abort'
 debug = "line-tables-only"
+codegen-units = 1
+lto = true
