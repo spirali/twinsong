@@ -17,7 +17,7 @@ pub struct FinishedMsg {
     pub value: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum OutputFlag {
     Stream,
     Success,
@@ -41,7 +41,7 @@ pub enum OutputValue {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum FromKernelMessage {
     Login {
-        run_id: Uuid,
+        kernel_id: Uuid,
     },
     Output {
         value: OutputValue,

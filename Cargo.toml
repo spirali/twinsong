@@ -11,9 +11,10 @@ futures-util = "0.3"
 uuid = { version = "1.13", features = ["v4", "serde"] }
 tracing-subscriber = "0.3"
 tracing = "0.1"
+nutype = "0.6"
 
 [profile.release]
-panic = 'abort'
+panic = "abort"
 debug = "line-tables-only"
 codegen-units = 1
 lto = true

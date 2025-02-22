@@ -2,6 +2,7 @@ use crate::notebook::{EditorCell, NotebookId, OutputCellId, RunId};
 use axum::extract::ws::Message;
 use comm::messages::{OutputFlag, OutputValue};
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
@@ -9,6 +10,8 @@ pub(crate) enum FromClientMessage {
     CreateNewNotebook(CreateNewNotebookMsg),
     CreateNewKernel(CreateNewKernelMsg),
     RunCell(RunCellMsg),
+    SaveNotebook(SaveNotebookMsg),
+    LoadNotebook(LoadNotebookMsg),
 }
 
 #[derive(Debug, Deserialize)]
@@ -23,15 +26,27 @@ pub(crate) struct CreateNewKernelMsg {
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct RunCellMsg {
+    pub notebook_id: NotebookId,
     pub run_id: RunId,
     pub cell_id: OutputCellId,
     pub editor_cell: EditorCell,
 }
 
+#[derive(Debug, Deserialize)]
+pub(crate) struct SaveNotebookMsg {
+    pub notebook_id: NotebookId,
+    pub editor_cells: Vec<EditorCell>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct LoadNotebookMsg {
+    pub path: String,
+}
+
 #[derive(Debug, Serialize)]
 pub(crate) struct NotebookDesc<'a> {
     pub id: NotebookId,
-    pub title: &'a str,
+    pub path: &'a str,
     pub editor_cells: &'a [EditorCell],
 }
 
@@ -52,14 +67,20 @@ pub(crate) enum ToClientMessage<'a> {
         run_id: RunId,
     },
     KernelCrashed {
+        notebook_id: NotebookId,
         run_id: RunId,
         message: String,
     },
     Output {
+        notebook_id: NotebookId,
         run_id: RunId,
         cell_id: OutputCellId,
-        value: OutputValue,
+        value: &'a OutputValue,
         flag: OutputFlag,
+    },
+    SaveCompleted {
+        notebook_id: NotebookId,
+        error: Option<String>,
     },
 }
 

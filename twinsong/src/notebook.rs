@@ -1,9 +1,14 @@
-use crate::client_messages::{serialize_client_message, ToClientMessage};
-use crate::define_id_type;
+use crate::client_messages::{serialize_client_message, NotebookDesc, ToClientMessage};
 use crate::kernel::KernelHandle;
+use anyhow::anyhow;
 use axum::extract::ws::Message;
+use comm::messages::{OutputFlag, OutputValue};
+use nutype::nutype;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
+use std::path::{Path, PathBuf};
+use std::process::Output;
 use tokio::sync::mpsc::UnboundedSender;
 use uuid::Uuid;
 
@@ -15,87 +20,80 @@ pub(crate) struct EditorCell {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct OutputCell {
-    value: String,
+    id: OutputCellId,
+    values: Vec<OutputValue>,
+    flag: OutputFlag,
 }
 
-define_id_type!(NotebookId, u32);
+#[nutype(derive(
+    Display,
+    Debug,
+    PartialEq,
+    Hash,
+    Eq,
+    Serialize,
+    Deserialize,
+    Copy,
+    Clone
+))]
+pub(crate) struct NotebookId(u32);
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[serde(transparent)]
-#[repr(transparent)]
+#[nutype(derive(
+    Display,
+    Debug,
+    PartialEq,
+    Hash,
+    Eq,
+    Serialize,
+    Deserialize,
+    Copy,
+    Clone
+))]
 pub(crate) struct RunId(Uuid);
 
-impl Default for RunId {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+#[nutype(derive(
+    Display,
+    Debug,
+    PartialEq,
+    Hash,
+    Eq,
+    Serialize,
+    Deserialize,
+    Copy,
+    Clone
+))]
+pub(crate) struct KernelId(Uuid);
 
-impl RunId {
-    pub fn new() -> Self {
-        RunId(Uuid::new_v4())
-    }
+#[nutype(derive(
+    Display,
+    Debug,
+    PartialEq,
+    Hash,
+    Eq,
+    Serialize,
+    Deserialize,
+    Copy,
+    Clone
+))]
+pub(crate) struct OutputCellId(Uuid);
 
-    pub fn from(uuid: Uuid) -> Self {
-        RunId(uuid)
-    }
-}
-
-impl Display for RunId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[serde(transparent)]
-#[repr(transparent)]
-pub struct OutputCellId(Uuid);
-
-impl Default for OutputCellId {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl OutputCellId {
-    pub fn new() -> Self {
-        OutputCellId(Uuid::new_v4())
-    }
-
-    pub fn from(uuid: Uuid) -> Self {
-        OutputCellId(uuid)
-    }
-
-    pub fn as_uuid(&self) -> Uuid {
-        self.0
-    }
-}
-
-impl Display for OutputCellId {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-#[allow(dead_code)] // TODO: Remove this when Run saving is implemented
+//#[allow(dead_code)] // TODO: Remove this when Run saving is implemented
 pub(crate) struct Run {
     title: String,
     output_cells: Vec<OutputCell>,
-    notebook_id: NotebookId,
-    kernel: Option<KernelHandle>,
+    kernel: Option<KernelId>,
 }
 
 pub(crate) struct Notebook {
-    pub id: NotebookId,
     pub editor_cells: Vec<EditorCell>,
-    pub title: String,
-    pub runs: Vec<RunId>,
+    pub path: String,
+    pub runs: HashMap<RunId, Run>,
+    pub run_order: Vec<RunId>,
     pub observers: Vec<UnboundedSender<Message>>,
 }
 
 impl Notebook {
-    pub fn new(id: NotebookId, title: String) -> Self {
+    pub fn new(path: String) -> Self {
         let editor_cells = vec![
             EditorCell {
                 id: Uuid::new_v4(),
@@ -116,10 +114,10 @@ impl Notebook {
 
         ];
         Notebook {
-            id,
-            title,
+            path,
             editor_cells,
             runs: Default::default(),
+            run_order: Vec::new(),
             observers: Vec::new(),
         }
     }
@@ -128,8 +126,9 @@ impl Notebook {
         self.observers.push(sender);
     }
 
-    pub fn add_run(&mut self, run_id: RunId) {
-        self.runs.push(run_id);
+    pub fn add_run(&mut self, run_id: RunId, run: Run) {
+        assert!(self.runs.insert(run_id, run).is_none());
+        self.run_order.push(run_id);
     }
 
     pub fn send_message(&self, message: ToClientMessage) {
@@ -142,23 +141,61 @@ impl Notebook {
         }
         let _ = self.observers[0].send(data);
     }
+
+    pub fn find_run_by_id_mut(&mut self, run_id: RunId) -> anyhow::Result<&mut Run> {
+        self.runs
+            .get_mut(&run_id)
+            .ok_or_else(|| anyhow!(format!("Run {run_id} not found")))
+    }
+
+    pub fn notebook_desc(&self, notebook_id: NotebookId) -> NotebookDesc {
+        NotebookDesc {
+            id: notebook_id,
+            path: &self.path,
+            editor_cells: &self.editor_cells,
+        }
+    }
 }
 
 impl Run {
-    pub fn new(notebook_id: NotebookId, title: String, kernel: Option<KernelHandle>) -> Self {
+    pub fn new(title: String, kernel: Option<KernelId>) -> Self {
         Run {
             title,
             output_cells: Vec::new(),
-            notebook_id,
             kernel,
         }
     }
 
-    pub fn kernel_mut(&mut self) -> Option<&mut KernelHandle> {
-        self.kernel.as_mut()
+    pub fn kernel_id(&mut self) -> Option<KernelId> {
+        self.kernel
     }
 
-    pub fn notebook_id(&self) -> NotebookId {
-        self.notebook_id
+    pub fn add_output(&mut self, cell_id: OutputCellId, value: OutputValue, flag: OutputFlag) {
+        if let Some(ref mut last) = self.output_cells.last_mut().filter(|c| c.id == cell_id) {
+            if let OutputValue::Text { value: new_text } = &value {
+                if let Some(OutputValue::Text { value: old_text }) = last.values.last_mut() {
+                    old_text.push_str(&new_text);
+                    return;
+                }
+            }
+            last.values.push(value);
+            last.flag = flag;
+        } else {
+            self.output_cells.push(OutputCell {
+                id: cell_id,
+                values: vec![value],
+                flag,
+            });
+        }
     }
+}
+
+pub(crate) fn generate_new_notebook_path() -> anyhow::Result<String> {
+    for i in 1..300 {
+        let candidate = format!("new_notebook_{i}");
+        if !std::fs::exists(&Path::new(&candidate)).unwrap_or(true) {
+            return Ok(candidate);
+        }
+    }
+    Err(anyhow!("Cannot generate new notebook path"))
 }

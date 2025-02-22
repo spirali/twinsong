@@ -2,8 +2,8 @@ use crate::client_messages::{
     parse_client_message, serialize_client_message, FromClientMessage, NotebookDesc,
     ToClientMessage,
 };
-use crate::notebook::Notebook;
-use crate::reactor::{run_code, start_kernel};
+use crate::notebook::{generate_new_notebook_path, Notebook};
+use crate::reactor::{load_notebook, run_code, save_notebook, start_kernel};
 use crate::state::AppStateRef;
 use axum::body::Body;
 use axum::extract::ws::{Message, WebSocket};
@@ -96,6 +96,7 @@ async fn handle_socket(mut socket: WebSocket, state_ref: &AppStateRef) -> anyhow
         let msg = msg?;
         if let Message::Text(_text) = msg {
             // TODO: Implement loging with TOKEN
+            let state = state_ref.lock().unwrap();
         } else {
             tracing::error!("Invalid first message");
         }
@@ -139,23 +140,15 @@ async fn recv_client_messages(
         let message = parse_client_message(data)?;
         match message {
             FromClientMessage::CreateNewNotebook(_) => {
-                let message = {
-                    let mut state = state_ref.lock().unwrap();
-                    let notebook_id = state.new_notebook_id();
-                    tracing::debug!("Creating new notebook {notebook_id}");
-                    let mut notebook = Notebook::new(notebook_id, "Notebook".to_string());
-                    let message = serialize_client_message(ToClientMessage::NewNotebook {
-                        notebook: NotebookDesc {
-                            id: notebook.id,
-                            title: &notebook.title,
-                            editor_cells: &notebook.editor_cells,
-                        },
-                    })?;
-                    notebook.add_observer(sender.clone());
-                    state.add_notebook(notebook);
-                    message
-                };
-                let _ = sender.send(message);
+                let mut state = state_ref.lock().unwrap();
+                let notebook_id = state.new_notebook_id();
+                tracing::debug!("Creating new notebook {notebook_id}");
+                let mut notebook = Notebook::new(generate_new_notebook_path()?);
+                notebook.add_observer(sender.clone());
+                notebook.send_message(ToClientMessage::NewNotebook {
+                    notebook: notebook.notebook_desc(notebook_id),
+                });
+                state.add_notebook(notebook_id, notebook);
             }
             FromClientMessage::CreateNewKernel(msg) => {
                 tracing::debug!("Creating new kernel for notebook {}", msg.notebook_id);
@@ -170,6 +163,7 @@ async fn recv_client_messages(
                     log::error!("Starting kernel failed {e}");
                     let _ =
                         sender.send(serialize_client_message(ToClientMessage::KernelCrashed {
+                            notebook_id: msg.notebook_id,
                             run_id: msg.run_id,
                             message: e.to_string(),
                         })?);
@@ -191,6 +185,14 @@ async fn recv_client_messages(
                         message: &e.to_string(),
                     })?);
                 }
+            }
+            FromClientMessage::SaveNotebook(msg) => {
+                let mut state = state_ref.lock().unwrap();
+                save_notebook(&mut state, &state_ref, msg)?;
+            }
+            FromClientMessage::LoadNotebook(msg) => {
+                let mut state = state_ref.lock().unwrap();
+                load_notebook(&mut state, &state_ref, msg, sender.clone())?;
             }
         }
     }
