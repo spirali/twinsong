@@ -5,6 +5,7 @@ from websockets.sync.client import connect
 import json
 import time
 import uuid
+import contextlib
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(TESTS_DIR)
@@ -16,22 +17,33 @@ else:
 PORT = 4511
 
 
+@contextlib.contextmanager
+def work_dir(path):
+    old = os.getcwd()
+    os.chdir(path)
+    try:
+        yield path
+    finally:
+        os.chdir(old)
+
+
 @pytest.fixture
 def http_service(tmp_path):
-    log_path = str(tmp_path / "server.out.log")
-    log = open(log_path, "w")
-    env = os.environ.copy()
-    env["RUST_LOG"] = "DEBUG"
-    p = subprocess.Popen(
-        [BIN_DIR, "--port", str(PORT)], stdout=log, stderr=subprocess.STDOUT, env=env
-    )
-    time.sleep(0.1)
-    yield p
-    print("Shutting down http service")
-    if p.poll() is None:
-        p.kill()
-    else:
-        raise Exception("HTTP service failed")
+    with work_dir(tmp_path):
+        log_path = str(tmp_path / "server.out.log")
+        log = open(log_path, "w")
+        env = os.environ.copy()
+        env["RUST_LOG"] = "DEBUG"
+        p = subprocess.Popen(
+            [BIN_DIR, "--port", str(PORT)], stdout=log, stderr=subprocess.STDOUT, env=env
+        )
+        time.sleep(0.1)
+        yield p
+        print("Shutting down http service")
+        if p.poll() is None:
+            p.kill()
+        else:
+            raise Exception("HTTP service failed")
 
 
 @pytest.fixture
@@ -54,6 +66,7 @@ class Kernel:
             self.client.send_message(
                 {
                     "type": "RunCell",
+                    "notebook_id": self.notebook_id,
                     "run_id": self.run_id,
                     "code": code,
                     "cell_id": cell_id,

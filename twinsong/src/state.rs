@@ -1,11 +1,13 @@
-use crate::notebook::{Notebook, NotebookId, Run, RunId};
+use crate::kernel::KernelHandle;
+use crate::notebook::{KernelId, Notebook, NotebookId, Run, RunId};
 use anyhow::anyhow;
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 pub(crate) struct AppState {
     notebooks: HashMap<NotebookId, Notebook>,
-    runs: HashMap<RunId, Run>,
+    kernels: HashMap<KernelId, KernelHandle>,
     id_counter: u32,
     kernel_port: u16,
     http_port: u16,
@@ -17,7 +19,7 @@ impl AppState {
     pub fn new(http_port: u16) -> Self {
         AppState {
             notebooks: HashMap::new(),
-            runs: HashMap::new(),
+            kernels: HashMap::new(),
             id_counter: 0,
             kernel_port: 0,
             http_port,
@@ -26,12 +28,11 @@ impl AppState {
 
     pub fn new_notebook_id(&mut self) -> NotebookId {
         self.id_counter += 1;
-        self.id_counter.into()
+        NotebookId::new(self.id_counter)
     }
 
-    pub fn add_notebook(&mut self, notebook: Notebook) {
-        let id = notebook.id;
-        self.notebooks.insert(id, notebook);
+    pub fn add_notebook(&mut self, notebook_id: NotebookId, notebook: Notebook) {
+        self.notebooks.insert(notebook_id, notebook);
     }
 
     pub fn notebook_by_id(&self, id: NotebookId) -> &Notebook {
@@ -44,8 +45,12 @@ impl AppState {
             .ok_or(anyhow!("Notebook not found"))
     }
 
-    pub fn add_run(&mut self, run_id: RunId, run: Run) {
-        assert!(self.runs.insert(run_id, run).is_none());
+    pub fn get_notebook_by_id(&self, id: NotebookId) -> Option<&Notebook> {
+        self.notebooks.get(&id)
+    }
+
+    pub fn add_kernel(&mut self, kernel_id: KernelId, kernel: KernelHandle) {
+        assert!(self.kernels.insert(kernel_id, kernel).is_none());
     }
 
     pub fn set_kernel_port(&mut self, kernel_port: u16) {
@@ -60,11 +65,24 @@ impl AppState {
         self.http_port
     }
 
-    pub fn get_run_by_id(&self, id: RunId) -> Option<&Run> {
-        self.runs.get(&id)
+    pub fn find_kernel_by_id_mut(&mut self, id: KernelId) -> anyhow::Result<&mut KernelHandle> {
+        self.kernels.get_mut(&id).ok_or(anyhow!("Kernel not found"))
     }
 
-    pub fn find_run_by_id_mut(&mut self, id: RunId) -> anyhow::Result<&mut Run> {
-        self.runs.get_mut(&id).ok_or(anyhow!("Kernel not found"))
+    pub fn get_kernel_by_id_mut(&mut self, id: KernelId) -> Option<&mut KernelHandle> {
+        self.kernels.get_mut(&id)
+    }
+
+    pub fn get_notebook_by_path_mut(&mut self, path: &str) -> Option<(NotebookId, &mut Notebook)> {
+        self.notebooks
+            .iter_mut()
+            .filter_map(|(id, notebook)| {
+                if notebook.path == path {
+                    Some((*id, notebook))
+                } else {
+                    None
+                }
+            })
+            .next()
     }
 }

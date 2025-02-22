@@ -36,12 +36,13 @@ async fn controller_main(
     tracing_subscriber::fmt::init();
     let addr = std::env::var("KERNEL_CONNECT")
         .map_err(|_| anyhow!("Variable KERNEL_CONNECT not defined"))?;
-    let run_id_str = std::env::var("RUN_ID").map_err(|_| anyhow!("Variable RUN_ID not defined"))?;
-    let run_id = Uuid::parse_str(&run_id_str)?;
+    let id_str =
+        std::env::var("KERNEL_ID").map_err(|_| anyhow!("Variable KERNEL_ID not defined"))?;
+    let kernel_id = Uuid::parse_str(&id_str)?;
     let socket = TcpStream::connect(&addr).await?;
     let (mut sender, receiver) = make_protocol_builder().new_framed(socket).split();
     sender
-        .send(serialize_from_kernel_message(FromKernelMessage::Login { run_id })?.into())
+        .send(serialize_from_kernel_message(FromKernelMessage::Login { kernel_id })?.into())
         .await?;
 
     tokio::select! {

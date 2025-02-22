@@ -5,6 +5,7 @@ mod kernel;
 mod notebook;
 mod reactor;
 mod state;
+mod storage;
 mod utils;
 
 pub use cli::server_cli;
