@@ -182,7 +182,10 @@ pub(crate) async fn handle_connection(
                 let run_id = kernel.run_id();
                 state
                     .notebook_by_id(notebook_id)
-                    .send_message(ToClientMessage::KernelReady { run_id });
+                    .send_message(ToClientMessage::KernelReady {
+                        notebook_id,
+                        run_id,
+                    });
                 (
                     c_receiver,
                     KernelCtx {

@@ -7,7 +7,7 @@ const DispatchContext = createContext<ActionDispatch<
   [action: StateAction]
 > | null>(null);
 
-export const NotebookProvider = (props: { children: JSX.Element }) => {
+export const StateProvider = (props: { children: JSX.Element }) => {
   const [tasks, dispatch] = useReducer(stateReducer, INITIAL_STATE);
 
   return (

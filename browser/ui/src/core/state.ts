@@ -4,6 +4,7 @@ import {
   KernelState,
   Notebook,
   NotebookDesc,
+  NotebookId,
   OutputCell,
   OutputCellState,
   OutputValue,
@@ -12,31 +13,40 @@ import {
   TextOutputValue,
 } from "./notebook";
 
+interface SetSelectedNotebookAction {
+  type: "set_selected_notebook";
+  id: NotebookId | null;
+}
+
 interface EditCellAction {
   type: "cell_edit";
+  notebook_id: NotebookId;
   id: unknown;
   value: string;
 }
 
 interface FreshRunAction {
   type: "fresh_run";
+  notebook_id: NotebookId;
   run_id: RunId;
   run_title: string;
 }
 
 interface NewOutputCellAction {
   type: "new_output_cell";
+  notebook_id: NotebookId;
   run_id: RunId;
   cell: OutputCell;
 }
 
-interface SetNotebookAction {
-  type: "set_notebook";
-  notebook: NotebookDesc | null;
+interface AddNotebookAction {
+  type: "add_notebook";
+  notebook: NotebookDesc;
 }
 
 interface KernelStateChangedAction {
   type: "kernel_changed";
+  notebook_id: NotebookId;
   run_id: RunId;
   kernel_state: KernelState;
   message: string | null;
@@ -44,6 +54,7 @@ interface KernelStateChangedAction {
 
 interface NewOutputAction {
   type: "new_output";
+  notebook_id: NotebookId;
   run_id: RunId;
   cell_id: CellId;
   status: OutputCellState;
@@ -52,76 +63,106 @@ interface NewOutputAction {
 
 interface SetCurrentRunAction {
   type: "set_current_run";
+  notebook_id: NotebookId;
   run_id: RunId;
+}
+
+interface SaveNotebookAction {
+  type: "save_notebook";
+  notebook_id: NotebookId;
+  save_in_progress: boolean;
 }
 
 interface NewEditorCellAction {
   type: "new_editor_cell";
+  notebook_id: NotebookId;
   editor_cell: EditorCell;
 }
 
 interface SelectEditorCellAction {
   type: "select_editor_cell";
+  notebook_id: NotebookId;
   editor_cell_id: CellId | null;
 }
 
 export interface State {
-  notebook: Notebook | null;
-  current_run_id: RunId | null;
-  selected_editor_cell_id: CellId | null;
+  notebooks: Notebook[];
+  selected_notebook: Notebook | null;
 }
 
 export type StateAction =
   | EditCellAction
-  | SetNotebookAction
+  | AddNotebookAction
   | FreshRunAction
   | KernelStateChangedAction
   | NewOutputAction
   | NewOutputCellAction
   | SetCurrentRunAction
   | NewEditorCellAction
-  | SelectEditorCellAction;
+  | SelectEditorCellAction
+  | SetSelectedNotebookAction
+  | SaveNotebookAction;
+
+function updateNotebooks(state: State, notebook: Notebook): State {
+  return {
+    ...state,
+    notebooks: state.notebooks.map((n) => {
+      if (n.id == notebook.id) {
+        return notebook;
+      } else {
+        return n;
+      }
+    }),
+    selected_notebook: state.selected_notebook?.id == notebook.id ? notebook : state.selected_notebook,
+  };
+}
 
 export function stateReducer(state: State, action: StateAction): State {
   console.log(action);
-  if (action.type == "set_notebook") {
-    if (action.notebook) {
+  switch (action.type) {
+    case "add_notebook": {
+        const notebook = {
+            id: action.notebook.id,
+            editor_cells: action.notebook.editor_cells,
+            runs: [],
+            waiting_for_fresh: [],
+            current_run_id: null,
+            selected_editor_cell_id: null,
+            save_in_progress: false,
+            path: action.notebook.path,
+        } as Notebook;
+        
+        return {
+          ...state,
+          notebooks: [
+            ...state.notebooks,
+            notebook,
+          ],
+          selected_notebook: notebook
+        };
+    }
+    case "set_selected_notebook": {
       return {
         ...state,
-        notebook: {
-          id: action.notebook.id,
-          editor_cells: action.notebook.editor_cells,
-          runs: [],
-          waiting_for_fresh: [],
-        },
-      };
-    } else {
-      return {
-        ...state,
-        notebook: null,
+        selected_notebook: state.notebooks.find((n) => n.id == action.id) || null,
       };
     }
-  }
-  if (!state.notebook) {
-    return state;
-  }
-  switch (action.type) {
     case "cell_edit": {
-      const editor_cells = state.notebook.editor_cells.map((c) => {
+      const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
+      const editor_cells = notebook.editor_cells.map((c) => {
         if (c.id == action.id) {
           return { ...c, value: action.value };
         } else {
           return c;
         }
       });
-      return {
-        ...state,
-        notebook: { ...state.notebook, editor_cells: editor_cells },
-      };
+      const new_notebook = { ...notebook, editor_cells: editor_cells };
+      return updateNotebooks(state, new_notebook);
     }
     case "fresh_run": {
-      const runs = [
-        ...state.notebook.runs,
+      const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
+      const new_notebook = { ...notebook, runs: [
+        ...notebook.runs,
         {
           id: action.run_id,
           title: action.run_title,
@@ -129,15 +170,12 @@ export function stateReducer(state: State, action: StateAction): State {
           output_cells: [],
           kernel_state_message: null,
         } as Run,
-      ];
-      return {
-        ...state,
-        notebook: { ...state.notebook, runs },
-        current_run_id: runs[runs.length - 1].id,
-      };
+      ], current_run_id: action.run_id };
+      return updateNotebooks(state, new_notebook);
     }
     case "kernel_changed": {
-      let runs = state.notebook.runs.map((r) => {
+      const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
+      const new_notebook = { ...notebook, runs: notebook.runs.map((r) => {
         if (r.id == action.run_id) {
           if (action.kernel_state == "ready" && r.output_cells.length > 0) {
             const output_cells = r.output_cells.map((cell, index) =>
@@ -159,48 +197,40 @@ export function stateReducer(state: State, action: StateAction): State {
         } else {
           return r;
         }
-      });
-      return {
-        ...state,
-        notebook: { ...state.notebook, runs },
-      };
+      })};
+      return updateNotebooks(state, new_notebook);
     }
     case "new_output_cell": {
-      const runs = state.notebook.runs.map((r) => {
+      const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
+      const new_notebook = { ...notebook, runs: notebook.runs.map((r) => {
         if (r.id == action.run_id) {
           return { ...r, output_cells: [...r.output_cells, action.cell] } as Run;
         } else {
           return r;
         }
-      });
-      return {
-        ...state,
-        notebook: { ...state.notebook, runs },
-      };
+      })};
+      return updateNotebooks(state, new_notebook);
     }
     case "new_output": {
-      let finished = action.status == "success" || action.status == "error";
-      const runs = state.notebook.runs.map((r) => {
+      const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
+      const new_notebook = { ...notebook, runs: notebook.runs.map((r) => {
         if (r.id == action.run_id) {
+          let finished = action.status == "success" || action.status == "error";
           const output_cells = r.output_cells.map((c) => {
             if (c.id === action.cell_id) {
               let values;
               if (
-                action.value !== "None" &&
-                "Text" in (action.value as object) &&
+               action.value.type == "Text" &&
                 c.values.length > 0 &&
-                c.values[c.values.length - 1] !== "None" &&
-                "Text" in (c.values[c.values.length - 1] as object)
+                c.values[c.values.length - 1].type == "Text"
               ) {
                 // Concatenate text values if both are Text type
                 values = [
                   ...c.values.slice(0, -1),
                   {
-                    Text: {
-                      value:
-                        (c.values[c.values.length - 1] as TextOutputValue).Text
-                          .value + (action.value as TextOutputValue).Text.value,
-                    },
+                    type: "Text",
+                    value:
+                        (c.values[c.values.length - 1] as TextOutputValue).value + (action.value as TextOutputValue).value,
                   },
                 ];
               } else {
@@ -219,34 +249,29 @@ export function stateReducer(state: State, action: StateAction): State {
         } else {
           return r;
         }
-      });
-      return {
-        ...state,
-        notebook: { ...state.notebook, runs },
-      };
+      })};
+      return updateNotebooks(state, new_notebook);
     }
     case "set_current_run": {
-      return {
-        ...state,
-        current_run_id: action.run_id,
-      };
+      const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
+      const new_notebook = { ...notebook, current_run_id: action.run_id };
+      return updateNotebooks(state, new_notebook);
     }
     case "new_editor_cell": {
-      return {
-        ...state,
-        notebook: {
-          ...state.notebook,
-          editor_cells: [...state.notebook.editor_cells, action.editor_cell],
-        },
-      };
+      const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
+      const new_notebook = { ...notebook, editor_cells: [...notebook.editor_cells, action.editor_cell] };
+      return updateNotebooks(state, new_notebook);
     }
     case "select_editor_cell": {
-      return {
-        ...state,
-        selected_editor_cell_id: action.editor_cell_id
-      };
+      const notebook = state.selected_notebook!;
+      const new_notebook = { ...notebook, selected_editor_cell_id: action.editor_cell_id };
+      return updateNotebooks(state, new_notebook);
     }
-
+    case "save_notebook": {
+      const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
+      const new_notebook = { ...notebook, save_in_progress: action.save_in_progress };
+      return updateNotebooks(state, new_notebook);
+    }
     default: {
       throw Error("Unknown action");
     }
@@ -254,7 +279,6 @@ export function stateReducer(state: State, action: StateAction): State {
 }
 
 export const INITIAL_STATE: State = {
-  notebook: null,
-  current_run_id: null,
-  selected_editor_cell_id: null
+  notebooks: [],
+  selected_notebook: null,
 };

@@ -11,22 +11,28 @@ export interface EditorCell {
 }
 
 export interface TextOutputValue {
-  Text: { value: string };
+  type: "Text",
+  value: string
 }
 
 export interface HtmlOutputValue {
-  Html: { value: string };
+  type: "Html",
+  value: string
 }
 
 export interface ExceptionOutputValue {
-  Exception: { message: string; traceback: string };
+  type: "Exception",
+  value: {
+    message: string,
+    traceback: string
+  }
 }
 
 export type OutputValue =
   | TextOutputValue
   | HtmlOutputValue
   | ExceptionOutputValue
-  | "None";
+  | { type: "None" };
 
 export interface OutputCell {
   id: CellId;
@@ -45,12 +51,17 @@ export interface Run {
 
 export interface Notebook {
   id: NotebookId;
+  path: string;
   editor_cells: EditorCell[];
   runs: Run[];
   waiting_for_fresh: EditorCell[];
+  current_run_id: RunId | null;
+  selected_editor_cell_id: CellId | null;
+  save_in_progress: boolean;
 }
 
 export interface NotebookDesc {
   id: NotebookId;
   editor_cells: EditorCell[];
+  path: string;
 }

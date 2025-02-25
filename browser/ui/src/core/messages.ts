@@ -19,28 +19,38 @@ interface NewNotebookMsg {
 
 interface KernelReadyMsg {
   type: "KernelReady";
+  notebook_id: NotebookId;
   run_id: RunId;
 }
 
 interface KernelCrashedMsg {
   type: "KernelCrashed";
+  notebook_id: NotebookId;
   run_id: RunId;
   message: string;
 }
 
 interface OutputMsg {
   type: "Output";
+  notebook_id: NotebookId;
   run_id: RunId;
   cell_id: CellId;
-  flag: "Success" | "Fail";
+  flag: "Success" | "Fail" | "Stream";
   value: OutputValue;
+}
+
+interface SaveCompletedMsg {
+  type: "SaveCompleted";
+  notebook_id: NotebookId;
+  error: string | null;
 }
 
 export type ToClientMessage =
   | NewNotebookMsg
   | KernelReadyMsg
   | KernelCrashedMsg
-  | OutputMsg;
+  | OutputMsg
+  | SaveCompletedMsg;
 
 interface CreateNewNotebookMsg {
   type: "CreateNewNotebook";
@@ -53,8 +63,15 @@ interface CreateNewKernelMsg {
   run_id: string;
 }
 
+interface SaveNotebookMsg {
+  type: "SaveNotebook";
+  notebook_id: NotebookId;
+  editor_cells: EditorCell[];
+}
+
 interface RunCellMsg {
   type: "RunCell";
+  notebook_id: NotebookId;
   run_id: RunId;
   cell_id: CellId;
   editor_cell: EditorCell;
@@ -63,7 +80,8 @@ interface RunCellMsg {
 export type FromClientMessage =
   | CreateNewNotebookMsg
   | CreateNewKernelMsg
-  | RunCellMsg;
+  | RunCellMsg
+  | SaveNotebookMsg;
 
 export function processMessage(
   message: ToClientMessage,
@@ -72,7 +90,7 @@ export function processMessage(
   switch (message.type) {
     case "NewNotebook": {
       dispatch({
-        type: "set_notebook",
+        type: "add_notebook",
         notebook: message.notebook,
       });
       break;
@@ -80,6 +98,7 @@ export function processMessage(
     case "KernelReady": {
       dispatch({
         type: "kernel_changed",
+        notebook_id: message.notebook_id,
         run_id: message.run_id,
         kernel_state: "ready",
         message: null,
@@ -89,6 +108,7 @@ export function processMessage(
     case "KernelCrashed": {
       dispatch({
         type: "kernel_changed",
+        notebook_id: message.notebook_id,
         run_id: message.run_id,
         kernel_state: "crashed",
         message: message.message,
@@ -106,10 +126,19 @@ export function processMessage(
       }
       dispatch({
         type: "new_output",
+        notebook_id: message.notebook_id,
         run_id: message.run_id,
         cell_id: message.cell_id,
         status,
         value: message.value,
+      });
+      break;
+    }
+    case "SaveCompleted": {
+      dispatch({
+        type: "save_notebook",
+        notebook_id: message.notebook_id,
+        save_in_progress: false,
       });
       break;
     }

@@ -4,6 +4,7 @@ import useWebSocket, { ReadyState } from "react-use-websocket";
 import { SendJsonMessage } from "react-use-websocket/dist/lib/types";
 import { useDispatch } from "./StateProvider";
 import ErrorScreen from "./ErrorScreen";
+import LoadingScreen from "./LoadingScreen";
 
 const WsContext = createContext<SendJsonMessage | null>(null);
 
@@ -33,7 +34,6 @@ export const WsProvider = (props: { children: JSX.Element }) => {
       sendJsonMessage({
         type: "login",
       });
-      sendJsonMessage({ type: "CreateNewNotebook" });
     }
   }, [readyState]);
 
@@ -48,6 +48,10 @@ export const WsProvider = (props: { children: JSX.Element }) => {
 
   if (error !== null) {
     return <ErrorScreen title="Error" message={error} />;
+  }
+
+  if (readyState !== ReadyState.OPEN) {
+    return <LoadingScreen/>;
   }
 
   return (
