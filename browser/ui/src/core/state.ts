@@ -113,7 +113,10 @@ function updateNotebooks(state: State, notebook: Notebook): State {
         return n;
       }
     }),
-    selected_notebook: state.selected_notebook?.id == notebook.id ? notebook : state.selected_notebook,
+    selected_notebook:
+      state.selected_notebook?.id == notebook.id
+        ? notebook
+        : state.selected_notebook,
   };
 }
 
@@ -121,30 +124,28 @@ export function stateReducer(state: State, action: StateAction): State {
   console.log(action);
   switch (action.type) {
     case "add_notebook": {
-        const notebook = {
-            id: action.notebook.id,
-            editor_cells: action.notebook.editor_cells,
-            runs: [],
-            waiting_for_fresh: [],
-            current_run_id: null,
-            selected_editor_cell_id: null,
-            save_in_progress: false,
-            path: action.notebook.path,
-        } as Notebook;
-        
-        return {
-          ...state,
-          notebooks: [
-            ...state.notebooks,
-            notebook,
-          ],
-          selected_notebook: notebook
-        };
+      const notebook = {
+        id: action.notebook.id,
+        editor_cells: action.notebook.editor_cells,
+        runs: [],
+        waiting_for_fresh: [],
+        current_run_id: null,
+        selected_editor_cell_id: null,
+        save_in_progress: false,
+        path: action.notebook.path,
+      } as Notebook;
+
+      return {
+        ...state,
+        notebooks: [...state.notebooks, notebook],
+        selected_notebook: notebook,
+      };
     }
     case "set_selected_notebook": {
       return {
         ...state,
-        selected_notebook: state.notebooks.find((n) => n.id == action.id) || null,
+        selected_notebook:
+          state.notebooks.find((n) => n.id == action.id) || null,
       };
     }
     case "cell_edit": {
@@ -161,95 +162,113 @@ export function stateReducer(state: State, action: StateAction): State {
     }
     case "fresh_run": {
       const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
-      const new_notebook = { ...notebook, runs: [
-        ...notebook.runs,
-        {
-          id: action.run_id,
-          title: action.run_title,
-          kernel_state: "init",
-          output_cells: [],
-          kernel_state_message: null,
-        } as Run,
-      ], current_run_id: action.run_id };
+      const new_notebook = {
+        ...notebook,
+        runs: [
+          ...notebook.runs,
+          {
+            id: action.run_id,
+            title: action.run_title,
+            kernel_state: "init",
+            output_cells: [],
+            kernel_state_message: null,
+          } as Run,
+        ],
+        current_run_id: action.run_id,
+      };
       return updateNotebooks(state, new_notebook);
     }
     case "kernel_changed": {
       const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
-      const new_notebook = { ...notebook, runs: notebook.runs.map((r) => {
-        if (r.id == action.run_id) {
-          if (action.kernel_state == "ready" && r.output_cells.length > 0) {
-            const output_cells = r.output_cells.map((cell, index) =>
-              index === 0 ? { ...cell, status: "running" } : cell,
-            );
-            return {
-              ...r,
-              kernel_state: action.kernel_state,
-              output_cells,
-              kernel_state_message: action.message,
-            } as Run;
+      const new_notebook = {
+        ...notebook,
+        runs: notebook.runs.map((r) => {
+          if (r.id == action.run_id) {
+            if (action.kernel_state == "ready" && r.output_cells.length > 0) {
+              const output_cells = r.output_cells.map((cell, index) =>
+                index === 0 ? { ...cell, status: "running" } : cell,
+              );
+              return {
+                ...r,
+                kernel_state: action.kernel_state,
+                output_cells,
+                kernel_state_message: action.message,
+              } as Run;
+            } else {
+              return {
+                ...r,
+                kernel_state: action.kernel_state,
+                kernel_state_message: action.message,
+              } as Run;
+            }
           } else {
-            return {
-              ...r,
-              kernel_state: action.kernel_state,
-              kernel_state_message: action.message,
-            } as Run;
+            return r;
           }
-        } else {
-          return r;
-        }
-      })};
+        }),
+      };
       return updateNotebooks(state, new_notebook);
     }
     case "new_output_cell": {
       const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
-      const new_notebook = { ...notebook, runs: notebook.runs.map((r) => {
-        if (r.id == action.run_id) {
-          return { ...r, output_cells: [...r.output_cells, action.cell] } as Run;
-        } else {
-          return r;
-        }
-      })};
+      const new_notebook = {
+        ...notebook,
+        runs: notebook.runs.map((r) => {
+          if (r.id == action.run_id) {
+            return {
+              ...r,
+              output_cells: [...r.output_cells, action.cell],
+            } as Run;
+          } else {
+            return r;
+          }
+        }),
+      };
       return updateNotebooks(state, new_notebook);
     }
     case "new_output": {
       const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
-      const new_notebook = { ...notebook, runs: notebook.runs.map((r) => {
-        if (r.id == action.run_id) {
-          let finished = action.status == "success" || action.status == "error";
-          const output_cells = r.output_cells.map((c) => {
-            if (c.id === action.cell_id) {
-              let values;
-              if (
-               action.value.type == "Text" &&
-                c.values.length > 0 &&
-                c.values[c.values.length - 1].type == "Text"
-              ) {
-                // Concatenate text values if both are Text type
-                values = [
-                  ...c.values.slice(0, -1),
-                  {
-                    type: "Text",
-                    value:
-                        (c.values[c.values.length - 1] as TextOutputValue).value + (action.value as TextOutputValue).value,
-                  },
-                ];
-              } else {
-                values = [...c.values, action.value];
+      const new_notebook = {
+        ...notebook,
+        runs: notebook.runs.map((r) => {
+          if (r.id == action.run_id) {
+            let finished =
+              action.status == "success" || action.status == "error";
+            const output_cells = r.output_cells.map((c) => {
+              if (c.id === action.cell_id) {
+                let values;
+                if (
+                  action.value.type == "Text" &&
+                  c.values.length > 0 &&
+                  c.values[c.values.length - 1].type == "Text"
+                ) {
+                  // Concatenate text values if both are Text type
+                  values = [
+                    ...c.values.slice(0, -1),
+                    {
+                      type: "Text",
+                      value:
+                        (c.values[c.values.length - 1] as TextOutputValue)
+                          .value + (action.value as TextOutputValue).value,
+                    },
+                  ];
+                } else {
+                  values = [...c.values, action.value];
+                }
+                return { ...c, status: action.status, values } as OutputCell;
               }
-              return { ...c, status: action.status, values } as OutputCell;
-            }
-            if (finished && c.status == "pending") {
-              finished = false;
-              return { ...c, status: "running" } as OutputCell;
-            } else {
-              return c;
-            }
-          });
-          return { ...r, output_cells };
-        } else {
-          return r;
-        }
-      })};
+              if (finished && c.status == "pending") {
+                finished = false;
+                return { ...c, status: "running" } as OutputCell;
+              } else {
+                return c;
+              }
+            });
+            return { ...r, output_cells };
+          } else {
+            return r;
+          }
+        }),
+      };
       return updateNotebooks(state, new_notebook);
     }
     case "set_current_run": {
@@ -259,17 +278,26 @@ export function stateReducer(state: State, action: StateAction): State {
     }
     case "new_editor_cell": {
       const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
-      const new_notebook = { ...notebook, editor_cells: [...notebook.editor_cells, action.editor_cell] };
+      const new_notebook = {
+        ...notebook,
+        editor_cells: [...notebook.editor_cells, action.editor_cell],
+      };
       return updateNotebooks(state, new_notebook);
     }
     case "select_editor_cell": {
       const notebook = state.selected_notebook!;
-      const new_notebook = { ...notebook, selected_editor_cell_id: action.editor_cell_id };
+      const new_notebook = {
+        ...notebook,
+        selected_editor_cell_id: action.editor_cell_id,
+      };
       return updateNotebooks(state, new_notebook);
     }
     case "save_notebook": {
       const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
-      const new_notebook = { ...notebook, save_in_progress: action.save_in_progress };
+      const new_notebook = {
+        ...notebook,
+        save_in_progress: action.save_in_progress,
+      };
       return updateNotebooks(state, new_notebook);
     }
     default: {

@@ -1,9 +1,9 @@
 // NotificationContext.tsx
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import { X, AlertCircle, CheckCircle } from 'lucide-react';
+import React, { createContext, useContext, useState, useCallback } from "react";
+import { X, AlertCircle, CheckCircle } from "lucide-react";
 
 // Define types
-export type NotificationType = 'error' | 'success';
+export type NotificationType = "error" | "success";
 
 type Message = {
   id: string;
@@ -19,7 +19,9 @@ type NotificationContextType = {
 };
 
 // Create context
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+const NotificationContext = createContext<NotificationContextType | undefined>(
+  undefined,
+);
 
 // Provider props
 type NotificationProviderProps = {
@@ -28,34 +30,41 @@ type NotificationProviderProps = {
 };
 
 // Provider component
-export const NotificationProvider: React.FC<NotificationProviderProps> = ({ 
-  children, 
-  autoCloseTime = 3000 
+export const NotificationProvider: React.FC<NotificationProviderProps> = ({
+  children,
+  autoCloseTime = 3000,
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
 
-  const pushMessage = useCallback((text: string, type: NotificationType) => {
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      text,
-      type,
-      createdAt: Date.now(),
-    };
-    
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
-    
-    // Auto-remove after specified time
-    setTimeout(() => {
-      removeMessage(newMessage.id);
-    }, autoCloseTime);
-  }, [autoCloseTime]);
+  const pushMessage = useCallback(
+    (text: string, type: NotificationType) => {
+      const newMessage: Message = {
+        id: Date.now().toString(),
+        text,
+        type,
+        createdAt: Date.now(),
+      };
+
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
+
+      // Auto-remove after specified time
+      setTimeout(() => {
+        removeMessage(newMessage.id);
+      }, autoCloseTime);
+    },
+    [autoCloseTime],
+  );
 
   const removeMessage = useCallback((id: string) => {
-    setMessages((prevMessages) => prevMessages.filter(message => message.id !== id));
+    setMessages((prevMessages) =>
+      prevMessages.filter((message) => message.id !== id),
+    );
   }, []);
 
   return (
-    <NotificationContext.Provider value={{ messages, pushMessage, removeMessage }}>
+    <NotificationContext.Provider
+      value={{ messages, pushMessage, removeMessage }}
+    >
       {children}
       <NotificationOverlay />
     </NotificationContext.Provider>
@@ -63,36 +72,42 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 };
 
 // Custom hook to use the context
-export const usePushNotification = (): ((text: string, type: NotificationType) => void) => {
+export const usePushNotification = (): ((
+  text: string,
+  type: NotificationType,
+) => void) => {
   const context = useContext(NotificationContext);
   if (!context) {
-    throw new Error('usePushMessage must be used within a NotificationProvider');
+    throw new Error(
+      "usePushMessage must be used within a NotificationProvider",
+    );
   }
   return context.pushMessage;
 };
 
-
 // NotificationOverlay component
 const NotificationOverlay: React.FC = () => {
   const context = useContext(NotificationContext);
-  
+
   if (!context) {
-    throw new Error('NotificationOverlay must be used within a NotificationProvider');
+    throw new Error(
+      "NotificationOverlay must be used within a NotificationProvider",
+    );
   }
-  
+
   const { messages, removeMessage } = context;
-  
+
   if (messages.length === 0) return null;
 
   return (
     <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-md">
       {messages.map((message) => {
-        const isError = message.type === 'error';
-        const bgColor = isError ? 'bg-red-500' : 'bg-green-500';
+        const isError = message.type === "error";
+        const bgColor = isError ? "bg-red-500" : "bg-green-500";
         const Icon = isError ? AlertCircle : CheckCircle;
-        
+
         return (
-          <div 
+          <div
             key={message.id}
             className={`${bgColor} text-white p-4 rounded-md shadow-lg flex items-start`}
             role="alert"

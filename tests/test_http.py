@@ -8,12 +8,12 @@ def test_execute_command(client):
     k = client.create_new_kernel(r["notebook"]["id"])
     assert "3" == k.run_code_simple("1 + 2")
     assert [
-               {"type": "Text", "value": "Hello"},
-               {"type": "Text", "value": "\n"},
-               {"type": "Text", "value": "World"},
-               {"type": "Text", "value": "\n"},
-               {"type": "None"},
-           ] == k.run_code("print('Hello')\nprint('World')")
+        {"type": "Text", "value": "Hello"},
+        {"type": "Text", "value": "\n"},
+        {"type": "Text", "value": "World"},
+        {"type": "Text", "value": "\n"},
+        {"type": "None"},
+    ] == k.run_code("print('Hello')\nprint('World')")
 
 
 def test_save_notebook_plain(client):
@@ -26,55 +26,64 @@ def test_save_notebook_plain(client):
     editor_cells = [
         {
             "id": "b3852a51-3782-4e11-9182-33a1455139b0",
-            "value": "print(\"Hello world!\")"
+            "value": 'print("Hello world!")',
         },
         {
             "id": "16918374-b87d-4a7d-8667-064a6a752ff0",
-            "value": "print(\"Hello world!\")\nx = 10\nprint(x)\nx"
-        }
+            "value": 'print("Hello world!")\nx = 10\nprint(x)\nx',
+        },
     ]
 
-    runs = [{'id': k.run_id,
-             'output_cells': [
-                 {
-                     'flag': 'Success',
-                     'id': cell_id,
-                     'values': [
-                         {
-                             'type': 'Text',
-                             'value': 'Hello\nworld!\n',
-                         },
-                         {
-                             'type': 'None',
-                         },
-                     ],
-                 },
-             ],
-             'title': 'Run Test',
-             }]
-    client.send_message({"type": "SaveNotebook",
-                         "notebook_id": notebook_id,
-                         "editor_cells": editor_cells})
+    runs = [
+        {
+            "id": k.run_id,
+            "output_cells": [
+                {
+                    "flag": "Success",
+                    "id": cell_id,
+                    "values": [
+                        {
+                            "type": "Text",
+                            "value": "Hello\nworld!\n",
+                        },
+                        {
+                            "type": "None",
+                        },
+                    ],
+                },
+            ],
+            "title": "Run Test",
+        }
+    ]
+    client.send_message(
+        {
+            "type": "SaveNotebook",
+            "notebook_id": notebook_id,
+            "editor_cells": editor_cells,
+        }
+    )
     r = client.receive_message()
-    assert r == {'type': 'SaveCompleted', 'error': None, 'notebook_id': notebook_id}
+    assert r == {"type": "SaveCompleted", "error": None, "notebook_id": notebook_id}
     with open(path) as f:
         data = toml.loads(f.read())
     assert data == {
         "version": "twinsong 0.0.1",
         "editor_cells": editor_cells,
-        "runs": runs
+        "runs": runs,
     }
     shutil.copy(path, "copy.tsnb")
 
     client.send_message({"type": "QueryNotebooks"})
     r = client.receive_message()
-    assert r == {"type": "NotebookList", "notebooks": [
-        {"path": "copy", "is_loaded": False},
-        {"path": "new_notebook_1", "is_loaded": True},
-    ]}
+    assert r == {
+        "type": "NotebookList",
+        "notebooks": [
+            {"path": "copy", "is_loaded": False},
+            {"path": "new_notebook_1", "is_loaded": True},
+        ],
+    }
 
-    client.send_message({"type": "LoadNotebook",
-                         "path": "copy"})
+    client.send_message({"type": "LoadNotebook", "path": "copy"})
     r = client.receive_message()
     assert r == {
         "type": "NewNotebook",
@@ -83,10 +92,9 @@ def test_save_notebook_plain(client):
             "runs": runs,
             "id": notebook_id + 1,
             "path": "copy",
-        }
+        },
     }
-    client.send_message({"type": "LoadNotebook",
-                         "path": "copy"})
+    client.send_message({"type": "LoadNotebook", "path": "copy"})
     r2 = client.receive_message()
     assert r == r2
     with open("copy.tsnb") as f:
@@ -95,7 +103,10 @@ def test_save_notebook_plain(client):
     client.send_message({"type": "QueryNotebooks"})
     r = client.receive_message()
     print(r)
-    assert r == {"type": "NotebookList", "notebooks": [
-        {"path": "copy", "is_loaded": True},
-        {"path": "new_notebook_1", "is_loaded": True},
-    ]}
+    assert r == {
+        "type": "NotebookList",
+        "notebooks": [
+            {"path": "copy", "is_loaded": True},
+            {"path": "new_notebook_1", "is_loaded": True},
+        ],
+    }
