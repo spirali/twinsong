@@ -9,6 +9,7 @@ import {
   RunId,
 } from "./notebook";
 import { StateAction } from "./state";
+import { NotificationType } from "../components/NotificationProvider";
 
 export type SendCommand = (message: FromClientMessage) => void;
 
@@ -86,6 +87,7 @@ export type FromClientMessage =
 export function processMessage(
   message: ToClientMessage,
   dispatch: Dispatch<StateAction>,
+  pushNotification: (text: string, type: NotificationType) => void,
 ) {
   switch (message.type) {
     case "NewNotebook": {
@@ -140,6 +142,11 @@ export function processMessage(
         notebook_id: message.notebook_id,
         save_in_progress: false,
       });
+      if (message.error) {
+        pushNotification(message.error, "error");
+      } else {
+        pushNotification("Notebook saved", "success");
+      }
       break;
     }
   }
