@@ -1,6 +1,6 @@
 use crate::control::start_control_process;
 use crate::stdio::RedirectedStdio;
-use comm::messages::{ComputeMsg, Exception, FromKernelMessage, OutputFlag, OutputValue};
+use comm::messages::{ComputeMsg, Exception, FromKernelMessage, KernelOutputValue, OutputFlag};
 use pyo3::types::PyStringMethods;
 use pyo3::types::{PyAnyMethods, PyTracebackMethods};
 use pyo3::{Bound, PyAny, PyErr, PyResult, Python};
@@ -39,19 +39,19 @@ fn eval_code<'a>(
     run_module.getattr("run_code")?.call1((code, stdout))
 }
 
-fn run_code(py: &Python, code: &str, stdout: RedirectedStdio) -> PyResult<OutputValue> {
+fn run_code(py: &Python, code: &str, stdout: RedirectedStdio) -> PyResult<KernelOutputValue> {
     // let s = CString::new(code.as_bytes())?;
     // let result = py.eval(&s, None, None)?;
     let result = eval_code(*py, code, stdout)?;
     if result.is_none() {
-        return Ok(OutputValue::None);
+        return Ok(KernelOutputValue::None);
     }
     Ok(if let Some(value) = try_repr_html(&result)? {
-        OutputValue::Html { value }
+        KernelOutputValue::Html { value }
     } else {
         let repr = result.repr()?;
         let repr = repr.to_str()?;
-        OutputValue::Text {
+        KernelOutputValue::Text {
             value: repr.to_owned(),
         }
     })
@@ -84,7 +84,9 @@ async fn executor_main(
                 flag: OutputFlag::Success,
             },
             Err(e) => FromKernelMessage::Output {
-                value: OutputValue::Exception(create_traceback(&py, e).unwrap()),
+                value: KernelOutputValue::Exception {
+                    value: create_traceback(&py, e).unwrap(),
+                },
                 cell_id: msg.cell_id,
                 flag: OutputFlag::Fail,
             },

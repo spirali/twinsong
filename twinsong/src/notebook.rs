@@ -1,8 +1,8 @@
-use crate::client_messages::{serialize_client_message, NotebookDesc, ToClientMessage};
+use crate::client_messages::{serialize_client_message, NotebookDesc, RunDesc, ToClientMessage};
 use crate::kernel::KernelHandle;
 use anyhow::anyhow;
 use axum::extract::ws::Message;
-use comm::messages::{OutputFlag, OutputValue};
+use comm::messages::{Exception, KernelOutputValue, OutputFlag};
 use nutype::nutype;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -19,8 +19,29 @@ pub(crate) struct EditorCell {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum OutputValue {
+    Text { value: String },
+    Html { value: String },
+    Exception { value: Exception },
+    None,
+}
+
+impl OutputValue {
+    pub fn new(value: KernelOutputValue) -> Self {
+        match value {
+            KernelOutputValue::Text { value } => OutputValue::Text { value },
+            KernelOutputValue::Html { value } => OutputValue::Html { value },
+            KernelOutputValue::Exception { value } => OutputValue::Exception { value },
+            KernelOutputValue::None => OutputValue::None,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct OutputCell {
     id: OutputCellId,
+    // If flag is finished/failed then the last value is returned object/exception
     values: Vec<OutputValue>,
     flag: OutputFlag,
 }
@@ -78,10 +99,53 @@ pub(crate) struct KernelId(Uuid);
 pub(crate) struct OutputCellId(Uuid);
 
 //#[allow(dead_code)] // TODO: Remove this when Run saving is implemented
+#[derive(Debug)]
 pub(crate) struct Run {
     title: String,
     output_cells: Vec<OutputCell>,
     kernel: Option<KernelId>,
+}
+
+impl Run {
+    pub fn new(title: String, output_cells: Vec<OutputCell>, kernel: Option<KernelId>) -> Self {
+        Run {
+            title,
+            output_cells,
+            kernel,
+        }
+    }
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+    pub fn output_cells(&self) -> &[OutputCell] {
+        &self.output_cells
+    }
+    pub fn kernel_id(&mut self) -> Option<KernelId> {
+        self.kernel
+    }
+
+    pub fn add_output(&mut self, cell_id: OutputCellId, value: OutputValue, flag: OutputFlag) {
+        if let Some(ref mut last) = self.output_cells.last_mut().filter(|c| c.id == cell_id) {
+            if let (
+                OutputFlag::Stream,
+                OutputValue::Text { value: new_text },
+                Some(OutputValue::Text { value: old_text }),
+            ) = (flag, &value, last.values.last_mut())
+            {
+                old_text.push_str(&new_text);
+                last.flag = flag;
+                return;
+            }
+            last.values.push(value);
+            last.flag = flag;
+        } else {
+            self.output_cells.push(OutputCell {
+                id: cell_id,
+                values: vec![value],
+                flag,
+            });
+        }
+    }
 }
 
 pub(crate) struct Notebook {
@@ -148,44 +212,30 @@ impl Notebook {
             .ok_or_else(|| anyhow!(format!("Run {run_id} not found")))
     }
 
+    pub fn runs(&self) -> impl Iterator<Item = (RunId, &Run)> + '_ {
+        self.run_order
+            .iter()
+            .map(|run_id| (*run_id, self.runs.get(run_id).unwrap()))
+    }
+
     pub fn notebook_desc(&self, notebook_id: NotebookId) -> NotebookDesc {
+        let runs = self
+            .run_order
+            .iter()
+            .map(|run_id| {
+                let run = self.runs.get(run_id).unwrap();
+                RunDesc {
+                    id: *run_id,
+                    title: &run.title,
+                    output_cells: &run.output_cells,
+                }
+            })
+            .collect::<Vec<_>>();
         NotebookDesc {
             id: notebook_id,
             path: &self.path,
             editor_cells: &self.editor_cells,
-        }
-    }
-}
-
-impl Run {
-    pub fn new(title: String, kernel: Option<KernelId>) -> Self {
-        Run {
-            title,
-            output_cells: Vec::new(),
-            kernel,
-        }
-    }
-
-    pub fn kernel_id(&mut self) -> Option<KernelId> {
-        self.kernel
-    }
-
-    pub fn add_output(&mut self, cell_id: OutputCellId, value: OutputValue, flag: OutputFlag) {
-        if let Some(ref mut last) = self.output_cells.last_mut().filter(|c| c.id == cell_id) {
-            if let OutputValue::Text { value: new_text } = &value {
-                if let Some(OutputValue::Text { value: old_text }) = last.values.last_mut() {
-                    old_text.push_str(&new_text);
-                    return;
-                }
-            }
-            last.values.push(value);
-            last.flag = flag;
-        } else {
-            self.output_cells.push(OutputCell {
-                id: cell_id,
-                values: vec![value],
-                flag,
-            });
+            runs,
         }
     }
 }

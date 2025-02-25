@@ -30,11 +30,16 @@ pub struct Exception {
     pub traceback: String,
 }
 
+/*
+   We are using different output value for in kernel and from kernel communication
+   because bincode breaks when serde(tag = ...) is used on this enum,
+   but we want OutputValue serialized to JSON with tag
+*/
 #[derive(Debug, Serialize, Deserialize)]
-pub enum OutputValue {
+pub enum KernelOutputValue {
     Text { value: String },
     Html { value: String },
-    Exception(Exception),
+    Exception { value: Exception },
     None,
 }
 
@@ -44,7 +49,7 @@ pub enum FromKernelMessage {
         kernel_id: Uuid,
     },
     Output {
-        value: OutputValue,
+        value: KernelOutputValue,
         cell_id: Uuid,
         flag: OutputFlag,
     },

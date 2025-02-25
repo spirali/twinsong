@@ -57,32 +57,37 @@ class Kernel:
         self.client = client
         self.notebook_id = notebook_id
         self.run_id = run_id
+        self.last_cell_id = None
 
     def run_code(self, code):
         cell_id = str(uuid.uuid4())
         editor_cell = {"id": str(uuid.uuid4()), "value": code}
         outputs = []
+        self.client.send_message(
+            {
+                "type": "RunCell",
+                "notebook_id": self.notebook_id,
+                "run_id": self.run_id,
+                "code": code,
+                "cell_id": cell_id,
+                "editor_cell": editor_cell,
+            }
+        )
         while True:
-            self.client.send_message(
-                {
-                    "type": "RunCell",
-                    "notebook_id": self.notebook_id,
-                    "run_id": self.run_id,
-                    "code": code,
-                    "cell_id": cell_id,
-                    "editor_cell": editor_cell,
-                }
-            )
             r = self.client.receive_message()
-            print(r)
+            print(">>>", r)
+            self.last_cell_id = r["cell_id"]
             assert r["type"] == "Output"
             outputs.append(r["value"])
             if r["flag"] != "Stream":
                 return outputs
 
     def run_code_simple(self, code):
-        r = self.run_code(code)[-1]
-        return r["Text"]["value"]
+        r = self.run_code(code)
+        if r[-1]["type"] == "None":
+            return None
+        else:
+            return r[-1]["value"]
 
 
 class Client:
