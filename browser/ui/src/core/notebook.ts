@@ -11,21 +11,21 @@ export interface EditorCell {
 }
 
 export interface TextOutputValue {
-  type: "Text",
-  value: string
+  type: "Text";
+  value: string;
 }
 
 export interface HtmlOutputValue {
-  type: "Html",
-  value: string
+  type: "Html";
+  value: string;
 }
 
 export interface ExceptionOutputValue {
-  type: "Exception",
+  type: "Exception";
   value: {
-    message: string,
-    traceback: string
-  }
+    message: string;
+    traceback: string;
+  };
 }
 
 export type OutputValue =

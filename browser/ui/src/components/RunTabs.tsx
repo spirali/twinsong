@@ -19,7 +19,11 @@ const RunTabs: React.FC = () => {
           <button
             key={run.id}
             onClick={() =>
-                dispatch({ type: "set_current_run", notebook_id: notebook.id, run_id: run.id })
+              dispatch({
+                type: "set_current_run",
+                notebook_id: notebook.id,
+                run_id: run.id,
+              })
             }
             className={`py-2 px-5 text-sm font-medium transition-colors duration-200 
             ${
@@ -55,9 +59,7 @@ const RunTabs: React.FC = () => {
       ) : (
         <div className="flex-grow pl-1 pr-2 pt-2 pb-2 bg-white overflow-auto">
           <RunView
-            run={
-              notebook.runs.find((r) => r.id === notebook.current_run_id)!
-            }
+            run={notebook.runs.find((r) => r.id === notebook.current_run_id)!}
           />
         </div>
       )}

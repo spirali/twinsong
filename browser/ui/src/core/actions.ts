@@ -5,7 +5,6 @@ import { StateAction } from "./state";
 import { SendCommand } from "./messages";
 import { v4 as uuidv4 } from "uuid";
 
-
 export function newRun(
   notebook: Notebook,
   dispatch: Dispatch<StateAction>,

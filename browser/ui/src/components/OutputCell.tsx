@@ -1,10 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  PlayCircle,
-} from "lucide-react";
+import { AlertCircle, CheckCircle, Clock, PlayCircle } from "lucide-react";
 import { OutputCell, OutputValue } from "../core/notebook";
 import Editor from "react-simple-code-editor";
 import { highlight, languages } from "prismjs/components/prism-core";
@@ -78,51 +73,53 @@ const OutputCellView: React.FC<{ cell: OutputCell }> = (props: {
   };
 
   return (
-    <div className={`border-l-6 pl-1 ${notebook.selected_editor_cell_id == props.cell.editor_cell.id?"border-orange-200":"border-white"}`}>
-    <div ref={ref} className="border border-gray-300 shadow-sm mb-2 mr-6">
-      {/* Smaller Status Bar */}
-      <div
-        className={`flex items-center justify-between px-1 py-1 border-b border-gray-300 ${props.cell.status === "running" ? "bg-yellow-50" : "bg-gray-50"}`}
-      >
-        <div className="flex items-center space-x-1">
-          {getStatusIcon()}
-          {getStatusText()}
-        </div>
-        <button
-          onClick={() => setShowMetadata(!showMetadata)}
-          className="flex items-center justify-center px-2 py-1 bg-gray-200 rounded text-xs font-medium hover:bg-gray-300 transition-colors"
-          aria-label="Toggle metadata"
+    <div
+      className={`border-l-6 pl-1 ${notebook.selected_editor_cell_id == props.cell.editor_cell.id ? "border-orange-200" : "border-white"}`}
+    >
+      <div ref={ref} className="border border-gray-300 shadow-sm mb-2 mr-6">
+        {/* Smaller Status Bar */}
+        <div
+          className={`flex items-center justify-between px-1 py-1 border-b border-gray-300 ${props.cell.status === "running" ? "bg-yellow-50" : "bg-gray-50"}`}
         >
-          {/*<Info className="h-3 w-3 text-gray-600 mr-1" />*/}
-          <span>Code</span>
-        </button>
-      </div>
-
-      {/* Metadata (conditionally rendered) */}
-      {showMetadata && (
-        <div className="bg-gray-50 border-b text-sm border-gray-300">
-          <Editor
-            value={props.cell.editor_cell.value}
-            highlight={(code) => highlight(code, languages.python)}
-            padding={5}
-            style={{
-              fontFamily: '"Fira code", "Fira Mono", monospace',
-              fontSize: 12,
-            }}
-            onValueChange={() => {}}
-          />
+          <div className="flex items-center space-x-1">
+            {getStatusIcon()}
+            {getStatusText()}
+          </div>
+          <button
+            onClick={() => setShowMetadata(!showMetadata)}
+            className="flex items-center justify-center px-2 py-1 bg-gray-200 rounded text-xs font-medium hover:bg-gray-300 transition-colors"
+            aria-label="Toggle metadata"
+          >
+            {/*<Info className="h-3 w-3 text-gray-600 mr-1" />*/}
+            <span>Code</span>
+          </button>
         </div>
-      )}
 
-      {/* Content */}
-      <div
-        className={`p-1 ${props.cell.status === "error" ? "bg-red-50" : ""}`}
-      >
-        {props.cell.values.map((value, index) => (
-          <OutputValueView key={index} value={value} />
-        ))}
+        {/* Metadata (conditionally rendered) */}
+        {showMetadata && (
+          <div className="bg-gray-50 border-b text-sm border-gray-300">
+            <Editor
+              value={props.cell.editor_cell.value}
+              highlight={(code) => highlight(code, languages.python)}
+              padding={5}
+              style={{
+                fontFamily: '"Fira code", "Fira Mono", monospace',
+                fontSize: 12,
+              }}
+              onValueChange={() => {}}
+            />
+          </div>
+        )}
+
+        {/* Content */}
+        <div
+          className={`p-1 ${props.cell.status === "error" ? "bg-red-50" : ""}`}
+        >
+          {props.cell.values.map((value, index) => (
+            <OutputValueView key={index} value={value} />
+          ))}
+        </div>
       </div>
-    </div>
     </div>
   );
 };

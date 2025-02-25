@@ -10,7 +10,9 @@ import { usePushNotification } from "./NotificationProvider";
 const WsContext = createContext<SendJsonMessage | null>(null);
 
 declare global {
-  interface Window { SERVER_URL: string; }
+  interface Window {
+    SERVER_URL: string;
+  }
 }
 
 export const WsProvider = (props: { children: JSX.Element }) => {
@@ -53,7 +55,7 @@ export const WsProvider = (props: { children: JSX.Element }) => {
   }
 
   if (readyState !== ReadyState.OPEN) {
-    return <LoadingScreen/>;
+    return <LoadingScreen />;
   }
 
   return (

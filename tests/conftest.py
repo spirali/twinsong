@@ -35,7 +35,10 @@ def http_service(tmp_path):
         env = os.environ.copy()
         env["RUST_LOG"] = "DEBUG"
         p = subprocess.Popen(
-            [BIN_DIR, "--port", str(PORT)], stdout=log, stderr=subprocess.STDOUT, env=env
+            [BIN_DIR, "--port", str(PORT)],
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            env=env,
         )
         time.sleep(0.1)
         yield p
