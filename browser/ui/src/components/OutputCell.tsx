@@ -15,17 +15,17 @@ const OutputValueView: React.FC<{ value: OutputValue }> = (props: {
   value: OutputValue;
 }) => {
   const value = props.value;
-  if (value === "None") {
+  if (value.type === "None") {
     return null;
   }
-  if ("Text" in value) {
-    return <pre className="text-left">{value.Text.value}</pre>;
-  } else if ("Html" in value) {
-    return <div dangerouslySetInnerHTML={{ __html: value.Html.value }} />;
-  } else if ("Exception" in value) {
+  if (value.type === "Text") {
+    return <pre className="text-left">{value.value}</pre>;
+  } else if (value.type === "Html") {
+    return <div dangerouslySetInnerHTML={{ __html: value.value }} />;
+  } else if (value.type === "Exception") {
     return (
       <pre className="text-left">
-        {value.Exception.message + "\n" + value.Exception.traceback}
+        {value.value.message + "\n" + value.value.traceback}
       </pre>
     );
   }
@@ -36,6 +36,7 @@ const OutputCellView: React.FC<{ cell: OutputCell }> = (props: {
   cell: OutputCell;
 }) => {
   const state = useGlobalState();
+  const notebook = state.selected_notebook!;
   const [showMetadata, setShowMetadata] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -77,7 +78,7 @@ const OutputCellView: React.FC<{ cell: OutputCell }> = (props: {
   };
 
   return (
-    <div className={`border-l-6 pl-1 ${state.selected_editor_cell_id == props.cell.editor_cell.id?"border-orange-200":"border-white"}`}>
+    <div className={`border-l-6 pl-1 ${notebook.selected_editor_cell_id == props.cell.editor_cell.id?"border-orange-200":"border-white"}`}>
     <div ref={ref} className="border border-gray-300 shadow-sm mb-2">
       {/* Smaller Status Bar */}
       <div

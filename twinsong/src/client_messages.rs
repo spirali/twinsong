@@ -72,6 +72,7 @@ pub(crate) enum ToClientMessage<'a> {
     //     run_id: RunId,
     // },
     KernelReady {
+        notebook_id: NotebookId,
         run_id: RunId,
     },
     KernelCrashed {

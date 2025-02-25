@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { EditorCell } from "../core/notebook";
 import { useGlobalState, useDispatch } from "./StateProvider";
 import Editor from "react-simple-code-editor";
@@ -6,8 +6,9 @@ import { highlight, languages } from "prismjs/components/prism-core";
 import "prismjs/components/prism-python";
 import "prismjs/themes/prism.css";
 import { useSendCommand } from "./WsProvider";
-import { newEdtorCell, runCell } from "../core/actions";
-import { SquarePlus } from "lucide-react";
+import { newEdtorCell, runCell, saveNotebook } from "../core/actions";
+import { SquarePlus, Save, Loader2 } from "lucide-react";
+
 
 function checkIfLastLine(
   event:
@@ -37,22 +38,25 @@ const EditorCellRenderer: React.FC<{
   const dispatch = useDispatch()!;
   const sendCommand = useSendCommand()!;
   const state = useGlobalState();
+  const notebook = state.selected_notebook!;
   return (
-      <div className={`border-l-6 pl-1 ${state.selected_editor_cell_id == cell.id?"border-blue-200":"border-white"}`}>
+      <div className={`border-l-6 pl-1 ${notebook.selected_editor_cell_id == cell.id?"border-blue-200":"border-white"}`}>
       <div className="mb-2 border border-gray-200 rounded-md overflow-hidden">
       <Editor
         onFocus={() => dispatch({
           type: "select_editor_cell",
+          notebook_id: notebook.id,
           editor_cell_id: cell.id
         })}
         onBlur={() => dispatch({
           type: "select_editor_cell",
+          notebook_id: notebook.id,
           editor_cell_id: null
         })}
         id={cell.id}
         value={cell.value}
         onValueChange={(code) => {
-          dispatch({ type: "cell_edit", id: cell.id, value: code });
+          dispatch({ type: "cell_edit", notebook_id: notebook.id, id: cell.id, value: code });
         }}
         highlight={(code) => highlight(code, languages.python)}
         padding={10}
@@ -63,7 +67,7 @@ const EditorCellRenderer: React.FC<{
         onKeyDown={(e) => {
           if (e.ctrlKey && e.key === "Enter") {
             e.preventDefault();
-            runCell(cell, state, dispatch, sendCommand);
+            runCell(cell, notebook, dispatch, sendCommand);
           }
           if (e.key == "ArrowUp" && prev_id && checkIfFirstLine(e)) {
             e.preventDefault();
@@ -95,36 +99,52 @@ const EditorCellRenderer: React.FC<{
   );
 };
 
-const EditorPanel: React.FC = () => {
-  let state = useGlobalState();
-  let dispatch = useDispatch()!;
+const ToolButton: React.FC<{
+  onClick: () => void;
+  children: React.ReactNode;
+}> = ({ onClick, children }) => {
+  return <button onClick={onClick} className="bg-gray-200 text-black px-4 py-2 rounded hover:bg-gray-300">{children}</button>;
+};
 
+const EditorPanel: React.FC = () => {
+  const state = useGlobalState();
+  const dispatch = useDispatch()!;
+  const notebook = state.selected_notebook!;
+  const sendCommand = useSendCommand()!;
+  const onSave = useCallback(() => {
+      saveNotebook(notebook, dispatch, sendCommand);
+  }, [notebook, dispatch, sendCommand]);
   return (
     <div className="h-full">
       {/* Toolbar */}
-      <div className="sticky top-0 bg-white border-b border-gray-200 p-4 shadow-sm">
+      <div className="sticky top-0 bg-white p-1 pb-3">
         <div className="flex space-x-2">
-          <button
+        <ToolButton
+            onClick={onSave}
+          >
+              {notebook.save_in_progress ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          </ToolButton>
+
+          <ToolButton
             onClick={() => {
-              newEdtorCell(dispatch);
+              newEdtorCell(notebook, dispatch);
             }}
-            className="bg-gray-100 text-black px-4 py-2 rounded hover:bg-gray-200"
           >
             <div className="flex items-center">
               <SquarePlus className="w-4 h-4 mr-2" /> Add code cell
             </div>
-          </button>
+          </ToolButton>            
         </div>
       </div>
 
       {/* Cells Container */}
       <div className="pl-1 pr-2 pt-2 pb-2 space-y-4 overflow-auto">
-        {state.notebook!.editor_cells.map((cell, index) => (
+        {notebook.editor_cells.map((cell, index) => (
           <EditorCellRenderer
             key={cell.id}
             cell={cell}
-            prev_id={state.notebook!.editor_cells[index - 1]?.id || null}
-            next_id={state.notebook!.editor_cells[index + 1]?.id || null}
+            prev_id={notebook.editor_cells[index - 1]?.id || null}
+            next_id={notebook.editor_cells[index + 1]?.id || null}
           />
         ))}
       </div>
