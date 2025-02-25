@@ -3,7 +3,7 @@ use crate::client_messages::{
     ToClientMessage,
 };
 use crate::notebook::{generate_new_notebook_path, Notebook};
-use crate::reactor::{load_notebook, run_code, save_notebook, start_kernel};
+use crate::reactor::{load_notebook, query_notebooks, run_code, save_notebook, start_kernel};
 use crate::state::AppStateRef;
 use axum::body::Body;
 use axum::extract::ws::{Message, WebSocket};
@@ -144,7 +144,7 @@ async fn recv_client_messages(
                 let notebook_id = state.new_notebook_id();
                 tracing::debug!("Creating new notebook {notebook_id}");
                 let mut notebook = Notebook::new(generate_new_notebook_path()?);
-                notebook.add_observer(sender.clone());
+                notebook.set_observer(sender.clone());
                 notebook.send_message(ToClientMessage::NewNotebook {
                     notebook: notebook.notebook_desc(notebook_id),
                 });
@@ -193,6 +193,10 @@ async fn recv_client_messages(
             FromClientMessage::LoadNotebook(msg) => {
                 let mut state = state_ref.lock().unwrap();
                 load_notebook(&mut state, &state_ref, msg, sender.clone())?;
+            }
+            FromClientMessage::QueryNotebooks => {
+                let mut state = state_ref.lock().unwrap();
+                query_notebooks(&mut state, &sender)?;
             }
         }
     }

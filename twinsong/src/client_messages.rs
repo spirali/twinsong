@@ -12,6 +12,7 @@ pub(crate) enum FromClientMessage {
     RunCell(RunCellMsg),
     SaveNotebook(SaveNotebookMsg),
     LoadNotebook(LoadNotebookMsg),
+    QueryNotebooks,
 }
 
 #[derive(Debug, Deserialize)]
@@ -59,6 +60,12 @@ pub(crate) struct NotebookDesc<'a> {
 }
 
 #[derive(Debug, Serialize)]
+pub(crate) struct NotebookInfo {
+    pub path: String,
+    pub is_loaded: bool,
+}
+
+#[derive(Debug, Serialize)]
 #[serde(tag = "type")]
 pub(crate) enum ToClientMessage<'a> {
     Error {
@@ -90,6 +97,9 @@ pub(crate) enum ToClientMessage<'a> {
     SaveCompleted {
         notebook_id: NotebookId,
         error: Option<String>,
+    },
+    NotebookList {
+        notebooks: &'a [NotebookInfo],
     },
 }
 

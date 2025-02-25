@@ -1,9 +1,9 @@
 use crate::client_messages::{
-    serialize_client_message, LoadNotebookMsg, NotebookDesc, RunCellMsg, SaveNotebookMsg,
-    ToClientMessage,
+    serialize_client_message, LoadNotebookMsg, NotebookDesc, NotebookInfo, RunCellMsg,
+    SaveNotebookMsg, ToClientMessage,
 };
 use crate::kernel::{spawn_kernel, KernelCtx};
-use crate::notebook::{KernelId, NotebookId, OutputCellId, OutputValue, Run, RunId};
+use crate::notebook::{KernelId, Notebook, NotebookId, OutputCellId, OutputValue, Run, RunId};
 use crate::state::{AppState, AppStateRef};
 use crate::storage::{deserialize_notebook, serialize_notebook};
 use anyhow::bail;
@@ -120,7 +120,7 @@ pub(crate) fn load_notebook(
     tracing::debug!("Loading notebook {}", path);
     if let Some((notebook_id, notebook)) = state.get_notebook_by_path_mut(&path) {
         tracing::debug!("Notebook is already loaded");
-        notebook.add_observer(sender);
+        notebook.set_observer(sender);
         notebook.send_message(ToClientMessage::NewNotebook {
             notebook: notebook.notebook_desc(notebook_id),
         });
@@ -143,7 +143,7 @@ pub(crate) fn load_notebook(
             }
             Ok(mut notebook) => {
                 // TODO: Fix parallel loads
-                notebook.add_observer(sender);
+                notebook.set_observer(sender);
                 notebook.path = path;
                 let mut state = state_ref.lock().unwrap();
                 let notebook_id = state.new_notebook_id();
@@ -154,5 +154,35 @@ pub(crate) fn load_notebook(
             }
         }
     });
+    Ok(())
+}
+
+pub(crate) fn query_notebooks(
+    state: &mut AppState,
+    sender: &UnboundedSender<Message>,
+) -> anyhow::Result<()> {
+    let mut infos: Vec<NotebookInfo> = std::fs::read_dir(Path::new("."))?
+        .filter_map(|r| r.ok())
+        .filter_map(|entry| {
+            dbg!(entry.path());
+            if entry.file_type().ok()?.is_file() {
+                let path = entry
+                    .path()
+                    .file_name()
+                    .unwrap()
+                    .to_str()?
+                    .strip_suffix(".tsnb")?
+                    .to_string();
+                let is_loaded = state.get_notebook_by_path_mut(&path).is_some();
+                Some(NotebookInfo { path, is_loaded })
+            } else {
+                None
+            }
+        })
+        .collect();
+    infos.sort_unstable_by(|a, b| a.path.cmp(&b.path));
+    let _ = sender.send(serialize_client_message(ToClientMessage::NotebookList {
+        notebooks: &infos,
+    })?);
     Ok(())
 }

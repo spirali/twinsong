@@ -153,7 +153,7 @@ pub(crate) struct Notebook {
     pub path: String,
     pub runs: HashMap<RunId, Run>,
     pub run_order: Vec<RunId>,
-    pub observers: Vec<UnboundedSender<Message>>,
+    pub observer: Option<UnboundedSender<Message>>,
 }
 
 impl Notebook {
@@ -182,12 +182,15 @@ impl Notebook {
             editor_cells,
             runs: Default::default(),
             run_order: Vec::new(),
-            observers: Vec::new(),
+            observer: None,
         }
     }
 
-    pub fn add_observer(&mut self, sender: UnboundedSender<Message>) {
-        self.observers.push(sender);
+    pub fn set_observer(&mut self, sender: UnboundedSender<Message>) {
+        if let Some(observer) = &self.observer {
+            // TODO: Inform about disconnect
+        }
+        self.observer = Some(sender);
     }
 
     pub fn add_run(&mut self, run_id: RunId, run: Run) {
@@ -196,14 +199,10 @@ impl Notebook {
     }
 
     pub fn send_message(&self, message: ToClientMessage) {
-        if self.observers.is_empty() {
-            return;
+        if let Some(observer) = &self.observer {
+            let data = serialize_client_message(message).unwrap();
+            let _ = observer.send(data);
         }
-        let data = serialize_client_message(message).unwrap();
-        for observer in &self.observers[1..] {
-            let _ = observer.send(data.clone());
-        }
-        let _ = self.observers[0].send(data);
     }
 
     pub fn find_run_by_id_mut(&mut self, run_id: RunId) -> anyhow::Result<&mut Run> {
