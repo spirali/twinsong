@@ -3,7 +3,7 @@ use crate::client_messages::{
     ToClientMessage,
 };
 use crate::kernel::{spawn_kernel, KernelCtx};
-use crate::notebook::{KernelId, NotebookId, OutputCellId, Run, RunId};
+use crate::notebook::{KernelId, NotebookId, OutputCellId, OutputValue, Run, RunId};
 use crate::state::{AppState, AppStateRef};
 use crate::storage::{deserialize_notebook, serialize_notebook};
 use anyhow::bail;
@@ -30,7 +30,7 @@ pub(crate) fn start_kernel(
         notebook_id,
         run_id,
     };
-    let run = Run::new(run_title, Some(kernel_ctx.kernel_id));
+    let run = Run::new(run_title, Vec::new(), Some(kernel_ctx.kernel_id));
     let kernel = spawn_kernel(state_ref, kernel_ctx, kernel_port)?;
     notebook.add_run(run_id, run);
     state.add_kernel(kernel_id, kernel);
@@ -64,6 +64,7 @@ pub(crate) fn process_kernel_message(
             cell_id,
             flag,
         } => {
+            let value = OutputValue::new(value);
             let notebook = state.find_notebook_by_id_mut(kernel_ctx.notebook_id)?;
             notebook.send_message(ToClientMessage::Output {
                 notebook_id: kernel_ctx.notebook_id,

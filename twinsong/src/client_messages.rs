@@ -1,6 +1,6 @@
-use crate::notebook::{EditorCell, NotebookId, OutputCellId, RunId};
+use crate::notebook::{EditorCell, NotebookId, OutputCell, OutputCellId, OutputValue, RunId};
 use axum::extract::ws::Message;
-use comm::messages::{OutputFlag, OutputValue};
+use comm::messages::OutputFlag;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -44,10 +44,18 @@ pub(crate) struct LoadNotebookMsg {
 }
 
 #[derive(Debug, Serialize)]
+pub(crate) struct RunDesc<'a> {
+    pub id: RunId,
+    pub title: &'a str,
+    pub output_cells: &'a [OutputCell],
+}
+
+#[derive(Debug, Serialize)]
 pub(crate) struct NotebookDesc<'a> {
     pub id: NotebookId,
     pub path: &'a str,
     pub editor_cells: &'a [EditorCell],
+    pub runs: Vec<RunDesc<'a>>,
 }
 
 #[derive(Debug, Serialize)]

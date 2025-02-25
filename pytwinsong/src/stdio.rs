@@ -1,4 +1,4 @@
-use comm::messages::{FromKernelMessage, OutputFlag, OutputValue};
+use comm::messages::{FromKernelMessage, KernelOutputValue, OutputFlag};
 use pyo3::{pyclass, pymethods, PyResult};
 use tokio::sync::mpsc::UnboundedSender;
 use uuid::Uuid;
@@ -20,7 +20,7 @@ impl RedirectedStdio {
 impl RedirectedStdio {
     pub fn write(&self, text: String) -> PyResult<()> {
         let _ = self.sender.send(FromKernelMessage::Output {
-            value: OutputValue::Text { value: text },
+            value: KernelOutputValue::Text { value: text },
             cell_id: self.cell_id,
             flag: OutputFlag::Stream,
         });
