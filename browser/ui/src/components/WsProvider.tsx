@@ -5,6 +5,7 @@ import { SendJsonMessage } from "react-use-websocket/dist/lib/types";
 import { useDispatch } from "./StateProvider";
 import ErrorScreen from "./ErrorScreen";
 import LoadingScreen from "./LoadingScreen";
+import { usePushNotification } from "./NotificationProvider";
 
 const WsContext = createContext<SendJsonMessage | null>(null);
 
@@ -14,6 +15,7 @@ declare global {
 
 export const WsProvider = (props: { children: JSX.Element }) => {
   console.log("XXXXXX", window.SERVER_URL);
+  const pushNotification = usePushNotification();
   const [error, setError] = useState<string | null>(null);
   //    const [error, setError] = useState<string | null>(null);
   const dispatch = useDispatch()!;
@@ -43,7 +45,7 @@ export const WsProvider = (props: { children: JSX.Element }) => {
     }
     console.log("Got a new message: ", lastJsonMessage);
     let message = lastJsonMessage as ToClientMessage;
-    processMessage(message, dispatch);
+    processMessage(message, dispatch, pushNotification);
   }, [lastJsonMessage]);
 
   if (error !== null) {

@@ -41,7 +41,7 @@ const EditorCellRenderer: React.FC<{
   const notebook = state.selected_notebook!;
   return (
       <div className={`border-l-6 pl-1 ${notebook.selected_editor_cell_id == cell.id?"border-blue-200":"border-white"}`}>
-      <div className="mb-2 border border-gray-200 rounded-md overflow-hidden">
+      <div className="mb-2 border border-gray-400 rounded-md overflow-hidden">
       <Editor
         onFocus={() => dispatch({
           type: "select_editor_cell",
@@ -103,7 +103,7 @@ const ToolButton: React.FC<{
   onClick: () => void;
   children: React.ReactNode;
 }> = ({ onClick, children }) => {
-  return <button onClick={onClick} className="bg-gray-200 text-black px-4 py-2 rounded hover:bg-gray-300">{children}</button>;
+  return <button onClick={onClick} className="bg-gray-200 text-black px-3 py-2 rounded hover:bg-gray-300">{children}</button>;
 };
 
 const EditorPanel: React.FC = () => {
