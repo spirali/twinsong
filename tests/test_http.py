@@ -59,12 +59,20 @@ def test_save_notebook_plain(client):
     assert r == {'type': 'SaveCompleted', 'error': None, 'notebook_id': notebook_id}
     with open(path) as f:
         data = toml.loads(f.read())
-    shutil.copy(path, "copy.tsnb")
     assert data == {
         "version": "twinsong 0.0.1",
         "editor_cells": editor_cells,
         "runs": runs
     }
+    shutil.copy(path, "copy.tsnb")
+
+    client.send_message({"type": "QueryNotebooks"})
+    r = client.receive_message()
+    assert r == {"type": "NotebookList", "notebooks": [
+        {"path": "copy", "is_loaded": False},
+        {"path": "new_notebook_1", "is_loaded": True},
+    ]}
+
     client.send_message({"type": "LoadNotebook",
                          "path": "copy"})
     r = client.receive_message()
@@ -84,3 +92,10 @@ def test_save_notebook_plain(client):
     with open("copy.tsnb") as f:
         data2 = toml.loads(f.read())
     assert data == data2
+    client.send_message({"type": "QueryNotebooks"})
+    r = client.receive_message()
+    print(r)
+    assert r == {"type": "NotebookList", "notebooks": [
+        {"path": "copy", "is_loaded": True},
+        {"path": "new_notebook_1", "is_loaded": True},
+    ]}

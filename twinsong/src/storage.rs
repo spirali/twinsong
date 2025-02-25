@@ -70,6 +70,6 @@ pub(crate) fn deserialize_notebook(data: &str) -> anyhow::Result<Notebook> {
         path: String::new(),
         runs,
         run_order,
-        observers: vec![],
+        observer: None,
     })
 }
