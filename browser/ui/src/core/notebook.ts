@@ -2,7 +2,11 @@ export type RunId = string;
 export type NotebookId = number;
 export type CellId = string;
 
-export type KernelState = "init" | "ready" | "running" | "closed" | "crashed";
+export type KernelState =
+  | { type: "Init" }
+  | { type: "Running" }
+  | { type: "Closed" }
+  | { type: "Crashed"; message: string };
 export type OutputCellState = "pending" | "running" | "success" | "error";
 
 export interface EditorCell {
@@ -45,7 +49,6 @@ export interface Run {
   id: RunId;
   title: string;
   kernel_state: KernelState;
-  kernel_state_message: string | null;
   output_cells: OutputCell[];
 }
 
@@ -63,5 +66,6 @@ export interface Notebook {
 export interface NotebookDesc {
   id: NotebookId;
   editor_cells: EditorCell[];
+  runs: Run[];
   path: string;
 }

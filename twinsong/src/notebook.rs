@@ -1,4 +1,6 @@
-use crate::client_messages::{serialize_client_message, NotebookDesc, RunDesc, ToClientMessage};
+use crate::client_messages::{
+    serialize_client_message, KernelStateDesc, NotebookDesc, RunDesc, ToClientMessage,
+};
 use crate::kernel::KernelHandle;
 use anyhow::anyhow;
 use axum::extract::ws::Message;
@@ -99,20 +101,32 @@ pub(crate) struct KernelId(Uuid);
 pub(crate) struct OutputCellId(Uuid);
 
 //#[allow(dead_code)] // TODO: Remove this when Run saving is implemented
+
+#[derive(Debug)]
+pub enum KernelState {
+    Init(KernelId),
+    Running(KernelId),
+    Crashed(String),
+    Closed,
+}
+
 #[derive(Debug)]
 pub(crate) struct Run {
     title: String,
     output_cells: Vec<OutputCell>,
-    kernel: Option<KernelId>,
+    kernel: KernelState,
 }
 
 impl Run {
-    pub fn new(title: String, output_cells: Vec<OutputCell>, kernel: Option<KernelId>) -> Self {
+    pub fn new(title: String, output_cells: Vec<OutputCell>, kernel: KernelState) -> Self {
         Run {
             title,
             output_cells,
             kernel,
         }
+    }
+    pub fn kernel_state(&self) -> &KernelState {
+        &self.kernel
     }
     pub fn title(&self) -> &str {
         &self.title
@@ -121,7 +135,10 @@ impl Run {
         &self.output_cells
     }
     pub fn kernel_id(&mut self) -> Option<KernelId> {
-        self.kernel
+        match &self.kernel {
+            KernelState::Init(kernel_id) | KernelState::Running(kernel_id) => Some(*kernel_id),
+            KernelState::Crashed(_) | KernelState::Closed => None,
+        }
     }
 
     pub fn add_output(&mut self, cell_id: OutputCellId, value: OutputValue, flag: OutputFlag) {
@@ -205,6 +222,12 @@ impl Notebook {
         }
     }
 
+    pub fn send_raw_message(&self, message: Message) {
+        if let Some(observer) = &self.observer {
+            let _ = observer.send(message);
+        }
+    }
+
     pub fn find_run_by_id_mut(&mut self, run_id: RunId) -> anyhow::Result<&mut Run> {
         self.runs
             .get_mut(&run_id)
@@ -227,6 +250,12 @@ impl Notebook {
                     id: *run_id,
                     title: &run.title,
                     output_cells: &run.output_cells,
+                    kernel_state: match run.kernel_state() {
+                        KernelState::Init(_) => KernelStateDesc::Init,
+                        KernelState::Running(_) => KernelStateDesc::Running,
+                        KernelState::Crashed(s) => KernelStateDesc::Crashed(s.as_str()),
+                        KernelState::Closed => KernelStateDesc::Closed,
+                    },
                 }
             })
             .collect::<Vec<_>>();
@@ -241,7 +270,7 @@ impl Notebook {
 
 pub(crate) fn generate_new_notebook_path() -> anyhow::Result<String> {
     for i in 1..300 {
-        let candidate = format!("new_notebook_{i}");
+        let candidate = format!("notebook_{i}.tsnb");
         if !std::fs::exists(&Path::new(&candidate)).unwrap_or(true) {
             return Ok(candidate);
         }

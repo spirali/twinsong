@@ -8,7 +8,7 @@ import {
   OutputValue,
   RunId,
 } from "./notebook";
-import { StateAction } from "./state";
+import { DirEntry, StateAction } from "./state";
 import { NotificationType } from "../components/NotificationProvider";
 
 export type SendCommand = (message: FromClientMessage) => void;
@@ -46,12 +46,24 @@ interface SaveCompletedMsg {
   error: string | null;
 }
 
+interface DirList {
+  type: "DirList";
+  entries: DirEntry[];
+}
+
+interface Error {
+  type: "Error";
+  message: string;
+}
+
 export type ToClientMessage =
+  | Error
   | NewNotebookMsg
   | KernelReadyMsg
   | KernelCrashedMsg
   | OutputMsg
-  | SaveCompletedMsg;
+  | SaveCompletedMsg
+  | DirList;
 
 interface CreateNewNotebookMsg {
   type: "CreateNewNotebook";
@@ -78,10 +90,16 @@ interface RunCellMsg {
   editor_cell: EditorCell;
 }
 
+interface LoadNotebookMsg {
+  type: "LoadNotebook";
+  path: string;
+}
+
 export type FromClientMessage =
   | CreateNewNotebookMsg
   | CreateNewKernelMsg
   | RunCellMsg
+  | LoadNotebookMsg
   | SaveNotebookMsg;
 
 export function processMessage(
@@ -102,8 +120,7 @@ export function processMessage(
         type: "kernel_changed",
         notebook_id: message.notebook_id,
         run_id: message.run_id,
-        kernel_state: "ready",
-        message: null,
+        kernel_state: { type: "Running" },
       });
       break;
     }
@@ -112,8 +129,7 @@ export function processMessage(
         type: "kernel_changed",
         notebook_id: message.notebook_id,
         run_id: message.run_id,
-        kernel_state: "crashed",
-        message: message.message,
+        kernel_state: { type: "Crashed", message: message.message },
       });
       break;
     }
@@ -148,6 +164,16 @@ export function processMessage(
         pushNotification("Notebook saved", "success");
       }
       break;
+    }
+    case "DirList": {
+      dispatch({
+        type: "set_dir_entries",
+        entries: message.entries,
+      });
+      break;
+    }
+    case "Error": {
+      pushNotification(message.message, "error");
     }
   }
 }

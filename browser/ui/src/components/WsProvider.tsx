@@ -16,7 +16,6 @@ declare global {
 }
 
 export const WsProvider = (props: { children: JSX.Element }) => {
-  console.log("XXXXXX", window.SERVER_URL);
   const pushNotification = usePushNotification();
   const [error, setError] = useState<string | null>(null);
   //    const [error, setError] = useState<string | null>(null);
@@ -37,6 +36,9 @@ export const WsProvider = (props: { children: JSX.Element }) => {
     if (readyState === ReadyState.OPEN) {
       sendJsonMessage({
         type: "login",
+      });
+      sendJsonMessage({
+        type: "QueryDir",
       });
     }
   }, [readyState]);

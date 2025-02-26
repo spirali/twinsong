@@ -19,7 +19,7 @@ def test_execute_command(client):
 def test_save_notebook_plain(client):
     r = client.create_new_notebook()
     notebook_id = r["notebook"]["id"]
-    path = r["notebook"]["path"] + ".tsnb"
+    path = r["notebook"]["path"]
     k = client.create_new_kernel(r["notebook"]["id"])
     k.run_code_simple("import time; print('Hello'); time.sleep(0.8); print('world!')")
     cell_id = k.last_cell_id
@@ -37,6 +37,7 @@ def test_save_notebook_plain(client):
     runs = [
         {
             "id": k.run_id,
+            "kernel_state": {"type": "Closed"},
             "output_cells": [
                 {
                     "flag": "Success",
@@ -73,17 +74,17 @@ def test_save_notebook_plain(client):
     }
     shutil.copy(path, "copy.tsnb")
 
-    client.send_message({"type": "QueryNotebooks"})
-    r = client.receive_message()
+    client.send_message({"type": "QueryDir"})
+    r = client.receive_message(skip_async=False)
     assert r == {
-        "type": "NotebookList",
-        "notebooks": [
-            {"path": "copy", "is_loaded": False},
-            {"path": "new_notebook_1", "is_loaded": True},
+        "type": "DirList",
+        "entries": [
+            {"entry_type": "Notebook", "path": "copy.tsnb"},
+            {"entry_type": "LoadedNotebook", "path": "notebook_1.tsnb"},
+            {"entry_type": "File", "path": "server.out.log"},
         ],
     }
-
-    client.send_message({"type": "LoadNotebook", "path": "copy"})
+    client.send_message({"type": "LoadNotebook", "path": "copy.tsnb"})
     r = client.receive_message()
     assert r == {
         "type": "NewNotebook",
@@ -91,22 +92,23 @@ def test_save_notebook_plain(client):
             "editor_cells": editor_cells,
             "runs": runs,
             "id": notebook_id + 1,
-            "path": "copy",
+            "path": "copy.tsnb",
         },
     }
-    client.send_message({"type": "LoadNotebook", "path": "copy"})
+    client.send_message({"type": "LoadNotebook", "path": "copy.tsnb"})
     r2 = client.receive_message()
     assert r == r2
     with open("copy.tsnb") as f:
         data2 = toml.loads(f.read())
     assert data == data2
-    client.send_message({"type": "QueryNotebooks"})
-    r = client.receive_message()
+    client.send_message({"type": "QueryDir"})
+    r = client.receive_message(skip_async=False)
     print(r)
     assert r == {
-        "type": "NotebookList",
-        "notebooks": [
-            {"path": "copy", "is_loaded": True},
-            {"path": "new_notebook_1", "is_loaded": True},
+        "type": "DirList",
+        "entries": [
+            {"entry_type": "LoadedNotebook", "path": "copy.tsnb"},
+            {"entry_type": "LoadedNotebook", "path": "notebook_1.tsnb"},
+            {"entry_type": "File", "path": "server.out.log"},
         ],
     }

@@ -40,7 +40,7 @@ export function runCell(
   } else {
     let run = notebook.runs.find((r) => r.id == run_id)!;
     if (
-      run.kernel_state == "ready" &&
+      run.kernel_state.type == "Running" &&
       run.output_cells.find((c) => c.status == "running") == null
     ) {
       status = "running";
@@ -98,4 +98,24 @@ export function saveNotebook(
     notebook_id: notebook.id,
     save_in_progress: true,
   });
+}
+
+export function loadNotebook(
+  state: State,
+  path: string,
+  dispatch: Dispatch<StateAction>,
+  send_command: SendCommand,
+) {
+  const notebook = state.notebooks.find((n) => n.path == path);
+  if (notebook) {
+    dispatch({
+      type: "set_selected_notebook",
+      id: notebook.id,
+    });
+  } else {
+    send_command({
+      type: "LoadNotebook",
+      path,
+    });
+  }
 }

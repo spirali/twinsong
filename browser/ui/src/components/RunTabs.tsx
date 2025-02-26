@@ -10,6 +10,7 @@ const RunTabs: React.FC = () => {
   const dispatch = useDispatch()!;
   const sendCommand = useSendCommand()!;
   const notebook = state.selected_notebook!;
+  console.log(state.selected_notebook);
   return (
     <div className="flex flex-col h-full">
       {/* Content area */}
@@ -25,7 +26,7 @@ const RunTabs: React.FC = () => {
                 run_id: run.id,
               })
             }
-            className={`py-2 px-5 text-sm font-medium transition-colors duration-200 
+            className={`py-2 px-5 text-sm font-medium transition-colors duration-200
             ${
               run.id === notebook.current_run_id
                 ? "bg-orange-100 text-orange-800 border-b-2"
@@ -40,7 +41,7 @@ const RunTabs: React.FC = () => {
           onClick={() => {
             newRun(notebook, dispatch, sendCommand);
           }}
-          className={`py-2 px-5 text-sm font-medium transition-colors duration-200 
+          className={`py-2 px-5 text-sm font-medium transition-colors duration-200
              'bg-gray-50 text-gray-600 hover:bg-orange-50 hover:text-orange-700'}`}
         >
           <Plus className="w-4 h-4" />

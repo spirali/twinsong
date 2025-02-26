@@ -49,7 +49,6 @@ interface KernelStateChangedAction {
   notebook_id: NotebookId;
   run_id: RunId;
   kernel_state: KernelState;
-  message: string | null;
 }
 
 interface NewOutputAction {
@@ -85,8 +84,19 @@ interface SelectEditorCellAction {
   editor_cell_id: CellId | null;
 }
 
+export interface DirEntry {
+  path: string;
+  entry_type: "Notebook" | "LoadedNotebook" | "Dir" | "File";
+}
+
+interface SetDirEntries {
+  type: "set_dir_entries";
+  entries: DirEntry[];
+}
+
 export interface State {
   notebooks: Notebook[];
+  dir_entries: DirEntry[];
   selected_notebook: Notebook | null;
 }
 
@@ -101,6 +111,7 @@ export type StateAction =
   | NewEditorCellAction
   | SelectEditorCellAction
   | SetSelectedNotebookAction
+  | SetDirEntries
   | SaveNotebookAction;
 
 function updateNotebooks(state: State, notebook: Notebook): State {
@@ -121,24 +132,32 @@ function updateNotebooks(state: State, notebook: Notebook): State {
 }
 
 export function stateReducer(state: State, action: StateAction): State {
-  console.log(action);
+  console.log("action", action);
   switch (action.type) {
     case "add_notebook": {
+      const path = action.notebook.path;
+      const runs = action.notebook.runs;
       const notebook = {
         id: action.notebook.id,
         editor_cells: action.notebook.editor_cells,
-        runs: [],
+        runs: runs,
         waiting_for_fresh: [],
-        current_run_id: null,
+        current_run_id: runs.length > 1 ? runs[0].id : null,
         selected_editor_cell_id: null,
         save_in_progress: false,
-        path: action.notebook.path,
+        path,
       } as Notebook;
 
+      const dir_entries = state.dir_entries.map((e) =>
+        e.path == path
+          ? ({ ...e, entry_type: "LoadedNotebook" } as DirEntry)
+          : e,
+      );
       return {
         ...state,
         notebooks: [...state.notebooks, notebook],
         selected_notebook: notebook,
+        dir_entries,
       };
     }
     case "set_selected_notebook": {
@@ -169,7 +188,7 @@ export function stateReducer(state: State, action: StateAction): State {
           {
             id: action.run_id,
             title: action.run_title,
-            kernel_state: "init",
+            kernel_state: { type: "Init" },
             output_cells: [],
             kernel_state_message: null,
           } as Run,
@@ -184,7 +203,10 @@ export function stateReducer(state: State, action: StateAction): State {
         ...notebook,
         runs: notebook.runs.map((r) => {
           if (r.id == action.run_id) {
-            if (action.kernel_state == "ready" && r.output_cells.length > 0) {
+            if (
+              action.kernel_state.type == "Running" &&
+              r.output_cells.length > 0
+            ) {
               const output_cells = r.output_cells.map((cell, index) =>
                 index === 0 ? { ...cell, status: "running" } : cell,
               );
@@ -192,13 +214,11 @@ export function stateReducer(state: State, action: StateAction): State {
                 ...r,
                 kernel_state: action.kernel_state,
                 output_cells,
-                kernel_state_message: action.message,
               } as Run;
             } else {
               return {
                 ...r,
                 kernel_state: action.kernel_state,
-                kernel_state_message: action.message,
               } as Run;
             }
           } else {
@@ -303,10 +323,17 @@ export function stateReducer(state: State, action: StateAction): State {
     default: {
       throw Error("Unknown action");
     }
+    case "set_dir_entries": {
+      return {
+        ...state,
+        dir_entries: action.entries,
+      };
+    }
   }
 }
 
 export const INITIAL_STATE: State = {
   notebooks: [],
+  dir_entries: [],
   selected_notebook: null,
 };

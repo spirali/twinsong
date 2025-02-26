@@ -12,7 +12,7 @@ pub(crate) enum FromClientMessage {
     RunCell(RunCellMsg),
     SaveNotebook(SaveNotebookMsg),
     LoadNotebook(LoadNotebookMsg),
-    QueryNotebooks,
+    QueryDir,
 }
 
 #[derive(Debug, Deserialize)]
@@ -45,10 +45,20 @@ pub(crate) struct LoadNotebookMsg {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(tag = "type")]
+pub(crate) enum KernelStateDesc<'a> {
+    Init,
+    Running,
+    Crashed(&'a str),
+    Closed,
+}
+
+#[derive(Debug, Serialize)]
 pub(crate) struct RunDesc<'a> {
     pub id: RunId,
     pub title: &'a str,
     pub output_cells: &'a [OutputCell],
+    pub kernel_state: KernelStateDesc<'a>,
 }
 
 #[derive(Debug, Serialize)]
@@ -60,9 +70,17 @@ pub(crate) struct NotebookDesc<'a> {
 }
 
 #[derive(Debug, Serialize)]
-pub(crate) struct NotebookInfo {
+pub(crate) enum DirEntryType {
+    Notebook,
+    LoadedNotebook,
+    File,
+    Dir,
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct DirEntry {
     pub path: String,
-    pub is_loaded: bool,
+    pub entry_type: DirEntryType,
 }
 
 #[derive(Debug, Serialize)]
@@ -98,8 +116,8 @@ pub(crate) enum ToClientMessage<'a> {
         notebook_id: NotebookId,
         error: Option<String>,
     },
-    NotebookList {
-        notebooks: &'a [NotebookInfo],
+    DirList {
+        entries: &'a [DirEntry],
     },
 }
 
