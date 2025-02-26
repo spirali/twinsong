@@ -4,49 +4,42 @@ import { KernelState } from "../core/notebook";
 
 interface StatusIndicatorProps {
   status: KernelState;
-  message: string | null;
 }
 
-export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
-  status,
-  message,
-}) => {
+export const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status }) => {
   const statusConfig = {
-    init: {
+    Init: {
       color: "bg-yellow-300",
       textColor: "text-yellow-700",
       icon: <Loader2 className="w-4 h-4 mr-2 animate-spin" />,
       label: "Initializing kernel",
     },
-    ready: {
+    Running: {
       color: "bg-green-300",
       textColor: "text-green-700",
       icon: <CheckCircle className="w-4 h-4 mr-2" />,
       label: "Kernel is ready",
     },
-    running: null,
-    // running: {
-    //   color: 'bg-blue-300',
-    //   textColor: 'text-blue-700',
-    //   icon: <Activity className="w-4 h-4 mr-2 animate-pulse" />,
-    //   label: 'Running'
-    // },
-    crashed: {
+    Crashed: {
       color: "bg-red-300",
       textColor: "text-red-700",
       icon: <X className="w-4 h-4 mr-2" />,
       label: "Kernel crashed",
     },
-    closed: {
+    Closed: {
       color: "bg-gray-300",
       textColor: "text-gray-700",
       icon: <X className="w-4 h-4 mr-2" />,
       label: "Kernel closed",
     },
   };
-  const config = statusConfig[status];
-  if (config === null) {
+  const config = statusConfig[status.type];
+  if (!config) {
     return <></>;
+  }
+  let message = null;
+  if (status.type === "Crashed") {
+    message = status.message;
   }
   return (
     <div className={`flex items-center`}>

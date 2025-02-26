@@ -1,12 +1,15 @@
 use crate::client_messages::{
-    serialize_client_message, LoadNotebookMsg, NotebookDesc, NotebookInfo, RunCellMsg,
+    serialize_client_message, DirEntry, DirEntryType, LoadNotebookMsg, NotebookDesc, RunCellMsg,
     SaveNotebookMsg, ToClientMessage,
 };
 use crate::kernel::{spawn_kernel, KernelCtx};
-use crate::notebook::{KernelId, Notebook, NotebookId, OutputCellId, OutputValue, Run, RunId};
+use crate::notebook::{
+    generate_new_notebook_path, KernelId, KernelState, Notebook, NotebookId, OutputCellId,
+    OutputValue, Run, RunId,
+};
 use crate::state::{AppState, AppStateRef};
 use crate::storage::{deserialize_notebook, serialize_notebook};
-use anyhow::bail;
+use anyhow::{anyhow, bail};
 use axum::extract::ws::Message;
 use comm::messages::{ComputeMsg, FromKernelMessage, ToKernelMessage};
 use std::path::{Path, PathBuf};
@@ -14,6 +17,23 @@ use tokio::spawn;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::task::spawn_local;
 use uuid::Uuid;
+
+pub(crate) fn new_notebook(
+    state: &mut AppState,
+    state_ref: &AppStateRef,
+    sender: UnboundedSender<Message>,
+) -> anyhow::Result<()> {
+    let notebook_id = state.new_notebook_id();
+    tracing::debug!("Creating new notebook {notebook_id}");
+    let mut notebook = Notebook::new(generate_new_notebook_path()?);
+    notebook.set_observer(sender.clone());
+    notebook.send_message(ToClientMessage::NewNotebook {
+        notebook: notebook.notebook_desc(notebook_id),
+    });
+    state.add_notebook(notebook_id, notebook);
+    let notebook = state.get_notebook_by_id(notebook_id).unwrap();
+    save_helper(notebook_id, notebook, state_ref, true)
+}
 
 pub(crate) fn start_kernel(
     state: &mut AppState,
@@ -30,7 +50,11 @@ pub(crate) fn start_kernel(
         notebook_id,
         run_id,
     };
-    let run = Run::new(run_title, Vec::new(), Some(kernel_ctx.kernel_id));
+    let run = Run::new(
+        run_title,
+        Vec::new(),
+        KernelState::Init(kernel_ctx.kernel_id),
+    );
     let kernel = spawn_kernel(state_ref, kernel_ctx, kernel_port)?;
     notebook.add_run(run_id, run);
     state.add_kernel(kernel_id, kernel);
@@ -38,6 +62,7 @@ pub(crate) fn start_kernel(
 }
 
 pub(crate) fn run_code(state: &mut AppState, msg: RunCellMsg) -> anyhow::Result<()> {
+    tracing::debug!("Runnning code {:?}", msg);
     let notebook = state.find_notebook_by_id_mut(msg.notebook_id)?;
     let run = notebook.find_run_by_id_mut(msg.run_id)?;
     if let Some(kernel) = run
@@ -80,18 +105,16 @@ pub(crate) fn process_kernel_message(
     Ok(())
 }
 
-pub(crate) fn save_notebook(
-    state: &mut AppState,
+fn save_helper(
+    notebook_id: NotebookId,
+    notebook: &Notebook,
     state_ref: &AppStateRef,
-    msg: SaveNotebookMsg,
+    new_notebook: bool,
 ) -> anyhow::Result<()> {
-    let notebook_id = msg.notebook_id;
-    let notebook = state.find_notebook_by_id_mut(notebook_id)?;
-    let path = Path::new(&format!("{}.tsnb", notebook.path)).to_path_buf();
-    notebook.editor_cells = msg.editor_cells;
+    let path = Path::new(&notebook.path).to_path_buf();
+    tracing::debug!("Saving notebook as {}", path.display());
     let data = serialize_notebook(notebook)?;
     let state_ref = state_ref.clone();
-    tracing::debug!("Saving notebook as {}", path.display());
     spawn(async move {
         let error = tokio::fs::write(&path, data)
             .await
@@ -102,12 +125,31 @@ pub(crate) fn save_notebook(
         } else {
             tracing::debug!("Saving notebook as {} finished", path.display());
         }
-        let state = state_ref.lock().unwrap();
-        state.get_notebook_by_id(notebook_id).map(|notebook| {
-            notebook.send_message(ToClientMessage::SaveCompleted { notebook_id, error });
-        });
+        let mut state = state_ref.lock().unwrap();
+        if !new_notebook {
+            state.get_notebook_by_id(notebook_id).map(|notebook| {
+                notebook.send_message(ToClientMessage::SaveCompleted { notebook_id, error });
+            });
+        } else {
+            if let Ok(message) = query_helper(&mut state) {
+                state
+                    .get_notebook_by_id(notebook_id)
+                    .map(|notebook| notebook.send_raw_message(message));
+            }
+        }
     });
     Ok(())
+}
+
+pub(crate) fn save_notebook(
+    state: &mut AppState,
+    state_ref: &AppStateRef,
+    msg: SaveNotebookMsg,
+) -> anyhow::Result<()> {
+    let notebook_id = msg.notebook_id;
+    let notebook = state.find_notebook_by_id_mut(notebook_id)?;
+    notebook.editor_cells = msg.editor_cells;
+    save_helper(notebook_id, notebook, state_ref, false)
 }
 
 pub(crate) fn load_notebook(
@@ -128,7 +170,7 @@ pub(crate) fn load_notebook(
     }
     let state_ref = state_ref.clone();
     spawn(async move {
-        match tokio::fs::read_to_string(Path::new(&format!("{path}.tsnb")))
+        match tokio::fs::read_to_string(Path::new(&path))
             .await
             .map_err(|err| err.into())
             .and_then(|s| deserialize_notebook(s.as_str()))
@@ -157,32 +199,37 @@ pub(crate) fn load_notebook(
     Ok(())
 }
 
-pub(crate) fn query_notebooks(
+fn query_helper(state: &mut AppState) -> anyhow::Result<Message> {
+    let mut entries: Vec<DirEntry> = std::fs::read_dir(Path::new("."))?
+        .filter_map(|r| r.ok())
+        .filter_map(|entry| {
+            let path = entry.path().file_name().unwrap().to_str()?.to_string();
+            let file_type = entry.file_type().ok()?;
+            let entry_type = if file_type.is_file() && path.ends_with(".tsnb") {
+                if state.get_notebook_by_path_mut(&path).is_some() {
+                    DirEntryType::LoadedNotebook
+                } else {
+                    DirEntryType::Notebook
+                }
+            } else {
+                if file_type.is_dir() {
+                    DirEntryType::Dir
+                } else {
+                    DirEntryType::File
+                }
+            };
+            Some(DirEntry { path, entry_type })
+        })
+        .collect();
+    entries.sort_unstable_by(|a, b| a.path.cmp(&b.path));
+    serialize_client_message(ToClientMessage::DirList { entries: &entries })
+}
+
+pub(crate) fn query_dir(
     state: &mut AppState,
     sender: &UnboundedSender<Message>,
 ) -> anyhow::Result<()> {
-    let mut infos: Vec<NotebookInfo> = std::fs::read_dir(Path::new("."))?
-        .filter_map(|r| r.ok())
-        .filter_map(|entry| {
-            dbg!(entry.path());
-            if entry.file_type().ok()?.is_file() {
-                let path = entry
-                    .path()
-                    .file_name()
-                    .unwrap()
-                    .to_str()?
-                    .strip_suffix(".tsnb")?
-                    .to_string();
-                let is_loaded = state.get_notebook_by_path_mut(&path).is_some();
-                Some(NotebookInfo { path, is_loaded })
-            } else {
-                None
-            }
-        })
-        .collect();
-    infos.sort_unstable_by(|a, b| a.path.cmp(&b.path));
-    let _ = sender.send(serialize_client_message(ToClientMessage::NotebookList {
-        notebooks: &infos,
-    })?);
+    let message = query_helper(state)?;
+    let _ = sender.send(message);
     Ok(())
 }

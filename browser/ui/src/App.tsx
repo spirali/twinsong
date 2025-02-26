@@ -1,5 +1,6 @@
 import "./App.css";
 import GlobalTabs from "./components/GlobalTabs";
+import NotebookList from "./components/DirList";
 import NotebookView from "./components/NotebookView";
 import {
   NotificationProvider,
@@ -14,8 +15,9 @@ function App() {
       <Notifications />
       <StateProvider>
         <WsProvider>
-          {/*<NotebookView />*/}
-          <GlobalTabs />
+          <div className="h-screen w-screen flex fixed top-0 left-0">
+            <GlobalTabs />
+          </div>
         </WsProvider>
       </StateProvider>
     </NotificationProvider>

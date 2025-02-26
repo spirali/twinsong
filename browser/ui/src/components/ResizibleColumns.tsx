@@ -57,7 +57,7 @@ const ResizableColumns: React.FC<Props> = ({
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
   return (
-    <div className="fixed w-screen h-full overflow-hidden">
+    <div className="w-full h-full overflow-hidden">
       <div id="resizable-container" className="flex w-full h-full">
         {/* Left Column */}
         <div

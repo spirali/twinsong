@@ -101,8 +101,12 @@ class Client:
     def send_message(self, data):
         self.ws.send(json.dumps(data))
 
-    def receive_message(self):
-        return json.loads(self.ws.recv())
+    def receive_message(self, skip_async=True):
+        while True:
+            r = json.loads(self.ws.recv())
+            if skip_async and r["type"] == "DirList":
+                continue
+            return r
 
     def create_new_notebook(self):
         self.send_message({"type": "CreateNewNotebook"})
