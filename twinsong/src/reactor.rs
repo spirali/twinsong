@@ -4,8 +4,8 @@ use crate::client_messages::{
 };
 use crate::kernel::{spawn_kernel, KernelCtx};
 use crate::notebook::{
-    generate_new_notebook_path, KernelId, KernelState, Notebook, NotebookId, OutputCellId,
-    OutputValue, Run, RunId,
+    generate_new_notebook_path, KernelId, KernelState, Notebook, NotebookId, OutputCell,
+    OutputCellId, OutputValue, Run, RunId,
 };
 use crate::state::{AppState, AppStateRef};
 use crate::storage::{deserialize_notebook, serialize_notebook};
@@ -78,13 +78,15 @@ pub(crate) fn run_code(state: &mut AppState, msg: RunCellMsg) -> anyhow::Result<
     tracing::debug!("Runnning code {:?}", msg);
     let notebook = state.find_notebook_by_id_mut(msg.notebook_id)?;
     let run = notebook.find_run_by_id_mut(msg.run_id)?;
+    let code = msg.editor_cell.value.clone();
+    run.add_output_cell(OutputCell::new(msg.cell_id, msg.editor_cell));
     if let Some(kernel) = run
         .kernel_id()
         .and_then(|kernel_id| state.get_kernel_by_id_mut(kernel_id))
     {
         kernel.send_message(ToKernelMessage::Compute(ComputeMsg {
             cell_id: msg.cell_id.into_inner(),
-            code: msg.editor_cell.value,
+            code,
         }))
     }
     Ok(())

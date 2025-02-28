@@ -6,7 +6,7 @@ import {
   NotebookDesc,
   NotebookId,
   OutputCell,
-  OutputCellState,
+  OutputCellFlag,
   OutputValue,
   Run,
   RunId,
@@ -56,7 +56,7 @@ interface NewOutputAction {
   notebook_id: NotebookId;
   run_id: RunId;
   cell_id: CellId;
-  status: OutputCellState;
+  flag: OutputCellFlag;
   value: OutputValue;
 }
 
@@ -251,8 +251,7 @@ export function stateReducer(state: State, action: StateAction): State {
         ...notebook,
         runs: notebook.runs.map((r) => {
           if (r.id == action.run_id) {
-            let finished =
-              action.status == "success" || action.status == "error";
+            let finished = action.flag == "Success" || action.flag == "Fail";
             const output_cells = r.output_cells.map((c) => {
               if (c.id === action.cell_id) {
                 let values;
@@ -274,11 +273,11 @@ export function stateReducer(state: State, action: StateAction): State {
                 } else {
                   values = [...c.values, action.value];
                 }
-                return { ...c, status: action.status, values } as OutputCell;
+                return { ...c, flag: action.flag, values } as OutputCell;
               }
-              if (finished && c.status == "pending") {
+              if (finished && c.flag == "Pending") {
                 finished = false;
-                return { ...c, status: "running" } as OutputCell;
+                return { ...c, flag: "Running" } as OutputCell;
               } else {
                 return c;
               }

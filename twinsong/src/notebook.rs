@@ -46,6 +46,18 @@ pub(crate) struct OutputCell {
     // If flag is finished/failed then the last value is returned object/exception
     values: Vec<OutputValue>,
     flag: OutputFlag,
+    editor_cell: EditorCell,
+}
+
+impl OutputCell {
+    pub fn new(id: OutputCellId, editor_cell: EditorCell) -> Self {
+        OutputCell {
+            id,
+            values: Vec::new(),
+            flag: OutputFlag::Running,
+            editor_cell,
+        }
+    }
 }
 
 #[nutype(derive(
@@ -148,10 +160,14 @@ impl Run {
         }
     }
 
+    pub fn add_output_cell(&mut self, output_cell: OutputCell) {
+        self.output_cells.push(output_cell);
+    }
+
     pub fn add_output(&mut self, cell_id: OutputCellId, value: OutputValue, flag: OutputFlag) {
-        if let Some(ref mut last) = self.output_cells.last_mut().filter(|c| c.id == cell_id) {
+        if let Some(ref mut last) = self.output_cells.iter_mut().rev().find(|c| c.id == cell_id) {
             if let (
-                OutputFlag::Stream,
+                OutputFlag::Running,
                 OutputValue::Text { value: new_text },
                 Some(OutputValue::Text { value: old_text }),
             ) = (flag, &value, last.values.last_mut())
@@ -163,11 +179,7 @@ impl Run {
             last.values.push(value);
             last.flag = flag;
         } else {
-            self.output_cells.push(OutputCell {
-                id: cell_id,
-                values: vec![value],
-                flag,
-            });
+            panic!("Output cell with id {} not found", cell_id);
         }
     }
 }

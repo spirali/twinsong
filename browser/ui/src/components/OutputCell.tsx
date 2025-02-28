@@ -42,14 +42,14 @@ const OutputCellView: React.FC<{ cell: OutputCell }> = (props: {
 
   // Get the appropriate icon based on status
   const getStatusIcon = () => {
-    switch (props.cell.status) {
-      case "pending":
+    switch (props.cell.flag) {
+      case "Pending":
         return <Clock className="h-4 w-4 text-blue-700" />;
-      case "running":
+      case "Running":
         return <PlayCircle className="h-4 w-4 text-yellow-700" />;
-      case "success":
+      case "Success":
         return <CheckCircle className="h-4 w-4 text-green-700" />;
-      case "error":
+      case "Fail":
         return <AlertCircle className="h-4 w-4 text-red-700" />;
       default:
         return null;
@@ -58,14 +58,14 @@ const OutputCellView: React.FC<{ cell: OutputCell }> = (props: {
 
   // Get status text with appropriate color
   const getStatusText = () => {
-    switch (props.cell.status) {
-      case "pending":
+    switch (props.cell.flag) {
+      case "Pending":
         return <span className="text-blue-700 text-xs">Pending</span>;
-      case "running":
+      case "Running":
         return <span className="text-yellow-700 text-xs">Running</span>;
-      case "success":
+      case "Success":
         return <span className="text-green-700 text-xs">Done</span>;
-      case "error":
+      case "Fail":
         return <span className="text-red-700 text-xs">Error</span>;
       default:
         return null;
@@ -79,7 +79,7 @@ const OutputCellView: React.FC<{ cell: OutputCell }> = (props: {
       <div ref={ref} className="border border-gray-300 shadow-sm mb-2 mr-6">
         {/* Smaller Status Bar */}
         <div
-          className={`flex items-center justify-between px-1 py-1 border-b border-gray-300 ${props.cell.status === "running" ? "bg-yellow-50" : "bg-gray-50"}`}
+          className={`flex items-center justify-between px-1 py-1 border-b border-gray-300 ${props.cell.flag === "Running" ? "bg-yellow-50" : "bg-gray-50"}`}
         >
           <div className="flex items-center space-x-1">
             {getStatusIcon()}
@@ -112,9 +112,7 @@ const OutputCellView: React.FC<{ cell: OutputCell }> = (props: {
         )}
 
         {/* Content */}
-        <div
-          className={`p-1 ${props.cell.status === "error" ? "bg-red-50" : ""}`}
-        >
+        <div className={`p-1 ${props.cell.flag === "Fail" ? "bg-red-50" : ""}`}>
           {props.cell.values.map((value, index) => (
             <OutputValueView key={index} value={value} />
           ))}
