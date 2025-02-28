@@ -8,6 +8,7 @@ import "prismjs/themes/prism.css";
 import { useSendCommand } from "./WsProvider";
 import { newEdtorCell, runCell, saveNotebook } from "../core/actions";
 import { SquarePlus, Save, Loader2 } from "lucide-react";
+import { usePushNotification } from "./NotificationProvider";
 
 function checkIfLastLine(
   event:
@@ -38,6 +39,7 @@ const EditorCellRenderer: React.FC<{
   const sendCommand = useSendCommand()!;
   const state = useGlobalState();
   const notebook = state.selected_notebook!;
+  const pushNotification = usePushNotification();
   return (
     <div
       className={`border-l-6 pl-1 ${notebook.selected_editor_cell_id == cell.id ? "border-blue-200" : "border-white"}`}
@@ -77,7 +79,7 @@ const EditorCellRenderer: React.FC<{
           onKeyDown={(e) => {
             if (e.ctrlKey && e.key === "Enter") {
               e.preventDefault();
-              runCell(cell, notebook, dispatch, sendCommand);
+              runCell(cell, notebook, dispatch, sendCommand, pushNotification);
             }
             if (e.key == "ArrowUp" && prev_id && checkIfFirstLine(e)) {
               e.preventDefault();

@@ -197,6 +197,14 @@ impl Notebook {
         let editor_cells = vec![
             EditorCell {
                 id: Uuid::new_v4(),
+                value: "print(\"Hello world\")".to_string(),
+            },
+            EditorCell {
+                id: Uuid::new_v4(),
+                value: String::new(),
+            },
+            /*EditorCell {
+                id: Uuid::new_v4(),
                 value: "a = 10\na + 2".to_string(),
             },
             EditorCell {
@@ -210,8 +218,7 @@ impl Notebook {
                 value:
                 "import time\nfor x in range(4):\n    print(x)\n    time.sleep(1)\n"
                     .to_string(),
-            },
-
+            },*/
         ];
         Notebook {
             path,

@@ -71,11 +71,13 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
   );
 };
 
-// Custom hook to use the context
-export const usePushNotification = (): ((
+
+export type PushNotification = ((
   text: string,
   type: NotificationType,
-) => void) => {
+) => void)
+
+export const usePushNotification = (): PushNotification => {
   const context = useContext(NotificationContext);
   if (!context) {
     throw new Error(

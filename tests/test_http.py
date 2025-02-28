@@ -8,12 +8,12 @@ def test_execute_command(client):
     k = client.create_new_kernel(r["notebook"]["id"])
     assert "3" == k.run_code_simple("1 + 2")
     assert [
-        {"type": "Text", "value": "Hello"},
-        {"type": "Text", "value": "\n"},
-        {"type": "Text", "value": "World"},
-        {"type": "Text", "value": "\n"},
-        {"type": "None"},
-    ] == k.run_code("print('Hello')\nprint('World')")
+               {"type": "Text", "value": "Hello"},
+               {"type": "Text", "value": "\n"},
+               {"type": "Text", "value": "World"},
+               {"type": "Text", "value": "\n"},
+               {"type": "None"},
+           ] == k.run_code("print('Hello')\nprint('World')")
 
 
 def test_save_notebook_plain(client):
@@ -112,3 +112,22 @@ def test_save_notebook_plain(client):
             {"entry_type": "File", "path": "server.out.log"},
         ],
     }
+
+
+def test_save_empty(client):
+    r = client.create_new_notebook()
+    notebook_id = r["notebook"]["id"]
+    editor_cells = r["notebook"]["editor_cells"]
+    client.send_message(
+        {
+            "type": "SaveNotebook",
+            "notebook_id": notebook_id,
+            "editor_cells": editor_cells,
+        }
+    )
+    s = client.receive_message()
+    assert s == {"type": "SaveCompleted", "error": None, "notebook_id": notebook_id}
+    with open(r["notebook"]["path"]) as f:
+        data = toml.loads(f.read())
+    assert data == {'version': 'twinsong 0.0.1', 'runs': [],
+                    'editor_cells': editor_cells}
