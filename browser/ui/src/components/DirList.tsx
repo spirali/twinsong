@@ -1,4 +1,4 @@
-import { Folder, File, SquarePlus, Cog, FileCog, FileCog2 } from "lucide-react";
+import { Folder, File, SquarePlus, FileCog2 } from "lucide-react";
 import { useSendCommand } from "./WsProvider";
 import { useDispatch, useGlobalState } from "./StateProvider";
 import { loadNotebook } from "../core/actions";

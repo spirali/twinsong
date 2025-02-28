@@ -1,7 +1,5 @@
 import "./App.css";
 import GlobalTabs from "./components/GlobalTabs";
-import NotebookList from "./components/DirList";
-import NotebookView from "./components/NotebookView";
 import {
   NotificationProvider,
   Notifications,

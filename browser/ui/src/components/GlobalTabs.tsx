@@ -1,9 +1,8 @@
-import React, { JSX, useState } from "react";
+import { JSX, useState } from "react";
 import NotebookList from "./DirList";
 import { useDispatch, useGlobalState } from "./StateProvider";
-import { NotebookId } from "../core/notebook";
 import NotebookView from "./NotebookView";
-import { NotebookTabs, Loader2 } from "lucide-react";
+import { NotebookTabs } from "lucide-react";
 
 const TabButton = (props: {
   highlighted: boolean;
