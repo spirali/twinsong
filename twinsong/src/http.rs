@@ -1,8 +1,6 @@
 use crate::client_messages::{
-    parse_client_message, serialize_client_message, FromClientMessage, NotebookDesc,
-    ToClientMessage,
+    parse_client_message, serialize_client_message, FromClientMessage, ToClientMessage,
 };
-use crate::notebook::{generate_new_notebook_path, Notebook};
 use crate::reactor::{
     load_notebook, new_notebook, query_dir, run_code, save_notebook, start_kernel,
 };
@@ -20,7 +18,6 @@ use futures_util::StreamExt;
 use std::io::Write;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
-use tracing::log;
 
 pub(crate) async fn http_server_main(state: AppStateRef, port: u16) -> anyhow::Result<()> {
     let app = Router::new()
@@ -98,7 +95,7 @@ async fn handle_socket(mut socket: WebSocket, state_ref: &AppStateRef) -> anyhow
         let msg = msg?;
         if let Message::Text(_text) = msg {
             // TODO: Implement loging with TOKEN
-            let state = state_ref.lock().unwrap();
+            //let state = state_ref.lock().unwrap();
         } else {
             tracing::error!("Invalid first message");
         }
@@ -145,13 +142,13 @@ fn process_client_message(
             run_code(state, msg)?;
         }
         FromClientMessage::SaveNotebook(msg) => {
-            save_notebook(state, &state_ref, msg)?;
+            save_notebook(state, state_ref, msg)?;
         }
         FromClientMessage::LoadNotebook(msg) => {
-            load_notebook(state, &state_ref, msg, sender.clone())?;
+            load_notebook(state, state_ref, msg, sender.clone())?;
         }
         FromClientMessage::QueryDir => {
-            query_dir(state, &sender)?;
+            query_dir(state, sender)?;
         }
     };
     Ok(())

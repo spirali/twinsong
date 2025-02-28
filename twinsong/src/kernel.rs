@@ -1,5 +1,5 @@
 use crate::client_messages::ToClientMessage;
-use crate::notebook::{KernelId, NotebookId, Run, RunId};
+use crate::notebook::{KernelId, NotebookId, RunId};
 use crate::reactor::process_kernel_message;
 use crate::state::AppStateRef;
 use anyhow::bail;
@@ -8,7 +8,6 @@ use comm::messages::{FromKernelMessage, ToKernelMessage};
 use comm::{make_protocol_builder, parse_from_kernel_message, serialize_to_kernel_message, Codec};
 use futures_util::stream::{SplitSink, SplitStream, StreamExt};
 use futures_util::SinkExt;
-use nutype::nutype;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::process::Child;
 use tokio::spawn;
@@ -180,7 +179,7 @@ pub(crate) async fn handle_connection(
                 kernel.set_to_ready(c_sender);
                 let notebook_id = kernel.notebook_id();
                 let run_id = kernel.run_id();
-                let mut notebook = state.notebook_by_id_mut(notebook_id);
+                let notebook = state.notebook_by_id_mut(notebook_id);
                 notebook
                     .find_run_by_id_mut(run_id)
                     .unwrap()

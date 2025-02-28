@@ -1,8 +1,7 @@
 use crate::kernel::KernelHandle;
-use crate::notebook::{KernelId, Notebook, NotebookId, Run, RunId};
+use crate::notebook::{KernelId, Notebook, NotebookId};
 use anyhow::anyhow;
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 pub(crate) struct AppState {
@@ -33,10 +32,6 @@ impl AppState {
 
     pub fn add_notebook(&mut self, notebook_id: NotebookId, notebook: Notebook) {
         self.notebooks.insert(notebook_id, notebook);
-    }
-
-    pub fn notebook_by_id(&self, id: NotebookId) -> &Notebook {
-        self.notebooks.get(&id).unwrap()
     }
 
     pub fn notebook_by_id_mut(&mut self, id: NotebookId) -> &mut Notebook {

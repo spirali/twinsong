@@ -1,6 +1,6 @@
 use crate::client_messages::{
-    serialize_client_message, DirEntry, DirEntryType, LoadNotebookMsg, NotebookDesc, RunCellMsg,
-    SaveNotebookMsg, ToClientMessage,
+    serialize_client_message, DirEntry, DirEntryType, LoadNotebookMsg, RunCellMsg, SaveNotebookMsg,
+    ToClientMessage,
 };
 use crate::kernel::{spawn_kernel, KernelCtx};
 use crate::notebook::{
@@ -9,13 +9,12 @@ use crate::notebook::{
 };
 use crate::state::{AppState, AppStateRef};
 use crate::storage::{deserialize_notebook, serialize_notebook};
-use anyhow::{anyhow, bail};
+use anyhow::bail;
 use axum::extract::ws::Message;
 use comm::messages::{ComputeMsg, FromKernelMessage, ToKernelMessage};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use tokio::spawn;
 use tokio::sync::mpsc::UnboundedSender;
-use tokio::task::spawn_local;
 use uuid::Uuid;
 
 pub(crate) fn new_notebook(
@@ -64,7 +63,7 @@ pub(crate) fn start_kernel(
             tracing::error!("Starting kernel failed {e}");
             let run = notebook.find_run_by_id_mut(run_id).unwrap();
             run.set_crashed_kernel(e.to_string());
-            let _ = notebook.send_message(ToClientMessage::KernelCrashed {
+            notebook.send_message(ToClientMessage::KernelCrashed {
                 notebook_id,
                 run_id,
                 message: e.to_string(),
@@ -142,14 +141,12 @@ fn save_helper(
         }
         let mut state = state_ref.lock().unwrap();
         if !new_notebook {
-            state.get_notebook_by_id(notebook_id).map(|notebook| {
+            if let Some(notebook) = state.get_notebook_by_id(notebook_id) {
                 notebook.send_message(ToClientMessage::SaveCompleted { notebook_id, error });
-            });
-        } else {
-            if let Ok(message) = query_helper(&mut state) {
-                state
-                    .get_notebook_by_id(notebook_id)
-                    .map(|notebook| notebook.send_raw_message(message));
+            }
+        } else if let Ok(message) = query_helper(&mut state) {
+            if let Some(notebook) = state.get_notebook_by_id(notebook_id) {
+                notebook.send_raw_message(message)
             }
         }
     });
@@ -226,12 +223,10 @@ fn query_helper(state: &mut AppState) -> anyhow::Result<Message> {
                 } else {
                     DirEntryType::Notebook
                 }
+            } else if file_type.is_dir() {
+                DirEntryType::Dir
             } else {
-                if file_type.is_dir() {
-                    DirEntryType::Dir
-                } else {
-                    DirEntryType::File
-                }
+                DirEntryType::File
             };
             Some(DirEntry { path, entry_type })
         })

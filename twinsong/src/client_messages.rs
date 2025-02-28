@@ -2,7 +2,6 @@ use crate::notebook::{EditorCell, NotebookId, OutputCell, OutputCellId, OutputVa
 use axum::extract::ws::Message;
 use comm::messages::OutputFlag;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
