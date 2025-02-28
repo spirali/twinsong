@@ -112,14 +112,14 @@ pub fn spawn_kernel(
             // TODO: Remove kernel from state
             let notebook_id = kernel.notebook_id();
             let run_id = kernel.run_id();
-            state
-                .find_notebook_by_id_mut(notebook_id)
-                .unwrap()
-                .send_message(ToClientMessage::KernelCrashed {
-                    notebook_id,
-                    run_id,
-                    message: "Process unexpectedly closed".to_string(),
-                })
+            let notebook = state.find_notebook_by_id_mut(notebook_id).unwrap();
+            let run = notebook.find_run_by_id_mut(run_id).unwrap();
+            run.set_crashed_kernel("Process unexpectedly closed".to_string());
+            notebook.send_message(ToClientMessage::KernelCrashed {
+                notebook_id,
+                run_id,
+                message: "Process unexpectedly closed".to_string(),
+            })
         }
     });
     Ok(KernelHandle::new(kernel_ctx, sender))
@@ -180,12 +180,15 @@ pub(crate) async fn handle_connection(
                 kernel.set_to_ready(c_sender);
                 let notebook_id = kernel.notebook_id();
                 let run_id = kernel.run_id();
-                state
-                    .notebook_by_id(notebook_id)
-                    .send_message(ToClientMessage::KernelReady {
-                        notebook_id,
-                        run_id,
-                    });
+                let mut notebook = state.notebook_by_id_mut(notebook_id);
+                notebook
+                    .find_run_by_id_mut(run_id)
+                    .unwrap()
+                    .set_running_kernel(kernel_id);
+                notebook.send_message(ToClientMessage::KernelReady {
+                    notebook_id,
+                    run_id,
+                });
                 (
                     c_receiver,
                     KernelCtx {

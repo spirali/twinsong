@@ -49,7 +49,7 @@ pub(crate) struct LoadNotebookMsg {
 pub(crate) enum KernelStateDesc<'a> {
     Init,
     Running,
-    Crashed(&'a str),
+    Crashed { message: &'a str },
     Closed,
 }
 

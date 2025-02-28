@@ -142,7 +142,7 @@ export function stateReducer(state: State, action: StateAction): State {
         editor_cells: action.notebook.editor_cells,
         runs: runs,
         waiting_for_fresh: [],
-        current_run_id: runs.length > 1 ? runs[0].id : null,
+        current_run_id: runs.length > 0 ? runs[0].id : null,
         selected_editor_cell_id: null,
         save_in_progress: false,
         path,
