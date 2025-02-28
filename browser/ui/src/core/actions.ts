@@ -4,6 +4,7 @@ import { Dispatch } from "react";
 import { StateAction } from "./state";
 import { SendCommand } from "./messages";
 import { v4 as uuidv4 } from "uuid";
+import { PushNotification } from "../components/NotificationProvider";
 
 export function newRun(
   notebook: Notebook,
@@ -32,16 +33,21 @@ export function runCell(
   notebook: Notebook,
   dispatch: Dispatch<StateAction>,
   send_command: SendCommand,
+  pushNotification: PushNotification,
 ) {
   let run_id = notebook.current_run_id;
   let flag: OutputCellFlag = "Pending";
-  if (run_id == null) {
+  if (run_id === null) {
     run_id = newRun(notebook, dispatch, send_command);
   } else {
-    let run = notebook.runs.find((r) => r.id == run_id)!;
+    let run = notebook.runs.find((r) => r.id === run_id)!;
+    if (run.kernel_state.type === "Crashed" || run.kernel_state.type === "Closed") {
+      pushNotification("Kernel for this run is inactive. Start new one.", "error")
+      return
+    }
     if (
-      run.kernel_state.type == "Running" &&
-      run.output_cells.find((c) => c.flag == "Running") == null
+      run.kernel_state.type === "Running" &&
+      run.output_cells.find((c) => c.flag === "Running") == null
     ) {
       flag = "Running";
     }
@@ -80,7 +86,6 @@ export function newEdtorCell(
       value: "",
     },
   });
-  // TODO send to serer
 }
 
 export function saveNotebook(
@@ -106,7 +111,7 @@ export function loadNotebook(
   dispatch: Dispatch<StateAction>,
   send_command: SendCommand,
 ) {
-  const notebook = state.notebooks.find((n) => n.path == path);
+  const notebook = state.notebooks.find((n) => n.path === path);
   if (notebook) {
     dispatch({
       type: "set_selected_notebook",
