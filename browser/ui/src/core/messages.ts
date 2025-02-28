@@ -4,7 +4,7 @@ import {
   EditorCell,
   Notebook,
   NotebookId,
-  OutputCellState,
+  OutputCellFlag,
   OutputValue,
   RunId,
 } from "./notebook";
@@ -36,7 +36,7 @@ interface OutputMsg {
   notebook_id: NotebookId;
   run_id: RunId;
   cell_id: CellId;
-  flag: "Success" | "Fail" | "Stream";
+  flag: OutputCellFlag;
   value: OutputValue;
 }
 
@@ -134,20 +134,12 @@ export function processMessage(
       break;
     }
     case "Output": {
-      let status: OutputCellState;
-      if (message.flag == "Success") {
-        status = "success";
-      } else if (message.flag == "Fail") {
-        status = "error";
-      } else {
-        status = "running";
-      }
       dispatch({
         type: "new_output",
         notebook_id: message.notebook_id,
         run_id: message.run_id,
         cell_id: message.cell_id,
-        status,
+        flag: message.flag,
         value: message.value,
       });
       break;

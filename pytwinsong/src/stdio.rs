@@ -22,7 +22,7 @@ impl RedirectedStdio {
         let _ = self.sender.send(FromKernelMessage::Output {
             value: KernelOutputValue::Text { value: text },
             cell_id: self.cell_id,
-            flag: OutputFlag::Stream,
+            flag: OutputFlag::Running,
         });
         Ok(())
     }

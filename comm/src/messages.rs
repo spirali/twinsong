@@ -19,7 +19,7 @@ pub struct FinishedMsg {
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum OutputFlag {
-    Stream,
+    Running,
     Success,
     Fail,
 }

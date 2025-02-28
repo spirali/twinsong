@@ -7,7 +7,7 @@ export type KernelState =
   | { type: "Running" }
   | { type: "Closed" }
   | { type: "Crashed"; message: string };
-export type OutputCellState = "pending" | "running" | "success" | "error";
+export type OutputCellFlag = "Pending" | "Running" | "Success" | "Fail";
 
 export interface EditorCell {
   id: CellId;
@@ -41,7 +41,7 @@ export type OutputValue =
 export interface OutputCell {
   id: CellId;
   values: OutputValue[];
-  status: OutputCellState;
+  flag: OutputCellFlag;
   editor_cell: EditorCell;
 }
 

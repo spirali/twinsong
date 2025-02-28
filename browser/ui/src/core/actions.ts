@@ -1,4 +1,4 @@
-import { EditorCell, Notebook, OutputCellState, RunId } from "./notebook";
+import { EditorCell, Notebook, OutputCellFlag, RunId } from "./notebook";
 import { State } from "./state";
 import { Dispatch } from "react";
 import { StateAction } from "./state";
@@ -34,16 +34,16 @@ export function runCell(
   send_command: SendCommand,
 ) {
   let run_id = notebook.current_run_id;
-  let status: OutputCellState = "pending";
+  let flag: OutputCellFlag = "Pending";
   if (run_id == null) {
     run_id = newRun(notebook, dispatch, send_command);
   } else {
     let run = notebook.runs.find((r) => r.id == run_id)!;
     if (
       run.kernel_state.type == "Running" &&
-      run.output_cells.find((c) => c.status == "running") == null
+      run.output_cells.find((c) => c.flag == "Running") == null
     ) {
-      status = "running";
+      flag = "Running";
     }
   }
   let cell_id = uuidv4();
@@ -53,7 +53,7 @@ export function runCell(
     cell: {
       id: cell_id,
       values: [],
-      status,
+      flag,
       editor_cell: cell,
     },
     run_id: run_id,
