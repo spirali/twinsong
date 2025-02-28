@@ -125,6 +125,13 @@ impl Run {
             kernel,
         }
     }
+    pub fn set_crashed_kernel(&mut self, message: String) {
+        self.kernel = KernelState::Crashed(message)
+    }
+    pub fn set_running_kernel(&mut self, kernel_id: KernelId) {
+        assert!(matches!(self.kernel, KernelState::Init(id) if id == kernel_id));
+        self.kernel = KernelState::Running(kernel_id);
+    }
     pub fn kernel_state(&self) -> &KernelState {
         &self.kernel
     }
@@ -253,7 +260,9 @@ impl Notebook {
                     kernel_state: match run.kernel_state() {
                         KernelState::Init(_) => KernelStateDesc::Init,
                         KernelState::Running(_) => KernelStateDesc::Running,
-                        KernelState::Crashed(s) => KernelStateDesc::Crashed(s.as_str()),
+                        KernelState::Crashed(s) => KernelStateDesc::Crashed {
+                            message: s.as_str(),
+                        },
                         KernelState::Closed => KernelStateDesc::Closed,
                     },
                 }

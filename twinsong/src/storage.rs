@@ -13,7 +13,7 @@ const VERSION_STRING: &str = "twinsong 0.0.1";
 #[serde(tag = "type")]
 enum KernelStateStore {
     Closed,
-    Crashed(String),
+    Crashed { message: String },
 }
 
 #[derive(Debug, Serialize)]
@@ -53,7 +53,7 @@ pub(crate) fn serialize_notebook(notebook: &Notebook) -> anyhow::Result<String> 
             id: run_id,
             title: run.title(),
             kernel_state: match run.kernel_state() {
-                KernelState::Crashed(s) => KernelStateStore::Crashed(s.clone()),
+                KernelState::Crashed(s) => KernelStateStore::Crashed { message: s.clone() },
                 _ => KernelStateStore::Closed,
             },
             output_cells: run.output_cells(),
@@ -84,7 +84,7 @@ pub(crate) fn deserialize_notebook(data: &str) -> anyhow::Result<Notebook> {
                     r.output_cells,
                     match r.kernel_state {
                         KernelStateStore::Closed => KernelState::Closed,
-                        KernelStateStore::Crashed(s) => KernelState::Crashed(s),
+                        KernelStateStore::Crashed { message } => KernelState::Crashed(message),
                     },
                 ),
             )

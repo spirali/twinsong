@@ -55,9 +55,22 @@ pub(crate) fn start_kernel(
         Vec::new(),
         KernelState::Init(kernel_ctx.kernel_id),
     );
-    let kernel = spawn_kernel(state_ref, kernel_ctx, kernel_port)?;
     notebook.add_run(run_id, run);
-    state.add_kernel(kernel_id, kernel);
+    match spawn_kernel(state_ref, kernel_ctx, kernel_port) {
+        Ok(kernel) => {
+            state.add_kernel(kernel_id, kernel);
+        }
+        Err(e) => {
+            tracing::error!("Starting kernel failed {e}");
+            let run = notebook.find_run_by_id_mut(run_id).unwrap();
+            run.set_crashed_kernel(e.to_string());
+            let _ = notebook.send_message(ToClientMessage::KernelCrashed {
+                notebook_id,
+                run_id,
+                message: e.to_string(),
+            });
+        }
+    }
     Ok(())
 }
 

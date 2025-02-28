@@ -6,7 +6,7 @@ use crate::notebook::{generate_new_notebook_path, Notebook};
 use crate::reactor::{
     load_notebook, new_notebook, query_dir, run_code, save_notebook, start_kernel,
 };
-use crate::state::AppStateRef;
+use crate::state::{AppState, AppStateRef};
 use axum::body::Body;
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::{Path, State, WebSocketUpgrade};
@@ -129,10 +129,38 @@ async fn forward_sender(
     Ok(())
 }
 
+fn process_client_message(
+    state: &mut AppState,
+    state_ref: &AppStateRef,
+    sender: &mut UnboundedSender<Message>,
+    message: FromClientMessage,
+) -> anyhow::Result<()> {
+    match message {
+        FromClientMessage::CreateNewNotebook(_) => new_notebook(state, state_ref, sender.clone())?,
+        FromClientMessage::CreateNewKernel(msg) => {
+            tracing::debug!("Creating new kernel for notebook {}", msg.notebook_id);
+            start_kernel(state, state_ref, msg.notebook_id, msg.run_id, msg.run_title)?
+        }
+        FromClientMessage::RunCell(msg) => {
+            run_code(state, msg)?;
+        }
+        FromClientMessage::SaveNotebook(msg) => {
+            save_notebook(state, &state_ref, msg)?;
+        }
+        FromClientMessage::LoadNotebook(msg) => {
+            load_notebook(state, &state_ref, msg, sender.clone())?;
+        }
+        FromClientMessage::QueryDir => {
+            query_dir(state, &sender)?;
+        }
+    };
+    Ok(())
+}
+
 async fn recv_client_messages(
     mut receiver: SplitStream<WebSocket>,
     state_ref: &AppStateRef,
-    sender: UnboundedSender<Message>,
+    mut sender: UnboundedSender<Message>,
 ) -> anyhow::Result<()> {
     while let Some(data) = receiver.next().await {
         let data = data?;
@@ -140,59 +168,12 @@ async fn recv_client_messages(
             break;
         }
         let message = parse_client_message(data)?;
-        match message {
-            FromClientMessage::CreateNewNotebook(_) => {
-                let mut state = state_ref.lock().unwrap();
-                new_notebook(&mut state, &state_ref, sender.clone())?
-            }
-            FromClientMessage::CreateNewKernel(msg) => {
-                tracing::debug!("Creating new kernel for notebook {}", msg.notebook_id);
-                let mut state = state_ref.lock().unwrap();
-                if let Err(e) = start_kernel(
-                    &mut state,
-                    state_ref,
-                    msg.notebook_id,
-                    msg.run_id,
-                    msg.run_title,
-                ) {
-                    log::error!("Starting kernel failed {e}");
-                    let _ =
-                        sender.send(serialize_client_message(ToClientMessage::KernelCrashed {
-                            notebook_id: msg.notebook_id,
-                            run_id: msg.run_id,
-                            message: e.to_string(),
-                        })?);
-                }
-                // if let Err(e) = create_new_kernel(state, msg).await {
-                //     tracing::error!("Failed to create new kernel: {e}");
-                //     socket
-                //         .send(serialize_client_message(ToClientMessage::Error {
-                //             message: &e.to_string(),
-                //         })?)
-                //         .await?;
-                // }
-            }
-            FromClientMessage::RunCell(msg) => {
-                let mut state = state_ref.lock().unwrap();
-                if let Err(e) = run_code(&mut state, msg) {
-                    log::error!("Running code failed: {e}");
-                    let _ = sender.send(serialize_client_message(ToClientMessage::Error {
-                        message: &e.to_string(),
-                    })?);
-                }
-            }
-            FromClientMessage::SaveNotebook(msg) => {
-                let mut state = state_ref.lock().unwrap();
-                save_notebook(&mut state, &state_ref, msg)?;
-            }
-            FromClientMessage::LoadNotebook(msg) => {
-                let mut state = state_ref.lock().unwrap();
-                load_notebook(&mut state, &state_ref, msg, sender.clone())?;
-            }
-            FromClientMessage::QueryDir => {
-                let mut state = state_ref.lock().unwrap();
-                query_dir(&mut state, &sender)?;
-            }
+        let mut state = state_ref.lock().unwrap();
+        if let Err(e) = process_client_message(&mut state, state_ref, &mut sender, message) {
+            tracing::error!("Client message processing failed: {e}");
+            let _ = sender.send(serialize_client_message(ToClientMessage::Error {
+                message: &e.to_string(),
+            })?);
         }
     }
     Ok(())

@@ -39,6 +39,10 @@ impl AppState {
         self.notebooks.get(&id).unwrap()
     }
 
+    pub fn notebook_by_id_mut(&mut self, id: NotebookId) -> &mut Notebook {
+        self.notebooks.get_mut(&id).unwrap()
+    }
+
     pub fn find_notebook_by_id_mut(&mut self, id: NotebookId) -> anyhow::Result<&mut Notebook> {
         self.notebooks
             .get_mut(&id)
