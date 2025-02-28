@@ -1,11 +1,7 @@
-use crate::notebook::{EditorCell, KernelState, Notebook, NotebookId, OutputCell, Run, RunId};
+use crate::notebook::{EditorCell, KernelState, Notebook, OutputCell, Run, RunId};
 use anyhow::bail;
-use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
-use std::borrow::Cow;
 use std::collections::HashMap;
-use std::path::Path;
-use std::sync::mpsc::channel;
 
 const VERSION_STRING: &str = "twinsong 0.0.1";
 

@@ -1,16 +1,13 @@
 use crate::client_messages::{
     serialize_client_message, KernelStateDesc, NotebookDesc, RunDesc, ToClientMessage,
 };
-use crate::kernel::KernelHandle;
 use anyhow::anyhow;
 use axum::extract::ws::Message;
 use comm::messages::{Exception, KernelOutputValue, OutputFlag};
 use nutype::nutype;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
-use std::path::{Path, PathBuf};
-use std::process::Output;
+use std::path::Path;
 use tokio::sync::mpsc::UnboundedSender;
 use uuid::Uuid;
 
@@ -172,7 +169,7 @@ impl Run {
                 Some(OutputValue::Text { value: old_text }),
             ) = (flag, &value, last.values.last_mut())
             {
-                old_text.push_str(&new_text);
+                old_text.push_str(new_text);
                 last.flag = flag;
                 return;
             }
@@ -230,7 +227,7 @@ impl Notebook {
     }
 
     pub fn set_observer(&mut self, sender: UnboundedSender<Message>) {
-        if let Some(observer) = &self.observer {
+        if let Some(_observer) = &self.observer {
             // TODO: Inform about disconnect
         }
         self.observer = Some(sender);
@@ -299,7 +296,7 @@ impl Notebook {
 pub(crate) fn generate_new_notebook_path() -> anyhow::Result<String> {
     for i in 1..300 {
         let candidate = format!("notebook_{i}.tsnb");
-        if !std::fs::exists(&Path::new(&candidate)).unwrap_or(true) {
+        if !std::fs::exists(Path::new(&candidate)).unwrap_or(true) {
             return Ok(candidate);
         }
     }
