@@ -1,9 +1,13 @@
 use crate::control::start_control_process;
+use crate::jobject::create_jobject_string;
 use crate::stdio::RedirectedStdio;
 use comm::messages::{ComputeMsg, Exception, FromKernelMessage, KernelOutputValue, OutputFlag};
 use pyo3::types::PyStringMethods;
 use pyo3::types::{PyAnyMethods, PyTracebackMethods};
 use pyo3::{Bound, PyAny, PyErr, PyResult, Python};
+use std::collections::HashMap;
+use std::rc::Rc;
+use std::sync::Arc;
 use tokio::runtime::Builder;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
@@ -69,6 +73,22 @@ fn create_traceback(py: &Python, e: PyErr) -> PyResult<Exception> {
     })
 }
 
+fn get_globals(py: Python) -> Vec<(String, Option<Arc<String>>)> {
+    let run_module = py.import("twinsong.driver.run").unwrap();
+    let variables: HashMap<String, Bound<'_, PyAny>> =
+        run_module.getattr("VARIABLES").unwrap().extract().unwrap();
+    variables
+        .into_iter()
+        .filter_map(|(k, v)| {
+            if k != "__builtins__" {
+                Some((k, Some(Arc::new(create_jobject_string(py, &v).unwrap()))))
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
 async fn executor_main(
     o_sender: UnboundedSender<FromKernelMessage>,
     mut c_receiver: UnboundedReceiver<ComputeMsg>,
@@ -82,6 +102,7 @@ async fn executor_main(
                 value: output,
                 cell_id: msg.cell_id,
                 flag: OutputFlag::Success,
+                globals: Some(get_globals(py)),
             },
             Err(e) => FromKernelMessage::Output {
                 value: KernelOutputValue::Exception {
@@ -89,6 +110,7 @@ async fn executor_main(
                 },
                 cell_id: msg.cell_id,
                 flag: OutputFlag::Fail,
+                globals: Some(get_globals(py)),
             },
         });
         tracing::debug!("Send output: {:?}", out_msg);

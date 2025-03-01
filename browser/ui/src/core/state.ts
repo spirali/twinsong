@@ -1,3 +1,4 @@
+import { JsonObjectStruct } from "./jobject";
 import {
   CellId,
   EditorCell,
@@ -10,6 +11,7 @@ import {
   OutputValue,
   Run,
   RunId,
+  RunViewMode,
   TextOutputValue,
 } from "./notebook";
 
@@ -58,12 +60,20 @@ interface NewOutputAction {
   cell_id: CellId;
   flag: OutputCellFlag;
   value: OutputValue;
+  globals: [string, JsonObjectStruct][] | null;
 }
 
 interface SetCurrentRunAction {
   type: "set_current_run";
   notebook_id: NotebookId;
   run_id: RunId;
+}
+
+interface SetRunViewModeAction {
+  type: "set_run_view_mode";
+  notebook_id: NotebookId;
+  run_id: RunId;
+  view_mode: RunViewMode;
 }
 
 interface SaveNotebookAction {
@@ -82,6 +92,13 @@ interface SelectEditorCellAction {
   type: "select_editor_cell";
   notebook_id: NotebookId;
   editor_cell_id: CellId | null;
+}
+
+interface ToggleOpenObjectAction {
+  type: "toggle_open_object";
+  notebook_id: NotebookId;
+  run_id: RunId;
+  object_path: string;
 }
 
 export interface DirEntry {
@@ -108,11 +125,13 @@ export type StateAction =
   | NewOutputAction
   | NewOutputCellAction
   | SetCurrentRunAction
+  | SetRunViewModeAction
   | NewEditorCellAction
   | SelectEditorCellAction
   | SetSelectedNotebookAction
   | SetDirEntries
-  | SaveNotebookAction;
+  | SaveNotebookAction
+  | ToggleOpenObjectAction;
 
 function updateNotebooks(state: State, notebook: Notebook): State {
   return {
@@ -136,7 +155,8 @@ export function stateReducer(state: State, action: StateAction): State {
   switch (action.type) {
     case "add_notebook": {
       const path = action.notebook.path;
-      const runs = action.notebook.runs;
+      const runs = action.notebook.runs.map((r) => ({ ...r, globals: [], view_mode: "outputs", open_objects: new Set(),
+      }));
       const notebook = {
         id: action.notebook.id,
         editor_cells: action.notebook.editor_cells,
@@ -145,6 +165,7 @@ export function stateReducer(state: State, action: StateAction): State {
         current_run_id: runs.length > 0 ? runs[0].id : null,
         selected_editor_cell_id: null,
         save_in_progress: false,
+        globals: [],
         path,
       } as Notebook;
 
@@ -191,6 +212,9 @@ export function stateReducer(state: State, action: StateAction): State {
             kernel_state: { type: "Init" },
             output_cells: [],
             kernel_state_message: null,
+            globals: [],
+            view_mode: "outputs",
+            open_objects: new Set(),
           } as Run,
         ],
         current_run_id: action.run_id,
@@ -282,7 +306,7 @@ export function stateReducer(state: State, action: StateAction): State {
                 return c;
               }
             });
-            return { ...r, output_cells };
+            return { ...r, globals: action.globals ? action.globals : r.globals, output_cells } as Run;
           } else {
             return r;
           }
@@ -319,14 +343,43 @@ export function stateReducer(state: State, action: StateAction): State {
       };
       return updateNotebooks(state, new_notebook);
     }
-    default: {
-      throw Error("Unknown action");
-    }
     case "set_dir_entries": {
       return {
         ...state,
         dir_entries: action.entries,
       };
+    }
+    case "set_run_view_mode": {
+      const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
+      const new_notebook = {
+        ...notebook,
+        runs: notebook.runs.map((r) => r.id == action.run_id ? { ...r, view_mode: action.view_mode } : r),
+      };
+      return updateNotebooks(state, new_notebook);
+    }
+    case "toggle_open_object": {
+      const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
+
+      const new_notebook = {
+        ...notebook,
+        runs: notebook.runs.map((r) => {
+          if (r.id == action.run_id) {
+            const open_objects = new Set(r.open_objects);
+            if (open_objects.has(action.object_path)) {
+              open_objects.delete(action.object_path);
+            } else {
+              open_objects.add(action.object_path);
+            }
+            return { ...r, open_objects };
+          } else {
+            return r;
+          }
+        }),
+      };
+      return updateNotebooks(state, new_notebook);
+    }
+    default: {
+      throw Error("Unknown action");
     }
   }
 }

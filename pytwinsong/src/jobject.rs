@@ -11,9 +11,8 @@ use serde::Serialize;
 pub type JsonObjectId = u64;
 
 #[derive(Debug, Serialize)]
-#[serde(tag = "type")]
-pub struct JsonObject<'a> {
-    pub values: Vec<JsonObjectValue<'a>>,
+pub struct JsonObjectDump<'a> {
+    pub objects: Vec<JsonObject<'a>>,
     pub root: JsonObjectId,
 }
 
@@ -23,18 +22,18 @@ fn is_empty_cow_str(s: &Cow<'_, str>) -> bool {
 }
 
 #[derive(Debug, Serialize)]
-pub struct JsonObjectValue<'a> {
+pub struct JsonObject<'a> {
     pub id: JsonObjectId,
-    pub slot: Cow<'a, str>,
     pub repr: Cow<'a, str>,
 
+    #[serde(skip_serializing_if = "is_empty_cow_str")]
     pub value_type: Cow<'a, str>,
 
     #[serde(skip_serializing_if = "str::is_empty")]
     pub kind: &'static str,
 
     #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub children: Vec<JsonObjectId>,
+    pub children: Vec<(Cow<'a, str>, JsonObjectId)>,
 }
 
 #[derive(Debug)]
@@ -66,33 +65,27 @@ impl<'a> TypeCollection<'a> {
     }
 }
 
-pub fn create_jobject_string(
-    py: Python,
-    slot: Cow<str>,
-    obj: &Bound<PyAny>,
-) -> serde_json::Result<String> {
-    serde_json::to_string(&create_jobject(py, slot, obj))
+pub fn create_jobject_string(py: Python, obj: &Bound<PyAny>) -> serde_json::Result<String> {
+    serde_json::to_string(&create_jobject_dump(py, obj))
 }
 
-pub fn create_jobject<'a>(py: Python, slot: Cow<'a, str>, obj: &Bound<PyAny>) -> JsonObject<'a> {
+pub fn create_jobject_dump<'a>(py: Python, obj: &Bound<PyAny>) -> JsonObjectDump<'a> {
     let mut values = HashMap::new();
-    let root = create_jobject_helper(py, slot, obj, &mut values);
+    let root = create_jobject_helper(py, obj, &mut values);
 
-    JsonObject {
-        values: values.into_values().collect(),
+    JsonObjectDump {
+        objects: values.into_values().collect(),
         root,
     }
 }
 
 fn simple_value<'a>(
-    slot: Cow<'a, str>,
     repr: Cow<'a, str>,
     value_type: Cow<'a, str>,
     kind: &'static str,
-) -> JsonObjectValue<'a> {
-    JsonObjectValue {
+) -> JsonObject<'a> {
+    JsonObject {
         id: 0,
-        slot,
         repr,
         value_type,
         kind,
@@ -108,23 +101,21 @@ fn string_value(obj: PyResult<Bound<PyString>>) -> String {
 
 fn create_jobject_helper<'a>(
     py: Python,
-    slot: Cow<'a, str>,
     obj: &Bound<PyAny>,
-    values: &mut HashMap<JsonObjectId, JsonObjectValue<'a>>,
+    values: &mut HashMap<JsonObjectId, JsonObject<'a>>,
 ) -> JsonObjectId {
     let id = obj.as_ptr() as u64;
     if values.contains_key(&id) {
         return id;
     }
     let mut value = if obj.is_none() {
-        simple_value(slot, "None".into(), "".into(), "null")
+        simple_value("None".into(), "".into(), "null")
     } else if let Ok(obj) = obj.downcast_exact::<PyInt>() {
-        simple_value(slot, obj.to_string().into(), "int".into(), "number")
+        simple_value(obj.to_string().into(), "int".into(), "number")
     } else if let Ok(obj) = obj.downcast_exact::<PyFloat>() {
-        simple_value(slot, obj.to_string().into(), "float".into(), "number")
+        simple_value(obj.to_string().into(), "float".into(), "number")
     } else if let Ok(obj) = obj.downcast_exact::<PyString>() {
         simple_value(
-            slot,
             format!("\"{}\"", PyStringMethods::to_str(obj).unwrap_or_default()).into(),
             "str".into(),
             "string",
@@ -133,17 +124,22 @@ fn create_jobject_helper<'a>(
         let children: Vec<_> = obj
             .into_iter()
             .enumerate()
-            .map(|(idx, child)| create_jobject_helper(py, idx.to_string().into(), &child, values))
+            .map(|(idx, child)| {
+                (
+                    idx.to_string().into(),
+                    create_jobject_helper(py, &child, values),
+                )
+            })
             .collect();
         let mut tc = TypeCollection::Unknown;
-        for id in &children {
+        for (slot, id) in &children {
             tc.add(&values.get(id).unwrap().value_type);
             if tc.is_many() {
                 break;
             }
         }
         let mut repr = "[".to_string();
-        for (idx, id) in children.iter().enumerate() {
+        for (idx, (slot, id)) in children.iter().enumerate() {
             let child = &values.get(id).unwrap();
             if repr.len() + child.repr.len() > 24 {
                 repr.clear();
@@ -159,18 +155,17 @@ fn create_jobject_helper<'a>(
         } else {
             repr.push(']');
         }
-        JsonObjectValue {
+        JsonObject {
             id,
-            slot,
             repr: repr.into(),
             value_type: tc.create_name("list"),
-            kind: "",
+            kind: "list",
             children,
         }
     } else {
         let value_type = string_value(obj.get_type().qualname());
         let repr = string_value(obj.repr());
-        simple_value(slot, repr.into(), value_type.into(), "")
+        simple_value(repr.into(), value_type.into(), "")
     };
     value.id = id;
     values.insert(id, value);

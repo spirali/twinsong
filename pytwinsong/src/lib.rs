@@ -32,8 +32,8 @@ fn start_server() -> PyResult<()> {
 }
 
 #[pyfunction]
-fn create_jobject(py: Python, slot: &str, obj: Bound<PyAny>) -> PyResult<String> {
-    Ok(create_jobject_string(py, slot.into(), &obj).unwrap())
+fn create_jobject(py: Python, obj: Bound<PyAny>) -> PyResult<String> {
+    Ok(create_jobject_string(py, &obj).unwrap())
 }
 
 /// A Python module implemented in Rust.

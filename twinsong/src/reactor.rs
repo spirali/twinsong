@@ -102,6 +102,7 @@ pub(crate) fn process_kernel_message(
             value,
             cell_id,
             flag,
+            globals,
         } => {
             let value = OutputValue::new(value);
             let notebook = state.find_notebook_by_id_mut(kernel_ctx.notebook_id)?;
@@ -111,6 +112,7 @@ pub(crate) fn process_kernel_message(
                 cell_id: OutputCellId::new(cell_id),
                 value: &value,
                 flag,
+                globals,
             });
             let run = notebook.find_run_by_id_mut(kernel_ctx.run_id)?;
             run.add_output(OutputCellId::new(cell_id), value, flag);

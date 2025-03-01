@@ -23,6 +23,7 @@ impl RedirectedStdio {
             value: KernelOutputValue::Text { value: text },
             cell_id: self.cell_id,
             flag: OutputFlag::Running,
+            globals: None,
         });
         Ok(())
     }

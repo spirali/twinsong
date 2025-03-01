@@ -64,7 +64,7 @@ const GlobalTabs = () => {
       {/* Tab Content */}
       <div className="flex h-full">
         {showNotebookList && <NotebookList />}
-        {state.selected_notebook === null ? null : <NotebookView />}
+        {state.selected_notebook === null ? null : <NotebookView notebook={state.selected_notebook} />}
       </div>
     </div>
   );
