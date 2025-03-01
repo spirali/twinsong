@@ -917,6 +917,7 @@ dependencies = [
  "futures-util",
  "pyo3",
  "serde",
+ "serde_json",
  "tokio",
  "tokio-util",
  "tracing",
