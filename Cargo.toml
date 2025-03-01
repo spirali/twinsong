@@ -5,6 +5,7 @@ members = ["twinsong", "pytwinsong", "comm"]
 [workspace.dependencies]
 tokio = "1"
 serde = "1.0"
+serde_json = "1.0"
 anyhow = "1.0"
 tokio-util = "0.7"
 futures-util = "0.3"
@@ -12,6 +13,7 @@ uuid = { version = "1.13", features = ["v4", "serde"] }
 tracing-subscriber = "0.3"
 tracing = "0.1"
 nutype = "0.6"
+
 
 [profile.release]
 panic = "abort"
