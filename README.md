@@ -20,7 +20,7 @@ TwinSong is an alternative to Jupyter Notebook that separates code and outputs f
 
 ## Status
 
-TwinSong is currently in an experimental phase. It provides all essential features for evaluating new ideas, including cell creation and code execution. However, many features required for practical usage are still missing, such as loading and saving notebooks. Addressing these limitations is a priority for future development. TwinSong now supports only Python Kernel.
+TwinSong is currently in an experimental phase. It provides all essential features for evaluating new ideas, including cell creation and code execution. However, many features required for practical usage are still missing. TwinSong now supports only Python Kernel.
 
 
 ## Getting started
@@ -61,6 +61,28 @@ maturin develop -r
 
 cargo build --release --package twinsong
 ```
+
+## Roadmap
+
+* ~~Python kernel~~ (released)
+* ~~Basic UI~~ (released)
+* ~~Cell evaluation~~ (released)
+* ~~Stdout streaming~~ (released)
+    * stderr streaming
+* ~~Loading/Saving notebook~~ (main branch)
+    * autosave
+    * directory changing
+* Object inspection
+* Stopping kernels & cell evaluations
+* Closing runs & notebooks
+* Automatical code reloading
+* Modal code editor (?)
+* More keyboard shortcuts
+* Making sure that important packages are running with nice outputs:
+    * ~~pandas~~
+    * tqdm
+    * plotly
+
 
 
 ## License
