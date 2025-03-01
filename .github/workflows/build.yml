@@ -113,9 +113,19 @@ jobs:
       - name: Run pytest
         id: python_test
         run: |
-          python -m pytest tests
+          python -m pytest tests --basetemp=testdir
         env: 
           TWINSONG_TEST_BIN: "release"
+      - name: Archive test artifacts
+        if: always() && steps.python_test.outcome == 'failure'
+        run: tar -cvf linux-${{ matrix.platform.target }}-tests.tar testdir
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        if: always() && steps.python_test.outcome == 'failure'
+        with:
+          name: linux-artifacts-macos-${{ matrix.platform.target }}
+          path: linux-${{ matrix.platform.target }}-tests.tar
+  
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -188,9 +198,20 @@ jobs:
       - name: Run pytest
         id: python_test
         run: |
-          python -m pytest tests
+          python -m pytest tests --basetemp=testdir
         env: 
           TWINSONG_TEST_BIN: "release"
+
+      - name: Archive test artifacts
+        if: always() && steps.python_test.outcome == 'failure'
+        run: tar -cvf windows-${{ matrix.platform.target }}-tests.tar testdir
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        if: always() && steps.python_test.outcome == 'failure'
+        with:
+          name: windows-artifacts-macos-${{ matrix.platform.target }}
+          path: windows-${{ matrix.platform.target }}-tests.tar
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -232,9 +253,21 @@ jobs:
       - name: Run pytest
         id: python_test
         run: |
-          python -m pytest tests
+          python -m pytest tests --basetemp=testdir
         env: 
-          TWINSONG_TEST_BIN: "release"          
+          TWINSONG_TEST_BIN: "release"
+
+      - name: Archive test artifacts
+        if: always() && steps.python_test.outcome == 'failure'
+        run: tar -cvf macos-${{ matrix.platform.target }}-tests.tar testdir
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@v4
+        if: always() && steps.python_test.outcome == 'failure'
+        with:
+          name: pytest-artifacts-macos-${{ matrix.platform.target }}
+          path: macos-${{ matrix.platform.target }}-tests.tar
+            
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
