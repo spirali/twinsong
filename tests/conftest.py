@@ -61,10 +61,12 @@ class Kernel:
         self.notebook_id = notebook_id
         self.run_id = run_id
         self.last_cell_id = None
+        self.last_editor_cell = None
 
     def run_code(self, code):
         cell_id = str(uuid.uuid4())
         editor_cell = {"id": str(uuid.uuid4()), "value": code}
+        self.last_editor_cell = editor_cell
         outputs = []
         self.client.send_message(
             {
@@ -82,7 +84,7 @@ class Kernel:
             self.last_cell_id = r["cell_id"]
             assert r["type"] == "Output"
             outputs.append(r["value"])
-            if r["flag"] != "Stream":
+            if r["flag"] != "Running":
                 return outputs
 
     def run_code_simple(self, code):

@@ -40,6 +40,7 @@ def test_save_notebook_plain(client):
             "kernel_state": {"type": "Closed"},
             "output_cells": [
                 {
+                    "editor_cell": k.last_editor_cell,
                     "flag": "Success",
                     "id": cell_id,
                     "values": [
