@@ -1,6 +1,6 @@
 use crate::notebook::{EditorCell, NotebookId, OutputCell, OutputCellId, OutputValue, RunId};
 use axum::extract::ws::Message;
-use comm::messages::OutputFlag;
+use comm::messages::{GlobalsUpdate, OutputFlag};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
@@ -110,6 +110,7 @@ pub(crate) enum ToClientMessage<'a> {
         cell_id: OutputCellId,
         value: &'a OutputValue,
         flag: OutputFlag,
+        globals: Option<GlobalsUpdate>,
     },
     SaveCompleted {
         notebook_id: NotebookId,

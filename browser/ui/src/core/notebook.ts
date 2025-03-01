@@ -1,3 +1,5 @@
+import { JsonObjectStruct } from "./jobject";
+
 export type RunId = string;
 export type NotebookId = number;
 export type CellId = string;
@@ -46,11 +48,16 @@ export interface OutputCell {
   editor_cell: EditorCell;
 }
 
+export type RunViewMode = "outputs" | "workspace";
+
 export interface Run {
   id: RunId;
   title: string;
   kernel_state: KernelState;
   output_cells: OutputCell[];
+  view_mode: RunViewMode;
+  globals: [string, JsonObjectStruct][];
+  open_objects: Set<string>;
 }
 
 export interface Notebook {
@@ -67,6 +74,14 @@ export interface Notebook {
 export interface NotebookDesc {
   id: NotebookId;
   editor_cells: EditorCell[];
-  runs: Run[];
+  runs: RunDesc[];
   path: string;
+}
+
+export interface RunDesc {
+  id: RunId;
+  title: string;
+  kernel_state: KernelState;
+  output_cells: OutputCell[];
+  globals: [string, JsonObjectStruct][];
 }

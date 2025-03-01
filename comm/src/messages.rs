@@ -1,4 +1,7 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::rc::Rc;
+use std::sync::Arc;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -43,6 +46,8 @@ pub enum KernelOutputValue {
     None,
 }
 
+pub type GlobalsUpdate = Vec<(String, Option<Arc<String>>)>;
+
 #[derive(Debug, Serialize, Deserialize)]
 pub enum FromKernelMessage {
     Login {
@@ -52,5 +57,6 @@ pub enum FromKernelMessage {
         value: KernelOutputValue,
         cell_id: Uuid,
         flag: OutputFlag,
+        globals: Option<GlobalsUpdate>,
     },
 }

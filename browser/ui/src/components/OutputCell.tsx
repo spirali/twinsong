@@ -27,19 +27,23 @@ const OutputValueView: React.FC<{ value: OutputValue }> = (props: {
   return null;
 };
 
-const OutputCellView: React.FC<{ cell: OutputCell }> = (props: {
+const OutputCellView: React.FC<{ cell: OutputCell, isLast: boolean }> = (props: {
   cell: OutputCell;
+  isLast: boolean;
 }) => {
   const state = useGlobalState();
   const notebook = state.selected_notebook!;
   const [showMetadata, setShowMetadata] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (ref.current) {
-      ref.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [ref]);
 
+  useEffect(() => {
+    if (ref.current && props.isLast) {
+      ref.current.scrollIntoView({ behavior: "instant" });
+    }  
+  }, [props.cell.values]);
+
+
+  
   // Get the appropriate icon based on status
   const getStatusIcon = () => {
     switch (props.cell.flag) {

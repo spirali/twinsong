@@ -4,7 +4,7 @@ members = ["twinsong", "pytwinsong", "comm"]
 
 [workspace.dependencies]
 tokio = "1"
-serde = "1.0"
+serde = { version = "1.0", features = ["rc"] }
 serde_json = "1.0"
 anyhow = "1.0"
 tokio-util = "0.7"

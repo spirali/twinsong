@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { EditorCell } from "../core/notebook";
+import { EditorCell, Notebook } from "../core/notebook";
 import { useGlobalState, useDispatch } from "./StateProvider";
 import Editor from "react-simple-code-editor";
 import { highlight, languages } from "prismjs/components/prism-core";
@@ -31,14 +31,13 @@ function checkIfFirstLine(
 }
 
 const EditorCellRenderer: React.FC<{
+  notebook: Notebook;
   cell: EditorCell;
   prev_id: string | null;
   next_id: string | null;
-}> = ({ cell, prev_id, next_id }) => {
+}> = ({ notebook, cell, prev_id, next_id }) => {
   const dispatch = useDispatch()!;
   const sendCommand = useSendCommand()!;
-  const state = useGlobalState();
-  const notebook = state.selected_notebook!;
   const pushNotification = usePushNotification();
   return (
     <div
@@ -125,10 +124,8 @@ const ToolButton: React.FC<{
   );
 };
 
-const EditorPanel: React.FC = () => {
-  const state = useGlobalState();
+const EditorPanel: React.FC<{ notebook: Notebook }> = ({ notebook }) => {
   const dispatch = useDispatch()!;
-  const notebook = state.selected_notebook!;
   const sendCommand = useSendCommand()!;
   const onSave = useCallback(() => {
     saveNotebook(notebook, dispatch, sendCommand);
@@ -163,6 +160,7 @@ const EditorPanel: React.FC = () => {
         {notebook.editor_cells.map((cell, index) => (
           <EditorCellRenderer
             key={cell.id}
+            notebook={notebook}
             cell={cell}
             prev_id={notebook.editor_cells[index - 1]?.id || null}
             next_id={notebook.editor_cells[index + 1]?.id || null}

@@ -7,6 +7,7 @@ import time
 import uuid
 import contextlib
 
+w
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(TESTS_DIR)
 if os.environ.get("TWINSONG_TEST_BIN") == "release":
