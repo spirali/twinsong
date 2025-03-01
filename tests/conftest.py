@@ -29,6 +29,8 @@ def work_dir(path):
 
 @pytest.fixture
 def http_service(tmp_path):
+    global PORT
+    PORT += 1
     with work_dir(tmp_path):
         log_path = str(tmp_path / "server.out.log")
         log = open(log_path, "w")
@@ -40,18 +42,19 @@ def http_service(tmp_path):
             stderr=subprocess.STDOUT,
             env=env,
         )
-        time.sleep(0.1)
-        yield p
+        time.sleep(0.15)
+        yield f"ws://127.0.0.1:{PORT}/ws"
         print("Shutting down http service")
         if p.poll() is None:
             p.kill()
+            time.sleep(0.1)
         else:
             raise Exception("HTTP service failed")
 
 
 @pytest.fixture
 def ws(http_service):
-    with connect(f"ws://127.0.0.1:{PORT}/ws") as ws:
+    with connect(http_service) as ws:
         yield ws
 
 
