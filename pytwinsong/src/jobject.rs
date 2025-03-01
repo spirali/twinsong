@@ -122,6 +122,13 @@ fn create_jobject_helper<'a>(
         simple_value(slot, obj.to_string().into(), "int".into(), "number")
     } else if let Ok(obj) = obj.downcast_exact::<PyFloat>() {
         simple_value(slot, obj.to_string().into(), "float".into(), "number")
+    } else if let Ok(obj) = obj.downcast_exact::<PyString>() {
+        simple_value(
+            slot,
+            format!("\"{}\"", PyStringMethods::to_str(obj).unwrap_or_default()).into(),
+            "str".into(),
+            "string",
+        )
     } else if let Ok(obj) = obj.downcast_exact::<PyList>() {
         let children: Vec<_> = obj
             .into_iter()
