@@ -1,8 +1,8 @@
 use pyo3::types::{
-    PyAnyMethods, PyBool, PyFloat, PyInt, PyList, PyListMethods, PyString, PyStringMethods,
-    PyTypeMethods,
+    PyAnyMethods, PyBool, PyDict, PyDictMethods, PyFloat, PyInt, PyList, PyListMethods, PyModule,
+    PyModuleMethods, PyString, PyStringMethods, PyType, PyTypeMethods,
 };
-use pyo3::{Bound, PyAny, PyErr, PyObject, PyResult, Python};
+use pyo3::{Bound, PyAny, PyClass, PyErr, PyObject, PyResult, Python};
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 
@@ -71,7 +71,7 @@ pub fn create_jobject_string(py: Python, obj: &Bound<PyAny>) -> serde_json::Resu
 
 pub fn create_jobject_dump<'a>(py: Python, obj: &Bound<PyAny>) -> JsonObjectDump<'a> {
     let mut values = HashMap::new();
-    let root = create_jobject_helper(py, obj, &mut values);
+    let root = create_jobject_helper(&py, obj, &mut values);
 
     JsonObjectDump {
         objects: values.into_values().collect(),
@@ -99,8 +99,114 @@ fn string_value(obj: PyResult<Bound<PyString>>) -> String {
         .unwrap_or_default()
 }
 
+fn find_collection_element_type<'a>(
+    it: impl Iterator<Item = &'a Cow<'a, str>>,
+) -> TypeCollection<'a> {
+    let mut tc = TypeCollection::Unknown;
+    for name in it {
+        tc.add(name);
+        if tc.is_many() {
+            break;
+        }
+    }
+    tc
+}
+
+fn create_list<'a>(
+    py: &Python,
+    obj: &Bound<PyList>,
+    values: &mut HashMap<JsonObjectId, JsonObject<'a>>,
+) -> JsonObject<'a> {
+    let children: Vec<_> = obj
+        .into_iter()
+        .enumerate()
+        .map(|(idx, child)| {
+            (
+                idx.to_string().into(),
+                create_jobject_helper(py, &child, values),
+            )
+        })
+        .collect();
+    let tc = find_collection_element_type(
+        children
+            .iter()
+            .map(|(_, id)| &values.get(id).unwrap().value_type),
+    );
+    let mut repr = "[".to_string();
+    for (idx, (_, id)) in children.iter().enumerate() {
+        let child = &values.get(id).unwrap();
+        if repr.len() + child.repr.len() > 24 {
+            repr.clear();
+            break;
+        }
+        if idx > 0 {
+            repr.push_str(", ");
+        }
+        repr.push_str(&child.repr);
+    }
+    if repr.is_empty() {
+        repr = format!("{} items", PyListMethods::len(obj));
+    } else {
+        repr.push(']');
+    }
+    JsonObject {
+        id: 0,
+        repr: repr.into(),
+        value_type: tc.create_name("list"),
+        kind: "list",
+        children,
+    }
+}
+
+fn create_module<'a>(
+    py: &Python,
+    obj: &Bound<PyModule>,
+    values: &mut HashMap<JsonObjectId, JsonObject<'a>>,
+) -> JsonObject<'a> {
+    let name = PyModuleMethods::name(obj);
+    let dict = PyModuleMethods::dict(obj);
+    let children = PyDictMethods::iter(&dict)
+        .map(|(k, v)| (k.to_string().into(), create_jobject_helper(py, &v, values)))
+        .collect();
+    JsonObject {
+        id: 0,
+        repr: format!(
+            "module {}",
+            name.as_ref()
+                .map(|s| s.to_string_lossy())
+                .unwrap_or("".into())
+        )
+        .into(),
+        value_type: "".into(),
+        kind: "module",
+        children,
+    }
+}
+
+fn create_class<'a>(
+    _py: &Python,
+    obj: &Bound<PyType>,
+    _values: &mut HashMap<JsonObjectId, JsonObject<'a>>,
+) -> JsonObject<'a> {
+    let name = PyTypeMethods::name(obj);
+    let children = Vec::new();
+    JsonObject {
+        id: 0,
+        repr: format!(
+            "class {}",
+            name.as_ref()
+                .map(|s| s.to_string_lossy())
+                .unwrap_or("".into())
+        )
+        .into(),
+        value_type: "".into(),
+        kind: "class",
+        children,
+    }
+}
+
 fn create_jobject_helper<'a>(
-    py: Python,
+    py: &Python,
     obj: &Bound<PyAny>,
     values: &mut HashMap<JsonObjectId, JsonObject<'a>>,
 ) -> JsonObjectId {
@@ -121,47 +227,11 @@ fn create_jobject_helper<'a>(
             "string",
         )
     } else if let Ok(obj) = obj.downcast_exact::<PyList>() {
-        let children: Vec<_> = obj
-            .into_iter()
-            .enumerate()
-            .map(|(idx, child)| {
-                (
-                    idx.to_string().into(),
-                    create_jobject_helper(py, &child, values),
-                )
-            })
-            .collect();
-        let mut tc = TypeCollection::Unknown;
-        for (slot, id) in &children {
-            tc.add(&values.get(id).unwrap().value_type);
-            if tc.is_many() {
-                break;
-            }
-        }
-        let mut repr = "[".to_string();
-        for (idx, (slot, id)) in children.iter().enumerate() {
-            let child = &values.get(id).unwrap();
-            if repr.len() + child.repr.len() > 24 {
-                repr.clear();
-                break;
-            }
-            if idx > 0 {
-                repr.push_str(", ");
-            }
-            repr.push_str(&child.repr);
-        }
-        if repr.is_empty() {
-            repr = format!("[{} elements]", PyListMethods::len(obj));
-        } else {
-            repr.push(']');
-        }
-        JsonObject {
-            id,
-            repr: repr.into(),
-            value_type: tc.create_name("list"),
-            kind: "list",
-            children,
-        }
+        create_list(py, obj, values)
+    } else if let Ok(obj) = obj.downcast_exact::<PyType>() {
+        create_class(py, obj, values)
+    } else if let Ok(obj) = obj.downcast_exact::<PyModule>() {
+        create_module(py, obj, values)
     } else {
         let value_type = string_value(obj.get_type().qualname());
         let repr = string_value(obj.repr());

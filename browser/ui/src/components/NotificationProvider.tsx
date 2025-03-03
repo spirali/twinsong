@@ -71,11 +71,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
   );
 };
 
-
-export type PushNotification = ((
-  text: string,
-  type: NotificationType,
-) => void)
+export type PushNotification = (text: string, type: NotificationType) => void;
 
 export const usePushNotification = (): PushNotification => {
   const context = useContext(NotificationContext);

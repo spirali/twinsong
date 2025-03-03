@@ -1,37 +1,70 @@
-import React, { useState } from 'react';
-import { ChevronRight, ChevronDown, Hash, Type, List, Box, FileText, BrainCircuit, Code, Globe, Circle, CircleSmall, Brackets, ArrowUpRightFromSquareIcon, MoveRight, MoveLeft } from 'lucide-react';
-import { JsonObjectId, JsonObjectStruct } from '../core/jobject';
+import React, { useState } from "react";
+import {
+  ChevronRight,
+  ChevronDown,
+  Hash,
+  Type,
+  List,
+  Box,
+  FileText,
+  BrainCircuit,
+  Code,
+  Globe,
+  Circle,
+  CircleSmall,
+  Brackets,
+  ArrowUpRightFromSquareIcon,
+  MoveRight,
+  MoveLeft,
+  Square,
+  Copyright,
+} from "lucide-react";
+import { JsonObjectId, JsonObjectStruct } from "../core/jobject";
 
 // Tree Node Component
 const ObjectTreeNode: React.FC<{
-  struct: JsonObjectStruct,
-  id: JsonObjectId,
-  slotPath: string,
+  struct: JsonObjectStruct;
+  id: JsonObjectId;
+  slotPath: string;
   slotName: string;
   depth: number;
   isRoot?: boolean;
   open_objects: Set<string>;
   toggleOpenObject: (object_path: string) => void;
-}> = ({ struct, id, slotPath, slotName, depth, isRoot = false, open_objects, toggleOpenObject }) => {
+}> = ({
+  struct,
+  id,
+  slotPath,
+  slotName,
+  depth,
+  isRoot = false,
+  open_objects,
+  toggleOpenObject,
+}) => {
   const object = struct.objects.get(id)!;
   //const [isOpen, setIsOpen] = useState(depth <= 2 || isRoot);
   const isOpen = open_objects.has(slotPath);
-  const indent = isRoot ? '' : `ml-${depth * 4}`;
-  
-  
+  const indent = isRoot ? "" : `ml-${depth * 4}`;
+
   // Determine icon based on type
   const getIcon = () => {
-    if (object.kind == "list") {
+    if (object.kind === "list") {
       return <Brackets className="text-blue-500" size={16} />;
+    }
+    if (object.kind === "class") {
+      return <Copyright className="text-blue-600" size={16} />;
+    }
+    if (object.kind === "module") {
+      return <Box className="text-purple-600" size={16} />;
     }
     if (object.kind?.length ?? 0 > 0) {
       return <CircleSmall className="text-blue-500" size={16} />;
     }
-    return <Globe className="text-purple-600" size={16} />
+    return <Square className="text-gray-600" size={16} />;
     /*if (isRoot) {
       return <Globe className="text-purple-600" size={16} />;
     }
-    
+
     switch (data.type) {
       case 'dict':
         return <Box className="text-blue-500" size={16} />;
@@ -52,10 +85,39 @@ const ObjectTreeNode: React.FC<{
         return <Type className="text-gray-500" size={16} />;
     }*/
   };
-  
+
   // Format primitive values
   const formatValue = () => {
-    return <span className="text-amber-600">{object?.repr}{object?.value_type && <span className="font-bold" >: {object?.value_type}</span>}</span>
+    if (object.kind === "module") {
+      return (
+        <span className="text-purple-600">
+          {object?.repr}
+          {object?.value_type && (
+            <>
+              :{" "}
+              <span className="font-bold text-amber-600">
+                {" "}
+                {object?.value_type}
+              </span>
+            </>
+          )}
+        </span>
+      );
+    }
+    return (
+      <span className="text-teal-600">
+        {object?.repr}
+        {object?.value_type && (
+          <>
+            :{" "}
+            <span className="font-bold text-amber-600">
+              {" "}
+              {object?.value_type}
+            </span>
+          </>
+        )}
+      </span>
+    );
     /*
     if (['int', 'float', 'bool', 'none'].includes(data.type)) {
       return <span className="text-amber-600">{String(datna.value)}</span>;
@@ -68,31 +130,36 @@ const ObjectTreeNode: React.FC<{
     }
     return null;*/
   };
-  
+
   const hasChildren = object.children?.length ?? 0 > 0;
 
   // Render children
   const renderChildren = () => {
     if (!hasChildren || !isOpen) return null;
     return object.children!.map(([slotName, child]) => (
-        <ObjectTreeNode 
-          key={slotName}
-          slotName={slotName}
-          slotPath={`${slotPath}/${slotName}`}
-          struct={struct}
-          id={child}
-          depth={depth + 1}
-          open_objects={open_objects}
-          toggleOpenObject={toggleOpenObject}
-        />
-      ));
+      <ObjectTreeNode
+        key={slotName}
+        slotName={slotName}
+        slotPath={`${slotPath}/${slotName}`}
+        struct={struct}
+        id={child}
+        depth={depth + 1}
+        open_objects={open_objects}
+        toggleOpenObject={toggleOpenObject}
+      />
+    ));
   };
-  
+
   return (
     <div className={isRoot ? "pb-1 mb-1" : ""}>
-      <div className={`flex items-center py-1 ${indent} rounded ${isRoot ? "bg-gray-100 p-2 hover:bg-gray-300" : "hover:bg-gray-50"}`}>
+      <div
+        className={`flex items-center py-1 ${indent} rounded ${isRoot ? "bg-gray-100 p-2 hover:bg-gray-300" : "hover:bg-gray-50"}`}
+      >
         {hasChildren ? (
-          <button onClick={() => toggleOpenObject(slotPath)} className="mr-1 focus:outline-none">
+          <button
+            onClick={() => toggleOpenObject(slotPath)}
+            className="mr-1 focus:outline-none"
+          >
             {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           </button>
         ) : (
@@ -100,10 +167,11 @@ const ObjectTreeNode: React.FC<{
         )}
         {getIcon()}
         <span className={`mx-1 font-mono ${isRoot ? "" : ""}`}>
-            <span className={`${isRoot ? "text-blue-800" : "text-blue-800"}`}>
-              {slotName}
-            </span>{': '}
-            {/* {data.type === 'dataclass' ? (
+          <span className={`${isRoot ? "text-blue-800" : "text-blue-800"}`}>
+            {slotName}
+          </span>
+          {": "}
+          {/* {data.type === 'dataclass' ? (
               <span className="text-purple-800">{data.name || 'DataClass'}</span>
             ) : data.type === 'dict' ? (
               <span className="text-blue-800">{'{'}</span>
@@ -112,7 +180,7 @@ const ObjectTreeNode: React.FC<{
             ) : (
               formatValue(data)
             )} */}
-            {formatValue()}
+          {formatValue()}
         </span>
         {/* {hasChildren && !isOpen && (
           <span className="text-gray-400 text-sm">
@@ -243,20 +311,20 @@ export default ObjectTreeNode;
 //       'complex_objects': {
 //         type: 'list',
 //         value: [
-//           { 
-//             type: 'opaque', 
-//             value: null, 
-//             repr: "<__main__.ComplexObject at 0x7a77bd416530>" 
+//           {
+//             type: 'opaque',
+//             value: null,
+//             repr: "<__main__.ComplexObject at 0x7a77bd416530>"
 //           },
-//           { 
-//             type: 'opaque', 
-//             value: null, 
-//             repr: "<__main__.ComplexObject at 0x7a77bd416540>" 
+//           {
+//             type: 'opaque',
+//             value: null,
+//             repr: "<__main__.ComplexObject at 0x7a77bd416540>"
 //           },
-//           { 
-//             type: 'opaque', 
-//             value: null, 
-//             repr: "<builtins.filter object at 0x7a77bd416550>" 
+//           {
+//             type: 'opaque',
+//             value: null,
+//             repr: "<builtins.filter object at 0x7a77bd416550>"
 //           }
 //         ]
 //       }
@@ -265,8 +333,8 @@ export default ObjectTreeNode;
 
 //   return (
 //     <div className="p-4">
-//       <GlobalTreeView 
-//         data={sampleData} 
+//       <GlobalTreeView
+//         data={sampleData}
 //         title="Python Object Structure Example"
 //         globalName="app_data"
 //       />

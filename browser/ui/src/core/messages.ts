@@ -10,7 +10,11 @@ import {
 } from "./notebook";
 import { DirEntry, StateAction } from "./state";
 import { NotificationType } from "../components/NotificationProvider";
-import { JsonObjectStruct, parseJsonObjectStruct } from "./jobject";
+import {
+  extractGlobals,
+  JsonObjectStruct,
+  parseJsonObjectStruct,
+} from "./jobject";
 
 export type SendCommand = (message: FromClientMessage) => void;
 
@@ -103,7 +107,6 @@ interface CloseRunMsg {
   run_id: RunId;
 }
 
-
 export type FromClientMessage =
   | CreateNewNotebookMsg
   | CreateNewKernelMsg
@@ -144,10 +147,6 @@ export function processMessage(
       break;
     }
     case "Output": {
-      let globals = null;
-      if (message.globals) {
-        globals = message.globals.map(([name, data]) => [name, parseJsonObjectStruct(data)] as [string, JsonObjectStruct]);
-      }
       dispatch({
         type: "new_output",
         notebook_id: message.notebook_id,
@@ -155,7 +154,7 @@ export function processMessage(
         cell_id: message.cell_id,
         flag: message.flag,
         value: message.value,
-        globals,
+        globals: message.globals,
       });
       break;
     }

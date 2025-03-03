@@ -1,13 +1,22 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useGlobalState } from "./StateProvider";
 import RunView from "./RunView";
-import { Ban, Laptop, ListTree, MessageSquare, Plus, Square, Terminal, X } from "lucide-react";
+import {
+  Ban,
+  Laptop,
+  ListTree,
+  MessageSquare,
+  Plus,
+  Square,
+  Terminal,
+  X,
+} from "lucide-react";
 import { useSendCommand } from "./WsProvider";
 import { closeRun, newRun } from "../core/actions";
 import { Notebook, Run } from "../core/notebook";
 import Workspace from "./Workspace";
 import { StatusIndicator } from "./StatusIndicator";
-import { Menu, Pause, StopCircle, Play } from 'lucide-react';
+import { Menu, Pause, StopCircle, Play } from "lucide-react";
 
 const RunMenu = () => {
   const isComputing = false;
@@ -22,26 +31,21 @@ const RunMenu = () => {
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen]);
-
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
   };
 
-  const handleInterrupt = () => {
+  const handleInterrupt = () => {};
 
-  };
-
-  const handleStop = () => {
-
-  };
+  const handleStop = () => {};
 
   return (
     <div className="relative" ref={menuRef}>
@@ -75,10 +79,13 @@ const RunMenu = () => {
           </div>
         </div>
       )}
-    </div>);
+    </div>
+  );
 };
 
-const TabCloseButton: React.FC<{ onClick: (event: React.MouseEvent) => void }> = ({ onClick }) => {
+const TabCloseButton: React.FC<{
+  onClick: (event: React.MouseEvent) => void;
+}> = ({ onClick }) => {
   return (
     <button
       className="p-1 rounded-full text-orange-800 hover:text-orange-700 hover:bg-orange-200"
@@ -90,43 +97,62 @@ const TabCloseButton: React.FC<{ onClick: (event: React.MouseEvent) => void }> =
   );
 };
 
-const ViewSwitch: React.FC<{ notebook: Notebook, run: Run }> = (props: { notebook: Notebook, run: Run }) => {
+const ViewSwitch: React.FC<{ notebook: Notebook; run: Run }> = (props: {
+  notebook: Notebook;
+  run: Run;
+}) => {
   const dispatch = useDispatch()!;
   const view_mode = props.run.view_mode;
 
   return (
     <div className="inline-flex rounded-md shadow-sm">
       <label
-        className={`inline-flex items-center px-3 py-1 text-sm font-medium border rounded-l-md cursor-pointer ${view_mode === 'outputs'
-          ? 'bg-orange-50 text-orange-700 border-orange-500 z-10'
-          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-          }`}
+        className={`inline-flex items-center px-3 py-1 text-sm font-medium border rounded-l-md cursor-pointer ${
+          view_mode === "outputs"
+            ? "bg-orange-50 text-orange-700 border-orange-500 z-10"
+            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+        }`}
       >
         <input
           type="radio"
           className="sr-only"
           name="view-option"
           value="outputs"
-          checked={view_mode === 'outputs'}
-          onChange={() => dispatch({ type: "set_run_view_mode", notebook_id: props.notebook.id, run_id: props.run.id, view_mode: 'outputs' })}
+          checked={view_mode === "outputs"}
+          onChange={() =>
+            dispatch({
+              type: "set_run_view_mode",
+              notebook_id: props.notebook.id,
+              run_id: props.run.id,
+              view_mode: "outputs",
+            })
+          }
         />
         <MessageSquare className="w-4 h-4 mr-1" />
         <span>Outputs</span>
       </label>
 
       <label
-        className={`inline-flex items-center px-3 py-1 text-sm font-medium border rounded-r-md cursor-pointer ${view_mode === 'workspace'
-          ? 'bg-orange-50 text-orange-700 border-orange-500 z-10'
-          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-          }`}
+        className={`inline-flex items-center px-3 py-1 text-sm font-medium border rounded-r-md cursor-pointer ${
+          view_mode === "workspace"
+            ? "bg-orange-50 text-orange-700 border-orange-500 z-10"
+            : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+        }`}
       >
         <input
           type="radio"
           className="sr-only"
           name="view-option"
           value="workspace"
-          checked={view_mode === 'workspace'}
-          onChange={() => dispatch({ type: "set_run_view_mode", notebook_id: props.notebook.id, run_id: props.run.id, view_mode: 'workspace' })}
+          checked={view_mode === "workspace"}
+          onChange={() =>
+            dispatch({
+              type: "set_run_view_mode",
+              notebook_id: props.notebook.id,
+              run_id: props.run.id,
+              view_mode: "workspace",
+            })
+          }
         />
         <ListTree className="w-4 h-4 mr-1" />
         <span>Workspace</span>
@@ -135,8 +161,9 @@ const ViewSwitch: React.FC<{ notebook: Notebook, run: Run }> = (props: { noteboo
   );
 };
 
-
-const RunTabs: React.FC<{ notebook: Notebook }> = (props: { notebook: Notebook }) => {
+const RunTabs: React.FC<{ notebook: Notebook }> = (props: {
+  notebook: Notebook;
+}) => {
   const dispatch = useDispatch()!;
   const sendCommand = useSendCommand()!;
   const notebook = props.notebook;
@@ -155,20 +182,23 @@ const RunTabs: React.FC<{ notebook: Notebook }> = (props: { notebook: Notebook }
               })
             }
             className={`select-none cursor-default flex items-center py-2 pl-5 pr-2 text-sm font-medium transition-colors duration-200
-            ${r.id === notebook.current_run_id
+            ${
+              r.id === notebook.current_run_id
                 ? "bg-orange-100 text-orange-800 border-b-2"
                 : "bg-gray-50 text-gray-600 hover:bg-orange-50 hover:text-orange-700"
-              }`}
+            }`}
           >
             {<span>{r.title}</span>}
-            {r.id === notebook.current_run_id &&
+            {r.id === notebook.current_run_id && (
               <span className="pl-2">
-                <TabCloseButton onClick={(ev: React.MouseEvent) => {
-                  ev.stopPropagation()
-                  closeRun(notebook.id, r.id, dispatch, sendCommand)
-                }} />
+                <TabCloseButton
+                  onClick={(ev: React.MouseEvent) => {
+                    ev.stopPropagation();
+                    closeRun(notebook.id, r.id, dispatch, sendCommand);
+                  }}
+                />
               </span>
-            }
+            )}
           </div>
         ))}
         <button
@@ -203,16 +233,9 @@ const RunTabs: React.FC<{ notebook: Notebook }> = (props: { notebook: Notebook }
 
               )} */}
           </div>
-          {run.view_mode === 'outputs' && (
-            <RunView
-              run={run}
-            />
-          )}
-          {run.view_mode === 'workspace' && (
-            <Workspace
-              notebook_id={notebook.id}
-              run={run}
-            />
+          {run.view_mode === "outputs" && <RunView run={run} />}
+          {run.view_mode === "workspace" && (
+            <Workspace notebook_id={notebook.id} run={run} />
           )}
         </div>
       )}

@@ -1,5 +1,9 @@
 import { CurlyBraces } from "lucide-react";
-import { JsonObjectStruct, parseJsonObjectStruct } from "./jobject";
+import {
+  extractGlobals,
+  JsonObjectStruct,
+  parseJsonObjectStruct,
+} from "./jobject";
 import {
   CellId,
   EditorCell,
@@ -62,7 +66,7 @@ interface NewOutputAction {
   cell_id: CellId;
   flag: OutputCellFlag;
   value: OutputValue;
-  globals: [string, JsonObjectStruct][] | null;
+  globals: [string, string][] | null;
 }
 
 interface SetCurrentRunAction {
@@ -165,8 +169,13 @@ export function stateReducer(state: State, action: StateAction): State {
     case "add_notebook": {
       const path = action.notebook.path;
       const runs = action.notebook.runs.map((r) => {
-        const globals = r.globals.map(([key, value]) => [key, parseJsonObjectStruct(value)] as [string, JsonObjectStruct]);
-        return { ...r, globals, view_mode: "outputs", open_objects: new Set() }
+        const globals = extractGlobals(r.globals);
+        return {
+          ...r,
+          globals,
+          view_mode: "outputs",
+          open_objects: new Set(),
+        } as Run;
       });
       const notebook = {
         id: action.notebook.id,
@@ -317,7 +326,11 @@ export function stateReducer(state: State, action: StateAction): State {
                 return c;
               }
             });
-            return { ...r, globals: action.globals ? action.globals : r.globals, output_cells } as Run;
+            let globals = r.globals;
+            if (action.globals) {
+              globals = extractGlobals(action.globals);
+            }
+            return { ...r, globals, output_cells } as Run;
           } else {
             return r;
           }
@@ -332,12 +345,12 @@ export function stateReducer(state: State, action: StateAction): State {
     }
     case "close_run": {
       const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
-      const runs = notebook.runs.filter((r) => r.id != action.run_id)
+      const runs = notebook.runs.filter((r) => r.id != action.run_id);
       let current_run_id;
       if (notebook.runs.length <= 1) {
         current_run_id = null;
       } else {
-        const idx = notebook.runs.findIndex((r) => r.id == action.run_id)
+        const idx = notebook.runs.findIndex((r) => r.id == action.run_id);
         if (notebook.runs.length - 1 == idx) {
           current_run_id = notebook.runs[idx - 1].id;
         } else {
@@ -381,7 +394,9 @@ export function stateReducer(state: State, action: StateAction): State {
       const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
       const new_notebook = {
         ...notebook,
-        runs: notebook.runs.map((r) => r.id == action.run_id ? { ...r, view_mode: action.view_mode } : r),
+        runs: notebook.runs.map((r) =>
+          r.id == action.run_id ? { ...r, view_mode: action.view_mode } : r,
+        ),
       };
       return updateNotebooks(state, new_notebook);
     }
