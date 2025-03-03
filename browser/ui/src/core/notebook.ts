@@ -83,5 +83,5 @@ export interface RunDesc {
   title: string;
   kernel_state: KernelState;
   output_cells: OutputCell[];
-  globals: [string, JsonObjectStruct][];
+  globals: [string, string][];
 }

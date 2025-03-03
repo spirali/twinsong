@@ -112,9 +112,12 @@ pub(crate) fn process_kernel_message(
                 cell_id: OutputCellId::new(cell_id),
                 value: &value,
                 flag,
-                globals,
+                globals: globals.as_ref(),
             });
             let run = notebook.find_run_by_id_mut(kernel_ctx.run_id)?;
+            if let Some(update) = globals {
+                run.update_globals(update)
+            }
             run.add_output(OutputCellId::new(cell_id), value, flag);
         }
     }
