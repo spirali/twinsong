@@ -5,7 +5,7 @@ export type NotebookId = number;
 export type CellId = string;
 
 export type KernelState =
-  | { type: "Crashed", message: string }
+  | { type: "Crashed"; message: string }
   | { type: "Init" }
   | { type: "Running" }
   | { type: "Closed" };

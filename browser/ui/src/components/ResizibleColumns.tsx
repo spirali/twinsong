@@ -74,9 +74,7 @@ const ResizableColumns: React.FC<Props> = ({
         />
 
         {/* Right Column */}
-        <div
-          style={{ width: `${100 - leftWidth}%` }}
-        >
+        <div style={{ width: `${100 - leftWidth}%` }}>
           <div className="h-full">{rightContent}</div>
         </div>
       </div>

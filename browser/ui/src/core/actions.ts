@@ -1,4 +1,10 @@
-import { EditorCell, Notebook, NotebookId, OutputCellFlag, RunId } from "./notebook";
+import {
+  EditorCell,
+  Notebook,
+  NotebookId,
+  OutputCellFlag,
+  RunId,
+} from "./notebook";
 import { State } from "./state";
 import { Dispatch } from "react";
 import { StateAction } from "./state";
@@ -41,9 +47,15 @@ export function runCell(
     run_id = newRun(notebook, dispatch, send_command);
   } else {
     let run = notebook.runs.find((r) => r.id === run_id)!;
-    if (run.kernel_state.type === "Crashed" || run.kernel_state.type === "Closed") {
-      pushNotification("Kernel for this run is inactive. Start new one.", "error")
-      return
+    if (
+      run.kernel_state.type === "Crashed" ||
+      run.kernel_state.type === "Closed"
+    ) {
+      pushNotification(
+        "Kernel for this run is inactive. Start new one.",
+        "error",
+      );
+      return;
     }
     if (
       run.kernel_state.type === "Running" &&
@@ -73,17 +85,22 @@ export function runCell(
   });
 }
 
-export function closeRun(notebook_id: NotebookId, run_id: RunId, dispatch: Dispatch<StateAction>, sendCommand: SendCommand) {
+export function closeRun(
+  notebook_id: NotebookId,
+  run_id: RunId,
+  dispatch: Dispatch<StateAction>,
+  sendCommand: SendCommand,
+) {
   dispatch({
     type: "close_run",
     notebook_id: notebook_id,
     run_id: run_id,
-  })
+  });
   sendCommand({
     type: "CloseRun",
     notebook_id: notebook_id,
     run_id: run_id,
-  })
+  });
 }
 
 export function newEdtorCell(
