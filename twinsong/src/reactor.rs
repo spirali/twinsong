@@ -248,3 +248,21 @@ pub(crate) fn query_dir(
     let _ = sender.send(message);
     Ok(())
 }
+
+pub(crate) fn close_run(
+    state: &mut AppState,
+    notebook_id: NotebookId,
+    run_id: RunId,
+) -> anyhow::Result<()> {
+    tracing::debug!("Closing run {}", run_id);
+    let notebook = state.find_notebook_by_id_mut(notebook_id)?;
+    let run = notebook.remove_run_by_id(run_id)?;
+    match run.kernel_state() {
+        KernelState::Init(kernel_id) | KernelState::Running(kernel_id) => {
+            let kernel_id = *kernel_id;
+            state.stop_kernel(kernel_id);
+        }
+        KernelState::Crashed(_) | KernelState::Closed => { /* Do nothing */ }
+    }
+    Ok(())
+}

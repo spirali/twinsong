@@ -97,10 +97,18 @@ interface LoadNotebookMsg {
   path: string;
 }
 
+interface CloseRunMsg {
+  type: "CloseRun";
+  notebook_id: NotebookId;
+  run_id: RunId;
+}
+
+
 export type FromClientMessage =
   | CreateNewNotebookMsg
   | CreateNewKernelMsg
   | RunCellMsg
+  | CloseRunMsg
   | LoadNotebookMsg
   | SaveNotebookMsg;
 

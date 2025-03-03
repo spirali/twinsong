@@ -12,7 +12,7 @@ export interface JsonObject {
     value_type?: string,
     kind?: string,
     children?: [string, JsonObjectId][];
-} 
+}
 
 export interface JsonObjectStruct {
     root: JsonObjectId;
@@ -21,7 +21,6 @@ export interface JsonObjectStruct {
 
 export function parseJsonObjectStruct(data: string): JsonObjectStruct {
     const dump = JSON.parse(data) as JsonObjectDump;
-    console.log("!!!!", dump);
     const objects = new Map<JsonObjectId, JsonObject>();
     for (const object of dump.objects) {
         objects.set(object.id, object);

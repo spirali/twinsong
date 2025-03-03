@@ -1,5 +1,5 @@
 use crate::notebook::{
-    EditorCell, Globals, NotebookId, OutputCell, OutputCellId, OutputValue, RunId,
+    EditorCell, Globals, KernelId, NotebookId, OutputCell, OutputCellId, OutputValue, RunId,
 };
 use axum::extract::ws::Message;
 use comm::messages::{GlobalsUpdate, OutputFlag};
@@ -14,6 +14,14 @@ pub(crate) enum FromClientMessage {
     SaveNotebook(SaveNotebookMsg),
     LoadNotebook(LoadNotebookMsg),
     QueryDir,
+    CloseRun(NotebookRunMsg),
+    KernelList,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct NotebookRunMsg {
+    pub notebook_id: NotebookId,
+    pub run_id: RunId,
 }
 
 #[derive(Debug, Deserialize)]
@@ -86,6 +94,14 @@ pub(crate) struct DirEntry {
 }
 
 #[derive(Debug, Serialize)]
+pub(crate) struct KernelInfo {
+    pub kernel_id: KernelId,
+    pub notebook_id: NotebookId,
+    pub run_id: RunId,
+    pub pid: u32,
+}
+
+#[derive(Debug, Serialize)]
 #[serde(tag = "type")]
 pub(crate) enum ToClientMessage<'a> {
     Error {
@@ -121,6 +137,9 @@ pub(crate) enum ToClientMessage<'a> {
     },
     DirList {
         entries: &'a [DirEntry],
+    },
+    Kernels {
+        kernels: Vec<KernelInfo>,
     },
 }
 

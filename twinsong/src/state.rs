@@ -1,3 +1,4 @@
+use crate::client_messages::KernelInfo;
 use crate::kernel::KernelHandle;
 use crate::notebook::{KernelId, Notebook, NotebookId};
 use anyhow::anyhow;
@@ -25,6 +26,13 @@ impl AppState {
         }
     }
 
+    pub(crate) fn kernel_list(&self) -> Vec<KernelInfo> {
+        self.kernels
+            .iter()
+            .map(|(kernel_id, kernel_handle)| kernel_handle.kernel_info(*kernel_id))
+            .collect()
+    }
+
     pub fn new_notebook_id(&mut self) -> NotebookId {
         self.id_counter += 1;
         NotebookId::new(self.id_counter)
@@ -50,6 +58,13 @@ impl AppState {
 
     pub fn add_kernel(&mut self, kernel_id: KernelId, kernel: KernelHandle) {
         assert!(self.kernels.insert(kernel_id, kernel).is_none());
+    }
+
+    pub fn stop_kernel(&mut self, kernel_id: KernelId) {
+        if let Some(kernel_handle) = self.kernels.remove(&kernel_id) {
+            tracing::debug!("Stopping kernel {}", kernel_id);
+            kernel_handle.stop();
+        }
     }
 
     pub fn set_kernel_port(&mut self, kernel_port: u16) {

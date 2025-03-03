@@ -2,7 +2,7 @@ use crate::client_messages::{
     parse_client_message, serialize_client_message, FromClientMessage, ToClientMessage,
 };
 use crate::reactor::{
-    load_notebook, new_notebook, query_dir, run_code, save_notebook, start_kernel,
+    close_run, load_notebook, new_notebook, query_dir, run_code, save_notebook, start_kernel,
 };
 use crate::state::{AppState, AppStateRef};
 use axum::body::Body;
@@ -12,6 +12,7 @@ use axum::http::header;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{any, get};
 use axum::Router;
+use comm::serialize_to_kernel_message;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::SinkExt;
 use futures_util::StreamExt;
@@ -149,6 +150,14 @@ fn process_client_message(
         }
         FromClientMessage::QueryDir => {
             query_dir(state, sender)?;
+        }
+        FromClientMessage::CloseRun(msg) => {
+            close_run(state, msg.notebook_id, msg.run_id)?;
+        }
+        FromClientMessage::KernelList => {
+            let _ = sender.send(serialize_client_message(ToClientMessage::Kernels {
+                kernels: state.kernel_list(),
+            })?);
         }
     };
     Ok(())

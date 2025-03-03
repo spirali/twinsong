@@ -281,6 +281,13 @@ impl Notebook {
             .ok_or_else(|| anyhow!(format!("Run {run_id} not found")))
     }
 
+    pub fn remove_run_by_id(&mut self, run_id: RunId) -> anyhow::Result<Run> {
+        self.run_order.retain(|r_id| run_id != *r_id);
+        self.runs
+            .remove(&run_id)
+            .ok_or_else(|| anyhow!(format!("Run {run_id} not found")))
+    }
+
     pub fn runs(&self) -> impl Iterator<Item = (RunId, &Run)> + '_ {
         self.run_order
             .iter()
