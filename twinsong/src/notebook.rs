@@ -3,11 +3,12 @@ use crate::client_messages::{
 };
 use anyhow::anyhow;
 use axum::extract::ws::Message;
-use comm::messages::{Exception, KernelOutputValue, OutputFlag};
+use comm::messages::{Exception, GlobalsUpdate, KernelOutputValue, OutputFlag};
 use nutype::nutype;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
+use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
 use uuid::Uuid;
 
@@ -119,11 +120,26 @@ pub enum KernelState {
     Closed,
 }
 
+#[derive(Debug, Serialize, Deserialize, Default)]
+#[serde(transparent)]
+pub struct Globals(Vec<(String, Arc<String>)>);
+
+impl Globals {
+    pub fn update(&mut self, update: GlobalsUpdate) {
+        let mut old = self.0.drain(..).collect::<HashMap<_, _>>();
+        for up in update {
+            let data = up.1.unwrap_or_else(|| old.remove(&up.0).unwrap());
+            self.0.push((up.0, data));
+        }
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct Run {
     title: String,
     output_cells: Vec<OutputCell>,
     kernel: KernelState,
+    globals: Globals,
 }
 
 impl Run {
@@ -132,7 +148,11 @@ impl Run {
             title,
             output_cells,
             kernel,
+            globals: Globals::default(),
         }
+    }
+    pub fn globals(&self) -> &Globals {
+        &self.globals
     }
     pub fn set_crashed_kernel(&mut self, message: String) {
         self.kernel = KernelState::Crashed(message)
@@ -159,6 +179,10 @@ impl Run {
 
     pub fn add_output_cell(&mut self, output_cell: OutputCell) {
         self.output_cells.push(output_cell);
+    }
+
+    pub fn update_globals(&mut self, update: GlobalsUpdate) {
+        self.globals.update(update);
     }
 
     pub fn add_output(&mut self, cell_id: OutputCellId, value: OutputValue, flag: OutputFlag) {
@@ -281,6 +305,7 @@ impl Notebook {
                         },
                         KernelState::Closed => KernelStateDesc::Closed,
                     },
+                    globals: &run.globals,
                 }
             })
             .collect::<Vec<_>>();

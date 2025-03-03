@@ -1,4 +1,4 @@
-import { JsonObjectStruct } from "./jobject";
+import { JsonObjectStruct, parseJsonObjectStruct } from "./jobject";
 import {
   CellId,
   EditorCell,
@@ -32,6 +32,7 @@ interface FreshRunAction {
   notebook_id: NotebookId;
   run_id: RunId;
   run_title: string;
+  globals: [string, JsonObjectStruct][];
 }
 
 interface NewOutputCellAction {
@@ -155,8 +156,10 @@ export function stateReducer(state: State, action: StateAction): State {
   switch (action.type) {
     case "add_notebook": {
       const path = action.notebook.path;
-      const runs = action.notebook.runs.map((r) => ({ ...r, globals: [], view_mode: "outputs", open_objects: new Set(),
-      }));
+      const runs = action.notebook.runs.map((r) => {  
+        const globals = r.globals.map(([key, value]) => [key, parseJsonObjectStruct(value)] as [string, JsonObjectStruct]);
+        return { ...r, globals, view_mode: "outputs", open_objects: new Set()}
+      });
       const notebook = {
         id: action.notebook.id,
         editor_cells: action.notebook.editor_cells,
