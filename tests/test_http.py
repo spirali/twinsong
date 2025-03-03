@@ -1,6 +1,7 @@
 import shutil
-
 import toml
+import psutil
+import time
 
 
 def test_execute_command(client):
@@ -8,12 +9,12 @@ def test_execute_command(client):
     k = client.create_new_kernel(r["notebook"]["id"])
     assert "3" == k.run_code_simple("1 + 2")
     assert [
-        {"type": "Text", "value": "Hello"},
-        {"type": "Text", "value": "\n"},
-        {"type": "Text", "value": "World"},
-        {"type": "Text", "value": "\n"},
-        {"type": "None"},
-    ] == k.run_code("print('Hello')\nprint('World')")
+               {"type": "Text", "value": "Hello"},
+               {"type": "Text", "value": "\n"},
+               {"type": "Text", "value": "World"},
+               {"type": "Text", "value": "\n"},
+               {"type": "None"},
+           ] == k.run_code("print('Hello')\nprint('World')")
 
 
 def test_save_notebook_plain(client):
@@ -85,8 +86,7 @@ def test_save_notebook_plain(client):
             {"entry_type": "File", "path": "server.out.log"},
         ],
     }
-    client.send_message({"type": "LoadNotebook", "path": "copy.tsnb"})
-    r = client.receive_message()
+    r = client.load_notebook("copy.tsnb")
     assert r == {
         "type": "NewNotebook",
         "notebook": {
@@ -96,8 +96,7 @@ def test_save_notebook_plain(client):
             "path": "copy.tsnb",
         },
     }
-    client.send_message({"type": "LoadNotebook", "path": "copy.tsnb"})
-    r2 = client.receive_message()
+    r2 = client.load_notebook("copy.tsnb")
     assert r == r2
     with open("copy.tsnb") as f:
         data2 = toml.loads(f.read())
@@ -135,3 +134,36 @@ def test_save_empty(client):
         "runs": [],
         "editor_cells": editor_cells,
     }
+
+
+def test_close_run(client):
+    r = client.create_new_notebook()
+    notebook_id = r["notebook"]["id"]
+    path = r["notebook"]["path"]
+    k1 = client.create_new_kernel(r["notebook"]["id"])
+    k2 = client.create_new_kernel(r["notebook"]["id"])
+
+    r = client.load_notebook(path)
+    assert len(r["notebook"]["runs"]) == 2
+    klist = client.kernel_list()
+    print(klist)
+    assert len(klist) == 2
+
+    for kernel in klist:
+        assert psutil.pid_exists(kernel["pid"])
+
+    client.send_message({
+        "type": "CloseRun",
+        "notebook_id": notebook_id,
+        "run_id": k1.run_id,
+    })
+    time.sleep(1)
+    r = client.load_notebook(path)
+    assert len(r["notebook"]["runs"]) == 1
+    klist2 = client.kernel_list()
+    assert len(klist2) == 1
+    running = 0
+    for kernel in klist:
+        if psutil.pid_exists(kernel["pid"]):
+            running += 1
+    assert running == 1

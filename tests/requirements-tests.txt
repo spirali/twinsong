@@ -2,3 +2,4 @@ pytest
 websockets
 maturin
 toml
+psutil

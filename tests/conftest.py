@@ -7,7 +7,6 @@ import time
 import uuid
 import contextlib
 
-w
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(TESTS_DIR)
 if os.environ.get("TWINSONG_TEST_BIN") == "release":
@@ -114,11 +113,21 @@ class Client:
                 continue
             return r
 
+    def load_notebook(self, path):
+        self.send_message({"type": "LoadNotebook", "path": path})
+        return self.receive_message()
+
     def create_new_notebook(self):
         self.send_message({"type": "CreateNewNotebook"})
         r = self.receive_message()
         assert r["type"] == "NewNotebook"
         return r
+
+    def kernel_list(self):
+        self.send_message({"type": "KernelList"})
+        r = self.receive_message()
+        assert r["type"] == "Kernels"
+        return r["kernels"]
 
     def create_new_kernel(self, notebook_id) -> Kernel:
         run_id = str(uuid.uuid4())

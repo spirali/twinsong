@@ -1,4 +1,4 @@
-import { EditorCell, Notebook, OutputCellFlag, RunId } from "./notebook";
+import { EditorCell, Notebook, NotebookId, OutputCellFlag, RunId } from "./notebook";
 import { State } from "./state";
 import { Dispatch } from "react";
 import { StateAction } from "./state";
@@ -71,6 +71,19 @@ export function runCell(
     cell_id: cell_id,
     editor_cell: cell,
   });
+}
+
+export function closeRun(notebook_id: NotebookId, run_id: RunId, dispatch: Dispatch<StateAction>, sendCommand: SendCommand) {
+  dispatch({
+    type: "close_run",
+    notebook_id: notebook_id,
+    run_id: run_id,
+  })
+  sendCommand({
+    type: "CloseRun",
+    notebook_id: notebook_id,
+    run_id: run_id,
+  })
 }
 
 export function newEdtorCell(

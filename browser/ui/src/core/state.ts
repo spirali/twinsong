@@ -1,3 +1,4 @@
+import { CurlyBraces } from "lucide-react";
 import { JsonObjectStruct, parseJsonObjectStruct } from "./jobject";
 import {
   CellId,
@@ -70,6 +71,12 @@ interface SetCurrentRunAction {
   run_id: RunId;
 }
 
+interface CloseRunAction {
+  type: "close_run";
+  notebook_id: NotebookId;
+  run_id: RunId;
+}
+
 interface SetRunViewModeAction {
   type: "set_run_view_mode";
   notebook_id: NotebookId;
@@ -132,6 +139,7 @@ export type StateAction =
   | SetSelectedNotebookAction
   | SetDirEntries
   | SaveNotebookAction
+  | CloseRunAction
   | ToggleOpenObjectAction;
 
 function updateNotebooks(state: State, notebook: Notebook): State {
@@ -156,9 +164,9 @@ export function stateReducer(state: State, action: StateAction): State {
   switch (action.type) {
     case "add_notebook": {
       const path = action.notebook.path;
-      const runs = action.notebook.runs.map((r) => {  
+      const runs = action.notebook.runs.map((r) => {
         const globals = r.globals.map(([key, value]) => [key, parseJsonObjectStruct(value)] as [string, JsonObjectStruct]);
-        return { ...r, globals, view_mode: "outputs", open_objects: new Set()}
+        return { ...r, globals, view_mode: "outputs", open_objects: new Set() }
       });
       const notebook = {
         id: action.notebook.id,
@@ -320,6 +328,23 @@ export function stateReducer(state: State, action: StateAction): State {
     case "set_current_run": {
       const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
       const new_notebook = { ...notebook, current_run_id: action.run_id };
+      return updateNotebooks(state, new_notebook);
+    }
+    case "close_run": {
+      const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
+      const runs = notebook.runs.filter((r) => r.id != action.run_id)
+      let current_run_id;
+      if (notebook.runs.length <= 1) {
+        current_run_id = null;
+      } else {
+        const idx = notebook.runs.findIndex((r) => r.id == action.run_id)
+        if (notebook.runs.length - 1 == idx) {
+          current_run_id = notebook.runs[idx - 1].id;
+        } else {
+          current_run_id = notebook.runs[idx + 1].id;
+        }
+      }
+      const new_notebook = { ...notebook, runs, current_run_id };
       return updateNotebooks(state, new_notebook);
     }
     case "new_editor_cell": {

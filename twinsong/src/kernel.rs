@@ -1,4 +1,4 @@
-use crate::client_messages::ToClientMessage;
+use crate::client_messages::{KernelInfo, ToClientMessage};
 use crate::notebook::{KernelId, NotebookId, RunId};
 use crate::reactor::process_kernel_message;
 use crate::state::AppStateRef;
@@ -33,15 +33,26 @@ pub(crate) struct KernelHandle {
     kill_sender: oneshot::Sender<()>,
     pending_messages: Vec<ToKernelMessage>,
     kernel_ctx: KernelCtx,
+    pid: u32,
 }
 
 impl KernelHandle {
-    pub fn new(kernel_ctx: KernelCtx, kill_sender: oneshot::Sender<()>) -> Self {
+    pub fn new(kernel_ctx: KernelCtx, kill_sender: oneshot::Sender<()>, pid: u32) -> Self {
         KernelHandle {
             kill_sender,
             state: KernelHandleState::Init(Vec::new()),
             pending_messages: Vec::new(),
             kernel_ctx,
+            pid,
+        }
+    }
+
+    pub fn kernel_info(&self, kernel_id: KernelId) -> KernelInfo {
+        KernelInfo {
+            kernel_id,
+            notebook_id: self.kernel_ctx.notebook_id,
+            run_id: self.kernel_ctx.run_id,
+            pid: self.pid,
         }
     }
 
@@ -84,6 +95,10 @@ impl KernelHandle {
             }
         }
     }
+
+    pub fn stop(self) {
+        let _ = self.kill_sender.send(());
+    }
 }
 
 pub fn spawn_kernel(
@@ -100,28 +115,31 @@ pub fn spawn_kernel(
         .kill_on_drop(true);
     tracing::debug!("Spawning new kernel {:?}", &cmd);
     let child = cmd.spawn()?;
-
-    // TODO: Implement kill switch
-    let (sender, _receiver) = oneshot::channel();
+    let pid = child.id().unwrap_or(0);
+    let (sender, receiver) = oneshot::channel();
     let state_ref = state_ref.clone();
     spawn(async move {
-        let _r = kernel_guard(child).await;
-        let mut state = state_ref.lock().unwrap();
-        if let Ok(kernel) = state.find_kernel_by_id_mut(kernel_ctx.kernel_id) {
-            // TODO: Remove kernel from state
-            let notebook_id = kernel.notebook_id();
-            let run_id = kernel.run_id();
-            let notebook = state.find_notebook_by_id_mut(notebook_id).unwrap();
-            let run = notebook.find_run_by_id_mut(run_id).unwrap();
-            run.set_crashed_kernel("Process unexpectedly closed".to_string());
-            notebook.send_message(ToClientMessage::KernelCrashed {
-                notebook_id,
-                run_id,
-                message: "Process unexpectedly closed".to_string(),
-            })
+        tokio::select! {
+            _ = kernel_guard(child) => {
+                let mut state = state_ref.lock().unwrap();
+                if let Ok(kernel) = state.find_kernel_by_id_mut(kernel_ctx.kernel_id) {
+                    // TODO: Remove kernel from state
+                    let notebook_id = kernel.notebook_id();
+                    let run_id = kernel.run_id();
+                    let notebook = state.find_notebook_by_id_mut(notebook_id).unwrap();
+                    let run = notebook.find_run_by_id_mut(run_id).unwrap();
+                    run.set_crashed_kernel("Process unexpectedly closed".to_string());
+                    notebook.send_message(ToClientMessage::KernelCrashed {
+                        notebook_id,
+                        run_id,
+                        message: "Process unexpectedly closed".to_string(),
+                    })
+                }
+            }
+            _ = receiver => {}
         }
     });
-    Ok(KernelHandle::new(kernel_ctx, sender))
+    Ok(KernelHandle::new(kernel_ctx, sender, pid))
 }
 
 async fn kernel_guard(mut child: Child) -> anyhow::Result<()> {
