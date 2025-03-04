@@ -2,14 +2,18 @@ from twinsong.twinsong import create_jobject
 import json
 
 
+def make_jobject(obj):
+    return json.loads(create_jobject(obj))
+
+
 def build_obj(obj):
-    jobject = json.loads(create_jobject("root", obj))
-    values = {v["id"]: v for v in jobject["values"]}
-    for v in values.values():
+    jobject = make_jobject(obj)
+    objects = {v["id"]: v for v in jobject["objects"]}
+    for v in objects.values():
         del v["id"]
         if "children" in v:
-            v["children"] = [values[c] for c in v["children"]]
-    root = values[jobject["root"]]
+            v["children"] = [(k, objects[v]) for k, v in v["children"]]
+    root = objects[jobject["root"]]
     print(json.dumps(root, indent=4))
     return root
 
@@ -19,42 +23,45 @@ class FooBar:
 
 
 def test_jobject():
-    assert build_obj(None) == {'kind': 'null', 'repr': 'None', 'slot': 'root', 'value_type': ''}
-    assert build_obj(-123) == {'kind': 'number', 'repr': '-123', 'slot': 'root', 'value_type': 'int'}
-    assert build_obj(5) == {'kind': 'number', 'repr': '5', 'slot': 'root', 'value_type': 'int'}
-    assert build_obj(5.0) == {'kind': 'number', 'repr': '5.0', 'slot': 'root', 'value_type': 'float'}
-    assert build_obj(1 / 3) == {'kind': 'number', 'repr': '0.3333333333333333', 'slot': 'root', 'value_type': 'float'}
+    assert build_obj(None) == {"kind": "null", "repr": "None"}
+    assert build_obj(-123) == {"kind": "number", "repr": "-123", "value_type": "int"}
+    assert build_obj(5) == {"kind": "number", "repr": "5", "value_type": "int"}
+    assert build_obj(5.0) == {"kind": "number", "repr": "5.0", "value_type": "float"}
+    assert build_obj(1 / 3) == {
+        "kind": "number",
+        "repr": "0.3333333333333333",
+        "value_type": "float",
+    }
 
     assert build_obj([1, 2, 3]) == {
-        "slot": "root",
         "repr": "[1, 2, 3]",
         "value_type": "list[int]",
+        "kind": "list",
         "children": [
-            {
-                "slot": "0",
-                "repr": "1",
-                "value_type": "int",
-                "kind": "number"
-            },
-            {
-                "slot": "1",
-                "repr": "2",
-                "value_type": "int",
-                "kind": "number"
-            },
-            {
-                "slot": "2",
-                "repr": "3",
-                "value_type": "int",
-                "kind": "number"
-            }
-        ]
+            ("0", {"repr": "1", "value_type": "int", "kind": "number"}),
+            ("1", {"repr": "2", "value_type": "int", "kind": "number"}),
+            ("2", {"repr": "3", "value_type": "int", "kind": "number"}),
+        ],
     }
 
     r = build_obj(FooBar())
     assert "FooBar" in r["repr"]
     del r["repr"]
+    assert r == {"value_type": "FooBar"}
+
+    x = []
+    x.append(x)
+    r = make_jobject(x)
+    root = r["root"]
     assert r == {
-        "slot": "root",
-        "value_type": "FooBar"
+        "root": root,
+        "objects": [
+            {
+                "children": [["0", root]],
+                "id": root,
+                "kind": "list",
+                "repr": "1 items",
+                "value_type": "list",
+            }
+        ],
     }

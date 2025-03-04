@@ -8,8 +8,12 @@ use comm::messages::{FromKernelMessage, ToKernelMessage};
 use comm::{make_protocol_builder, parse_from_kernel_message, serialize_to_kernel_message, Codec};
 use futures_util::stream::{SplitSink, SplitStream, StreamExt};
 use futures_util::SinkExt;
+use std::env::temp_dir;
+use std::fs::File;
+use std::io::stderr;
+use std::process::Stdio;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::process::Child;
+use tokio::process::{Child, Command};
 use tokio::spawn;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tokio::sync::oneshot;
@@ -108,12 +112,19 @@ pub fn spawn_kernel(
 ) -> anyhow::Result<KernelHandle> {
     let program = which::which("python")?;
     let mut cmd = tokio::process::Command::new(program);
+    let stdout_path = temp_dir().join(format!("kernel.out"));
+    let stderr_path = temp_dir().join(format!("kernel.err"));
+    let stdout_file = File::create(&stdout_path).expect("Cannot log file");
+    let stderr_file = File::create(&stderr_path).expect("Cannot log file");
+
     cmd.env("KERNEL_ID", kernel_ctx.kernel_id.to_string())
         .env("KERNEL_CONNECT", format!("127.0.0.1:{}", kernel_port))
+        .stdout(Stdio::from(stdout_file))
+        .stderr(Stdio::from(stderr_file))
         .arg("-m")
         .arg("twinsong.driver")
         .kill_on_drop(true);
-    tracing::debug!("Spawning new kernel {:?}", &cmd);
+    tracing::debug!("Spawning new kernel command {:?}", &cmd);
     let child = cmd.spawn()?;
     let pid = child.id().unwrap_or(0);
     let (sender, receiver) = oneshot::channel();
