@@ -43,6 +43,11 @@ enum TypeCollection<'a> {
     Many,
 }
 
+struct BuildCtx<'a> {
+    serialized: HashSet<JsonObjectId>,
+    objects: HashMap<JsonObjectId, JsonObject<'a>>,
+}
+
 impl<'a> TypeCollection<'a> {
     pub fn add(&mut self, name: &'a Cow<'a, str>) {
         match self {
@@ -70,11 +75,14 @@ pub fn create_jobject_string(py: Python, obj: &Bound<PyAny>) -> serde_json::Resu
 }
 
 pub fn create_jobject_dump<'a>(py: Python, obj: &Bound<PyAny>) -> JsonObjectDump<'a> {
-    let mut values = HashMap::new();
-    let root = create_jobject_helper(&py, obj, &mut values);
+    let mut ctx = BuildCtx {
+        serialized: Default::default(),
+        objects: Default::default(),
+    };
+    let root = create_jobject_helper(&py, obj, &mut ctx);
 
     JsonObjectDump {
-        objects: values.into_values().collect(),
+        objects: ctx.objects.into_values().collect(),
         root,
     }
 }
@@ -112,40 +120,41 @@ fn find_collection_element_type<'a>(
     tc
 }
 
-fn create_list<'a>(
-    py: &Python,
-    obj: &Bound<PyList>,
-    values: &mut HashMap<JsonObjectId, JsonObject<'a>>,
-) -> JsonObject<'a> {
+fn create_list<'a>(py: &Python, obj: &Bound<PyList>, ctx: &mut BuildCtx<'a>) -> JsonObject<'a> {
+    use std::fmt::Write;
     let children: Vec<_> = obj
         .into_iter()
         .enumerate()
         .map(|(idx, child)| {
             (
                 idx.to_string().into(),
-                create_jobject_helper(py, &child, values),
+                create_jobject_helper(py, &child, ctx),
             )
         })
         .collect();
     let tc = find_collection_element_type(
         children
             .iter()
-            .map(|(_, id)| &values.get(id).unwrap().value_type),
+            .filter_map(|(_, id)| ctx.objects.get(id).map(|x| &x.value_type)),
     );
     let mut repr = "[".to_string();
     for (idx, (_, id)) in children.iter().enumerate() {
-        let child = &values.get(id).unwrap();
-        if repr.len() + child.repr.len() > 24 {
+        if let Some(child) = ctx.objects.get(id) {
+            if repr.len() + child.repr.len() > 24 {
+                repr.clear();
+                break;
+            }
+            if idx > 0 {
+                repr.push_str(", ");
+            }
+            repr.push_str(&child.repr);
+        } else {
             repr.clear();
             break;
         }
-        if idx > 0 {
-            repr.push_str(", ");
-        }
-        repr.push_str(&child.repr);
     }
     if repr.is_empty() {
-        repr = format!("{} items", PyListMethods::len(obj));
+        write!(&mut repr, "{} items", PyListMethods::len(obj)).unwrap();
     } else {
         repr.push(']');
     }
@@ -158,16 +167,13 @@ fn create_list<'a>(
     }
 }
 
-fn create_module<'a>(
-    py: &Python,
-    obj: &Bound<PyModule>,
-    values: &mut HashMap<JsonObjectId, JsonObject<'a>>,
-) -> JsonObject<'a> {
+fn create_module<'a>(py: &Python, obj: &Bound<PyModule>, ctx: &mut BuildCtx<'a>) -> JsonObject<'a> {
     let name = PyModuleMethods::name(obj);
     let dict = PyModuleMethods::dict(obj);
     let children = PyDictMethods::iter(&dict)
-        .map(|(k, v)| (k.to_string().into(), create_jobject_helper(py, &v, values)))
+        .map(|(k, v)| (k.to_string().into(), create_jobject_helper(py, &v, ctx)))
         .collect();
+    //let children = Vec::new();
     JsonObject {
         id: 0,
         repr: format!(
@@ -183,11 +189,7 @@ fn create_module<'a>(
     }
 }
 
-fn create_class<'a>(
-    _py: &Python,
-    obj: &Bound<PyType>,
-    _values: &mut HashMap<JsonObjectId, JsonObject<'a>>,
-) -> JsonObject<'a> {
+fn create_class<'a>(_py: &Python, obj: &Bound<PyType>, ctx: &BuildCtx<'a>) -> JsonObject<'a> {
     let name = PyTypeMethods::name(obj);
     let children = Vec::new();
     JsonObject {
@@ -208,12 +210,13 @@ fn create_class<'a>(
 fn create_jobject_helper<'a>(
     py: &Python,
     obj: &Bound<PyAny>,
-    values: &mut HashMap<JsonObjectId, JsonObject<'a>>,
+    ctx: &mut BuildCtx<'a>,
 ) -> JsonObjectId {
     let id = obj.as_ptr() as u64;
-    if values.contains_key(&id) {
+    if ctx.serialized.contains(&id) {
         return id;
     }
+    ctx.serialized.insert(id);
     let mut value = if obj.is_none() {
         simple_value("None".into(), "".into(), "null")
     } else if let Ok(obj) = obj.downcast_exact::<PyInt>() {
@@ -227,17 +230,17 @@ fn create_jobject_helper<'a>(
             "string",
         )
     } else if let Ok(obj) = obj.downcast_exact::<PyList>() {
-        create_list(py, obj, values)
+        create_list(py, obj, ctx)
     } else if let Ok(obj) = obj.downcast_exact::<PyType>() {
-        create_class(py, obj, values)
+        create_class(py, obj, ctx)
     } else if let Ok(obj) = obj.downcast_exact::<PyModule>() {
-        create_module(py, obj, values)
+        create_module(py, obj, ctx)
     } else {
         let value_type = string_value(obj.get_type().qualname());
         let repr = string_value(obj.repr());
         simple_value(repr.into(), value_type.into(), "")
     };
     value.id = id;
-    values.insert(id, value);
+    ctx.objects.insert(id, value);
     id
 }

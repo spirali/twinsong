@@ -9,12 +9,12 @@ def test_execute_command(client):
     k = client.create_new_kernel(r["notebook"]["id"])
     assert "3" == k.run_code_simple("1 + 2")
     assert [
-               {"type": "Text", "value": "Hello"},
-               {"type": "Text", "value": "\n"},
-               {"type": "Text", "value": "World"},
-               {"type": "Text", "value": "\n"},
-               {"type": "None"},
-           ] == k.run_code("print('Hello')\nprint('World')")
+        {"type": "Text", "value": "Hello"},
+        {"type": "Text", "value": "\n"},
+        {"type": "Text", "value": "World"},
+        {"type": "Text", "value": "\n"},
+        {"type": "None"},
+    ] == k.run_code("print('Hello')\nprint('World')")
 
 
 def test_save_notebook_plain(client):
@@ -152,11 +152,13 @@ def test_close_run(client):
     for kernel in klist:
         assert psutil.pid_exists(kernel["pid"])
 
-    client.send_message({
-        "type": "CloseRun",
-        "notebook_id": notebook_id,
-        "run_id": k1.run_id,
-    })
+    client.send_message(
+        {
+            "type": "CloseRun",
+            "notebook_id": notebook_id,
+            "run_id": k1.run_id,
+        }
+    )
     time.sleep(1)
     r = client.load_notebook(path)
     assert len(r["notebook"]["runs"]) == 1
