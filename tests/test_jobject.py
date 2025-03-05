@@ -44,6 +44,17 @@ def test_jobject():
         ],
     }
 
+    assert build_obj({"a": 1, "b": 2, "c": 9}) == {
+        "repr": "{'a': 1, 'b': 2, 'c': 9}",
+        "value_type": "dict[str, int]",
+        "kind": "dict",
+        "children": [
+            ("a", {"repr": "1", "value_type": "int", "kind": "number"}),
+            ("b", {"repr": "2", "value_type": "int", "kind": "number"}),
+            ("c", {"repr": "9", "value_type": "int", "kind": "number"}),
+        ],
+    }
+
     r = build_obj(FooBar())
     assert "FooBar" in r["repr"]
     del r["repr"]
