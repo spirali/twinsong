@@ -7,6 +7,7 @@ use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 
 use serde::Serialize;
+use uuid::Bytes;
 
 pub type JsonObjectId = u64;
 
@@ -49,7 +50,7 @@ struct BuildCtx<'a> {
 }
 
 impl<'a> TypeCollection<'a> {
-    pub fn add(&mut self, name: &'a Cow<'a, str>) {
+    pub fn add<'b>(&mut self, name: &'b Cow<'a, str>) {
         match self {
             TypeCollection::Unknown => *self = TypeCollection::Unique(name.clone()),
             TypeCollection::Unique(t) if t.as_ref() == name.as_ref() => { /* Do nothing */ }
@@ -57,16 +58,24 @@ impl<'a> TypeCollection<'a> {
             TypeCollection::Many => { /* Do nothing */ }
         }
     }
-
-    pub fn create_name<'b>(&self, name: &'b str) -> Cow<'b, str> {
-        match self {
-            TypeCollection::Unknown | TypeCollection::Many => name.into(),
-            TypeCollection::Unique(t) => format!("{name}[{}]", t.as_ref()).into(),
-        }
-    }
-
     pub fn is_many(&self) -> bool {
         matches!(self, TypeCollection::Many)
+    }
+}
+
+pub fn create_name_1<'b>(tc: TypeCollection, name: &'b str) -> Cow<'b, str> {
+    match tc {
+        TypeCollection::Unknown | TypeCollection::Many => name.into(),
+        TypeCollection::Unique(t) => format!("{name}[{}]", t.as_ref()).into(),
+    }
+}
+
+pub fn create_name_2<'b>(tc1: TypeCollection, tc2: TypeCollection, name: &'b str) -> Cow<'b, str> {
+    match (tc1, tc2) {
+        (TypeCollection::Unique(t1), TypeCollection::Unique(t2)) => {
+            format!("{name}[{}, {}]", t1.as_ref(), t2.as_ref()).into()
+        }
+        _ => name.into(),
     }
 }
 
@@ -120,8 +129,77 @@ fn find_collection_element_type<'a>(
     tc
 }
 
+fn find_children_element_type<'a>(
+    ctx: &'a BuildCtx<'a>,
+    children: &[(Cow<'a, str>, JsonObjectId)],
+) -> TypeCollection<'a> {
+    find_collection_element_type(
+        children
+            .iter()
+            .filter_map(|(_, id)| ctx.objects.get(id).map(|x| &x.value_type)),
+    )
+}
+
+const MAX_CONTAINER_REPR: usize = 24;
+
+fn container_repr(obj: &Bound<PyAny>, len: usize) -> String {
+    if len <= 10 {
+        if let Ok(r) = obj.repr() {
+            let cow = PyStringMethods::to_string_lossy(&r);
+            if cow.as_ref().len() <= MAX_CONTAINER_REPR {
+                return cow.to_string();
+            }
+        }
+    }
+    format!("{} items", len)
+}
+
+fn short_type(obj: &Bound<PyAny>) -> Cow<'static, str> {
+    if obj.is_none() {
+        "NoneType".into()
+    } else if let Ok(_) = obj.downcast_exact::<PyInt>() {
+        "int".into()
+    } else if let Ok(_) = obj.downcast_exact::<PyFloat>() {
+        "float".into()
+    } else if let Ok(_) = obj.downcast_exact::<PyString>() {
+        "str".into()
+    } else if let Ok(_) = obj.downcast_exact::<PyList>() {
+        "list".into()
+    } else if let Ok(_) = obj.downcast_exact::<PyDict>() {
+        "dict".into()
+    } else if let Ok(_) = obj.downcast_exact::<PyType>() {
+        "type".into()
+    } else {
+        obj.get_type().to_string().into()
+    }
+}
+
+fn create_dict<'a>(py: &Python, obj: &Bound<PyDict>, ctx: &mut BuildCtx<'a>) -> JsonObject<'a> {
+    let mut tc1 = TypeCollection::Unknown;
+    let children: Vec<_> = obj
+        .into_iter()
+        .map(|(slot, child)| {
+            if !tc1.is_many() {
+                tc1.add(&short_type(&slot));
+            }
+            (
+                slot.to_string().into(),
+                create_jobject_helper(py, &child, ctx),
+            )
+        })
+        .collect();
+    let repr = container_repr(obj, PyDictMethods::len(obj));
+    let tc2 = find_children_element_type(ctx, &children);
+    JsonObject {
+        id: 0,
+        repr: repr.into(),
+        value_type: create_name_2(tc1, tc2, "dict"),
+        kind: "dict",
+        children,
+    }
+}
+
 fn create_list<'a>(py: &Python, obj: &Bound<PyList>, ctx: &mut BuildCtx<'a>) -> JsonObject<'a> {
-    use std::fmt::Write;
     let children: Vec<_> = obj
         .into_iter()
         .enumerate()
@@ -132,36 +210,16 @@ fn create_list<'a>(py: &Python, obj: &Bound<PyList>, ctx: &mut BuildCtx<'a>) -> 
             )
         })
         .collect();
+    let repr = container_repr(obj, PyListMethods::len(obj));
     let tc = find_collection_element_type(
         children
             .iter()
             .filter_map(|(_, id)| ctx.objects.get(id).map(|x| &x.value_type)),
     );
-    let mut repr = "[".to_string();
-    for (idx, (_, id)) in children.iter().enumerate() {
-        if let Some(child) = ctx.objects.get(id) {
-            if repr.len() + child.repr.len() > 24 {
-                repr.clear();
-                break;
-            }
-            if idx > 0 {
-                repr.push_str(", ");
-            }
-            repr.push_str(&child.repr);
-        } else {
-            repr.clear();
-            break;
-        }
-    }
-    if repr.is_empty() {
-        write!(&mut repr, "{} items", PyListMethods::len(obj)).unwrap();
-    } else {
-        repr.push(']');
-    }
     JsonObject {
         id: 0,
         repr: repr.into(),
-        value_type: tc.create_name("list"),
+        value_type: create_name_1(tc, "list"),
         kind: "list",
         children,
     }
@@ -231,6 +289,8 @@ fn create_jobject_helper<'a>(
         )
     } else if let Ok(obj) = obj.downcast_exact::<PyList>() {
         create_list(py, obj, ctx)
+    } else if let Ok(obj) = obj.downcast_exact::<PyDict>() {
+        create_dict(py, obj, ctx)
     } else if let Ok(obj) = obj.downcast_exact::<PyType>() {
         create_class(py, obj, ctx)
     } else if let Ok(obj) = obj.downcast_exact::<PyModule>() {
