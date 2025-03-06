@@ -169,7 +169,7 @@ export function stateReducer(state: State, action: StateAction): State {
     case "add_notebook": {
       const path = action.notebook.path;
       const runs = action.notebook.runs.map((r) => {
-        const globals = extractGlobals(r.globals);
+        const globals = extractGlobals(r.globals, []);
         return {
           ...r,
           globals,
@@ -328,7 +328,7 @@ export function stateReducer(state: State, action: StateAction): State {
             });
             let globals = r.globals;
             if (action.globals) {
-              globals = extractGlobals(action.globals);
+              globals = extractGlobals(action.globals, r.globals);
             }
             return { ...r, globals, output_cells } as Run;
           } else {

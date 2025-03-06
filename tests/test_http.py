@@ -3,6 +3,8 @@ import toml
 import psutil
 import time
 
+from utils import build_jobject_from_text
+
 
 def test_execute_command(client):
     r = client.create_new_notebook()
@@ -15,6 +17,29 @@ def test_execute_command(client):
                {"type": "Text", "value": "\n"},
                {"type": "None"},
            ] == k.run_code("print('Hello')\nprint('World')")
+
+
+def test_globals_update(client):
+    r = client.create_new_notebook()
+    k = client.create_new_kernel(r["notebook"]["id"])
+    k.run_code("x = 2")
+    assert len(k.last_globals) == 1
+    x = build_jobject_from_text(k.last_globals["x"])
+    assert x == {'kind': 'number', 'repr': '2', 'value_type': 'int'}
+
+    k.run_code("x = 3\ny = 4")
+    print(k.last_globals)
+    assert len(k.last_globals) == 2
+    x = build_jobject_from_text(k.last_globals["x"])
+    assert x == {'kind': 'number', 'repr': '3', 'value_type': 'int'}
+    x = build_jobject_from_text(k.last_globals["y"])
+    assert x == {'kind': 'number', 'repr': '4', 'value_type': 'int'}
+
+    k.run_code("x = 5")
+    assert len(k.last_globals) == 2
+    x = build_jobject_from_text(k.last_globals["x"])
+    assert x == {'kind': 'number', 'repr': '5', 'value_type': 'int'}
+    assert k.last_globals["y"] is None
 
 
 def test_save_notebook_plain(client):

@@ -1,7 +1,7 @@
 use crate::control::start_control_process;
 use crate::jobject::create_jobject_string;
 use crate::stdio::RedirectedStdio;
-use comm::messages::{ComputeMsg, Exception, FromKernelMessage, KernelOutputValue, OutputFlag};
+use comm::messages::{ComputeMsg, Exception, KernelOutputValue, OutputFlag};
 use pyo3::types::PyStringMethods;
 use pyo3::types::{PyAnyMethods, PyTracebackMethods};
 use pyo3::{Bound, PyAny, PyErr, PyResult, Python};
@@ -9,6 +9,19 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::runtime::Builder;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use uuid::Uuid;
+
+pub type Globals = HashMap<String, Arc<String>>;
+
+#[derive(Debug)]
+pub enum FromExecutorMessage {
+    Output {
+        value: KernelOutputValue,
+        cell_id: Uuid,
+        flag: OutputFlag,
+        globals: Option<Globals>,
+    },
+}
 
 pub fn start_executor() {
     let (o_sender, c_receiver) = start_control_process();
@@ -72,7 +85,7 @@ fn create_traceback(py: &Python, e: PyErr) -> PyResult<Exception> {
     })
 }
 
-fn get_globals(py: Python) -> Vec<(String, Option<Arc<String>>)> {
+fn get_globals(py: Python) -> Globals {
     let run_module = py.import("twinsong.driver.run").unwrap();
     let variables: HashMap<String, Bound<'_, PyAny>> =
         run_module.getattr("VARIABLES").unwrap().extract().unwrap();
@@ -80,7 +93,7 @@ fn get_globals(py: Python) -> Vec<(String, Option<Arc<String>>)> {
         .into_iter()
         .filter_map(|(k, v)| {
             if k != "__builtins__" {
-                Some((k, Some(Arc::new(create_jobject_string(py, &v).unwrap()))))
+                Some((k, Arc::new(create_jobject_string(py, &v).unwrap())))
             } else {
                 None
             }
@@ -89,7 +102,7 @@ fn get_globals(py: Python) -> Vec<(String, Option<Arc<String>>)> {
 }
 
 async fn executor_main(
-    o_sender: UnboundedSender<FromKernelMessage>,
+    o_sender: UnboundedSender<FromExecutorMessage>,
     mut c_receiver: UnboundedReceiver<ComputeMsg>,
 ) -> anyhow::Result<()> {
     while let Some(msg) = c_receiver.recv().await {
@@ -97,13 +110,13 @@ async fn executor_main(
         let stdout = RedirectedStdio::new(o_sender.clone(), msg.cell_id);
 
         let out_msg = Python::with_gil(|py| match run_code(&py, &msg.code, stdout) {
-            Ok(output) => FromKernelMessage::Output {
+            Ok(output) => FromExecutorMessage::Output {
                 value: output,
                 cell_id: msg.cell_id,
                 flag: OutputFlag::Success,
                 globals: Some(get_globals(py)),
             },
-            Err(e) => FromKernelMessage::Output {
+            Err(e) => FromExecutorMessage::Output {
                 value: KernelOutputValue::Exception {
                     value: create_traceback(&py, e).unwrap(),
                 },

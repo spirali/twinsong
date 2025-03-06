@@ -65,6 +65,7 @@ class Kernel:
         self.run_id = run_id
         self.last_cell_id = None
         self.last_editor_cell = None
+        self.last_globals = None
 
     def run_code(self, code):
         cell_id = str(uuid.uuid4())
@@ -84,6 +85,8 @@ class Kernel:
         while True:
             r = self.client.receive_message()
             print(">>>", r)
+            if r["globals"]:
+                self.last_globals = dict(r["globals"])
             self.last_cell_id = r["cell_id"]
             assert r["type"] == "Output"
             outputs.append(r["value"])
