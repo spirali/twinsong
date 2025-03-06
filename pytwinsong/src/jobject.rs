@@ -345,7 +345,17 @@ fn create_jobject_helper<'a>(
     } else {
         let value_type = string_value(obj.get_type().qualname());
         let repr = string_value(obj.repr());
-        simple_value(repr, value_type.into(), "")
+        let kind = if let Ok(true) = py
+            .import("builtins")
+            .and_then(|m| m.getattr("callable"))
+            .and_then(|f| f.call1((obj,)))
+            .and_then(|r| r.is_truthy())
+        {
+            "callable"
+        } else {
+            ""
+        };
+        simple_value(repr, value_type.into(), kind)
     };
     value.id = id;
     ctx.objects.insert(id, value);

@@ -145,6 +145,15 @@ def test_jobject_opaque():
     assert r == {"value_type": "FooBar"}
 
 
+def test_jobject_callable():
+    def f(x=10):
+        pass
+
+    r = build_obj(f)
+    assert "f at" in r.pop("repr")
+    assert r == {"value_type": "function", "kind": "callable"}
+
+
 def test_jobject_dataclass():
     p = Person("John", 25, ["Foo", "Bar"])
     r = build_obj(p)
