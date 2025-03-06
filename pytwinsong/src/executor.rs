@@ -6,7 +6,6 @@ use pyo3::types::PyStringMethods;
 use pyo3::types::{PyAnyMethods, PyTracebackMethods};
 use pyo3::{Bound, PyAny, PyErr, PyResult, Python};
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::sync::Arc;
 use tokio::runtime::Builder;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};

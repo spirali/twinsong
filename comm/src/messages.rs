@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::rc::Rc;
 use std::sync::Arc;
 use uuid::Uuid;
 

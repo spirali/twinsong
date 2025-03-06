@@ -151,9 +151,6 @@ impl Run {
             globals: Globals::default(),
         }
     }
-    pub fn globals(&self) -> &Globals {
-        &self.globals
-    }
     pub fn set_crashed_kernel(&mut self, message: String) {
         self.kernel = KernelState::Crashed(message)
     }
