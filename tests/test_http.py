@@ -9,12 +9,12 @@ def test_execute_command(client):
     k = client.create_new_kernel(r["notebook"]["id"])
     assert "3" == k.run_code_simple("1 + 2")
     assert [
-        {"type": "Text", "value": "Hello"},
-        {"type": "Text", "value": "\n"},
-        {"type": "Text", "value": "World"},
-        {"type": "Text", "value": "\n"},
-        {"type": "None"},
-    ] == k.run_code("print('Hello')\nprint('World')")
+               {"type": "Text", "value": "Hello"},
+               {"type": "Text", "value": "\n"},
+               {"type": "Text", "value": "World"},
+               {"type": "Text", "value": "\n"},
+               {"type": "None"},
+           ] == k.run_code("print('Hello')\nprint('World')")
 
 
 def test_save_notebook_plain(client):
@@ -141,7 +141,7 @@ def test_close_run(client):
     notebook_id = r["notebook"]["id"]
     path = r["notebook"]["path"]
     k1 = client.create_new_kernel(r["notebook"]["id"])
-    k2 = client.create_new_kernel(r["notebook"]["id"])
+    client.create_new_kernel(r["notebook"]["id"])
 
     r = client.load_notebook(path)
     assert len(r["notebook"]["runs"]) == 2

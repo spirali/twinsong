@@ -18,6 +18,9 @@ import {
   MoveLeft,
   Square,
   Copyright,
+  Parentheses,
+  Braces,
+  Cog,
 } from "lucide-react";
 import { JsonObjectId, JsonObjectStruct } from "../core/jobject";
 
@@ -51,16 +54,28 @@ const ObjectTreeNode: React.FC<{
     if (object.kind === "list") {
       return <Brackets className="text-blue-500" size={16} />;
     }
+    if (object.kind === "tuple") {
+      return <Parentheses className="text-blue-500" size={16} />;
+    }
+    if (object.kind === "dict") {
+      return <Braces className="text-blue-500" size={16} />;
+    }
     if (object.kind === "class") {
       return <Copyright className="text-blue-600" size={16} />;
+    }
+    if (object.kind === "dataclass") {
+      return <Box className="text-blue-600" size={16} />;
     }
     if (object.kind === "module") {
       return <Box className="text-purple-600" size={16} />;
     }
+    if (object.kind === "callable") {
+      return <Cog className="text-purple-600" size={16} />;
+    }
     if (object.kind?.length ?? 0 > 0) {
       return <CircleSmall className="text-blue-500" size={16} />;
     }
-    return <Square className="text-gray-600" size={16} />;
+    return <Square className="text-blue-600" size={16} />;
     /*if (isRoot) {
       return <Globe className="text-purple-600" size={16} />;
     }
