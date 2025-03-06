@@ -1,8 +1,11 @@
+use crate::executor::FromExecutorMessage;
 use anyhow::anyhow;
 use comm::messages::{ComputeMsg, FromKernelMessage, ToKernelMessage};
 use comm::{make_protocol_builder, parse_to_kernel_message, serialize_from_kernel_message, Codec};
 use futures_util::stream::{SplitSink, SplitStream, StreamExt};
 use futures_util::SinkExt;
+use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio::runtime::Builder;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
@@ -10,7 +13,7 @@ use tokio_util::bytes::Bytes;
 use uuid::Uuid;
 
 pub fn start_control_process() -> (
-    UnboundedSender<FromKernelMessage>,
+    UnboundedSender<FromExecutorMessage>,
     UnboundedReceiver<ComputeMsg>,
 ) {
     let (c_sender, c_receiver) = unbounded_channel();
@@ -31,7 +34,7 @@ pub fn start_control_process() -> (
 
 async fn controller_main(
     c_sender: UnboundedSender<ComputeMsg>,
-    o_receiver: UnboundedReceiver<FromKernelMessage>,
+    o_receiver: UnboundedReceiver<FromExecutorMessage>,
 ) -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
     let addr = std::env::var("KERNEL_CONNECT")
@@ -57,10 +60,49 @@ async fn controller_main(
 
 async fn forward_sender(
     mut sender: SplitSink<Codec, Bytes>,
-    mut o_receiver: UnboundedReceiver<FromKernelMessage>,
+    mut o_receiver: UnboundedReceiver<FromExecutorMessage>,
 ) -> anyhow::Result<()> {
+    let mut last_globals: HashMap<String, Arc<String>> = HashMap::new();
     while let Some(msg) = o_receiver.recv().await {
-        let msg = serialize_from_kernel_message(msg)?;
+        let out_msg = match msg {
+            FromExecutorMessage::Output {
+                value,
+                cell_id,
+                flag,
+                globals,
+            } => {
+                dbg!(&last_globals);
+                let globals = if let Some(new_globals) = globals {
+                    let g = new_globals
+                        .iter()
+                        .map(|(name, value)| {
+                            (
+                                name.clone(),
+                                if let Some(true) =
+                                    last_globals.get(name).map(|v| v.as_str() == value.as_str())
+                                {
+                                    None
+                                } else {
+                                    Some(value.clone())
+                                },
+                            )
+                        })
+                        .collect();
+                    last_globals = new_globals;
+                    Some(g)
+                } else {
+                    None
+                };
+                dbg!(&globals);
+                FromKernelMessage::Output {
+                    value,
+                    cell_id,
+                    flag,
+                    globals,
+                }
+            }
+        };
+        let msg = serialize_from_kernel_message(out_msg)?;
         sender.send(msg.into()).await?
     }
     Ok(())

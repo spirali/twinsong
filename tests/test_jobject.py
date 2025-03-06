@@ -1,22 +1,6 @@
-from twinsong.twinsong import create_jobject
 from dataclasses import dataclass
-import json
 
-
-def make_jobject(obj):
-    return json.loads(create_jobject(obj))
-
-
-def build_obj(obj):
-    jobject = make_jobject(obj)
-    objects = {v["id"]: v for v in jobject["objects"]}
-    for v in objects.values():
-        del v["id"]
-        if "children" in v:
-            v["children"] = [(k, objects[v]) for k, v in v["children"]]
-    root = objects[jobject["root"]]
-    print(json.dumps(root, indent=4))
-    return root
+from utils import build_obj, build_raw_obj
 
 
 class FooBar:
@@ -78,7 +62,8 @@ def test_jobject_tuple():
     assert build_obj((1, 2, 3)) == {
         "repr": "(1, 2, 3)",
         "value_type": "tuple[int]",
-        "kind": "list",
+        "kindst"
+        "": "tuple",
         "children": [
             ("0", {"repr": "1", "value_type": "int", "kind": "number"}),
             ("1", {"repr": "2", "value_type": "int", "kind": "number"}),
@@ -90,7 +75,7 @@ def test_jobject_tuple():
 def test_jobject_recursive():
     x = []
     x.append(x)
-    r = make_jobject(x)
+    r = build_raw_obj(x)
     root = r["root"]
     assert r == {
         "root": root,
@@ -160,21 +145,21 @@ def test_jobject_dataclass():
     assert r == {
         "repr": "3 items",
         "value_type": "Person",
-        "kind": "dataobj",
+        "kind": "dataclass",
         "children": [
-            ["name", {"repr": '"John"', "value_type": "str", "kind": "string"}],
-            ["age", {"repr": "25", "value_type": "int", "kind": "number"}],
-            [
+            ("name", {"repr": '"John"', "value_type": "str", "kind": "string"}),
+            ("age", {"repr": "25", "value_type": "int", "kind": "number"}),
+            (
                 "pets",
                 {
                     "repr": "['Foo', 'Bar']",
                     "value_type": "list[str]",
                     "kind": "list",
                     "children": [
-                        ["0", {"repr": '"Foo"', "value_type": "str", "kind": "string"}],
-                        ["1", {"repr": '"Bar"', "value_type": "str", "kind": "string"}],
+                        ("0", {"repr": '"Foo"', "value_type": "str", "kind": "string"}),
+                        ("1", {"repr": '"Bar"', "value_type": "str", "kind": "string"}),
                     ],
                 },
-            ],
+            ),
         ],
     }

@@ -31,11 +31,18 @@ export function parseJsonObjectStruct(data: string): JsonObjectStruct {
 }
 
 export function extractGlobals(
-  globals_data: [string, string][],
+  globals_data: [string, string | null][],
+  old_globals: [string, JsonObjectStruct][]
 ): [string, JsonObjectStruct][] {
   const globals = globals_data.map(
     ([name, data]) =>
-      [name, parseJsonObjectStruct(data)] as [string, JsonObjectStruct],
+    {
+      if (data === null) {
+          return old_globals.find(x => x[0] == name)!;
+      } else {
+          return [name, parseJsonObjectStruct(data)] as [string, JsonObjectStruct];
+      }
+    }
   );
   globals.sort((a, b) => {
     const [a_name, a_struct] = a;
