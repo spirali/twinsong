@@ -10,10 +10,9 @@ use futures_util::stream::{SplitSink, SplitStream, StreamExt};
 use futures_util::SinkExt;
 use std::env::temp_dir;
 use std::fs::File;
-use std::io::stderr;
 use std::process::Stdio;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::process::{Child, Command};
+use tokio::process::Child;
 use tokio::spawn;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tokio::sync::oneshot;
@@ -112,8 +111,8 @@ pub fn spawn_kernel(
 ) -> anyhow::Result<KernelHandle> {
     let program = which::which("python")?;
     let mut cmd = tokio::process::Command::new(program);
-    let stdout_path = temp_dir().join(format!("kernel.out"));
-    let stderr_path = temp_dir().join(format!("kernel.err"));
+    let stdout_path = temp_dir().join("kernel.out");
+    let stderr_path = temp_dir().join("kernel.err");
     let stdout_file = File::create(&stdout_path).expect("Cannot log file");
     let stderr_file = File::create(&stderr_path).expect("Cannot log file");
 

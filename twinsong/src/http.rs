@@ -12,7 +12,6 @@ use axum::http::header;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{any, get};
 use axum::Router;
-use comm::serialize_to_kernel_message;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::SinkExt;
 use futures_util::StreamExt;

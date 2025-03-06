@@ -1,4 +1,5 @@
 from twinsong.twinsong import create_jobject
+from dataclasses import dataclass
 import json
 
 
@@ -20,6 +21,13 @@ def build_obj(obj):
 
 class FooBar:
     pass
+
+
+@dataclass
+class Person:
+    name: str
+    age: int
+    pets: list[str]
 
 
 def test_jobject_basic():
@@ -51,7 +59,7 @@ def test_jobject_list():
         "kind": "list",
         "children": [
             ("0", {"repr": "1", "value_type": "int", "kind": "number"}),
-            ("1", {"repr": "\"a\"", "value_type": "str", "kind": "string"}),
+            ("1", {"repr": '"a"', "value_type": "str", "kind": "string"}),
             ("2", {"repr": "3", "value_type": "int", "kind": "number"}),
         ],
     }
@@ -60,7 +68,8 @@ def test_jobject_list():
         "value_type": "list[str]",
         "kind": "list",
         "children": [
-            (str(i), {"repr": "\"f\"", "value_type": "str", "kind": "string"}) for i in range(30)
+            (str(i), {"repr": '"f"', "value_type": "str", "kind": "string"})
+            for i in range(30)
         ],
     }
 
@@ -113,9 +122,9 @@ def test_jobject_dict():
         "value_type": "dict[int, str]",
         "kind": "dict",
         "children": [
-            ("1", {"repr": "\"a\"", "value_type": "str", "kind": "string"}),
-            ("2", {"repr": "\"b\"", "value_type": "str", "kind": "string"}),
-            ("9", {"repr": "\"c\"", "value_type": "str", "kind": "string"}),
+            ("1", {"repr": '"a"', "value_type": "str", "kind": "string"}),
+            ("2", {"repr": '"b"', "value_type": "str", "kind": "string"}),
+            ("9", {"repr": '"c"', "value_type": "str", "kind": "string"}),
         ],
     }
     assert build_obj({i: f"f{i}" for i in range(15)}) == {
@@ -123,7 +132,7 @@ def test_jobject_dict():
         "value_type": "dict[int, str]",
         "kind": "dict",
         "children": [
-            (str(i), {"repr": f"\"f{i}\"", "value_type": "str", "kind": "string"})
+            (str(i), {"repr": f'"f{i}"', "value_type": "str", "kind": "string"})
             for i in range(15)
         ],
     }
@@ -134,3 +143,29 @@ def test_jobject_opaque():
     assert "FooBar" in r["repr"]
     del r["repr"]
     assert r == {"value_type": "FooBar"}
+
+
+def test_jobject_dataclass():
+    p = Person("John", 25, ["Foo", "Bar"])
+    r = build_obj(p)
+    assert r == {
+        "repr": "3 items",
+        "value_type": "Person",
+        "kind": "dataobj",
+        "children": [
+            ["name", {"repr": '"John"', "value_type": "str", "kind": "string"}],
+            ["age", {"repr": "25", "value_type": "int", "kind": "number"}],
+            [
+                "pets",
+                {
+                    "repr": "['Foo', 'Bar']",
+                    "value_type": "list[str]",
+                    "kind": "list",
+                    "children": [
+                        ["0", {"repr": '"Foo"', "value_type": "str", "kind": "string"}],
+                        ["1", {"repr": '"Bar"', "value_type": "str", "kind": "string"}],
+                    ],
+                },
+            ],
+        ],
+    }
