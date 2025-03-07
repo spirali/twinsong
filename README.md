@@ -4,15 +4,20 @@
 
 # TwinSong
 
-TwinSong is an alternative to Jupyter Notebook that separates code and outputs for a cleaner and more efficient workflow.
+Twinsong is an alternative to Jupyter notebooks. It reimagines interactive programming by moving away from the linear "document-style" execution of Jupyter notebooks. Twinsong provides a flexible coding environment where code and outputs are separated. Twinsong also enables better memory state inspection and multi-kernel execution over the same notebook.
 
 <p align="center">
-<img width="80%" src="docs/screenshot.png">
+<img width="80%" src="docs/imgs/screenshot1.png">
+</p>
+
+<p align="center">
+<img width="80%" src="docs/imgs/screenshot2.png">
 </p>
 
 ## Features
 
 - **Compact Code** – Code remains uncluttered as outputs are displayed separately.
+- **Memory State Inspection – Gain insights into variable states and execution history.
 - **Preserved Results** – Re-evaluating a cell does not overwrite previous results. TwinSong tracks the code that generated past outputs.
 - **Multiple Kernel Instances** – The separation of code and outputs allows multiple kernel instances to run over the same code at once.
 - **Rust Backend** – The backend is written in Rust. Package is statically linked, no dependencies needed.
@@ -69,17 +74,18 @@ cargo build --release --package twinsong
 * ~~Cell evaluation~~ (released)
 * ~~Stdout streaming~~ (released)
     * stderr streaming
-* ~~Loading/Saving notebook~~ (main branch)
+* ~~Loading/Saving notebook~~ (dev)
     * autosave
     * directory changing
-* Object inspection
+* ~~Object inspection~~ (dev)
+*   * ``ts.log``
 * Stopping kernels & cell evaluations
-* Closing runs & notebooks
+* ~~Closing runs~~ (dev) & notebooks
 * Automatical code reloading
 * Modal code editor (?)
 * More keyboard shortcuts
 * Making sure that important packages are running with nice outputs:
-    * ~~pandas~~
+    * ~~pandas~~ (released)
     * tqdm
     * plotly
 
