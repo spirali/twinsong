@@ -94,6 +94,8 @@ def test_save_notebook_plain(client):
     assert r == {"type": "SaveCompleted", "error": None, "notebook_id": notebook_id}
     with open(path) as f:
         data = toml.loads(f.read())
+    for run in data["runs"]:
+        del run["globals"]
     assert data == {
         "version": "twinsong 0.0.1",
         "editor_cells": editor_cells,
@@ -112,6 +114,8 @@ def test_save_notebook_plain(client):
         ],
     }
     r = client.load_notebook("copy.tsnb")
+    for run in r["notebook"]["runs"]:
+        del run["globals"]
     assert r == {
         "type": "NewNotebook",
         "notebook": {
@@ -122,9 +126,13 @@ def test_save_notebook_plain(client):
         },
     }
     r2 = client.load_notebook("copy.tsnb")
+    for run in r2["notebook"]["runs"]:
+        del run["globals"]
     assert r == r2
     with open("copy.tsnb") as f:
         data2 = toml.loads(f.read())
+    for run in data2["runs"]:
+        del run["globals"]
     assert data == data2
     client.send_message({"type": "QueryDir"})
     r = client.receive_message(skip_async=False)

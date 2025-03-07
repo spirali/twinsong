@@ -62,7 +62,7 @@ def test_jobject_tuple():
     assert build_obj((1, 2, 3)) == {
         "repr": "(1, 2, 3)",
         "value_type": "tuple[int]",
-        "kindst": "tuple",
+        "kind": "tuple",
         "children": [
             ("0", {"repr": "1", "value_type": "int", "kind": "number"}),
             ("1", {"repr": "2", "value_type": "int", "kind": "number"}),

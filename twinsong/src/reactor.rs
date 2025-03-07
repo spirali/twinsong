@@ -4,7 +4,7 @@ use crate::client_messages::{
 };
 use crate::kernel::{spawn_kernel, KernelCtx};
 use crate::notebook::{
-    generate_new_notebook_path, KernelId, KernelState, Notebook, NotebookId, OutputCell,
+    generate_new_notebook_path, Globals, KernelId, KernelState, Notebook, NotebookId, OutputCell,
     OutputCellId, OutputValue, Run, RunId,
 };
 use crate::state::{AppState, AppStateRef};
@@ -53,6 +53,7 @@ pub(crate) fn start_kernel(
         run_title,
         Vec::new(),
         KernelState::Init(kernel_ctx.kernel_id),
+        Globals::default(),
     );
     notebook.add_run(run_id, run);
     match spawn_kernel(state_ref, kernel_ctx, kernel_port) {
