@@ -2,7 +2,7 @@ import { Dispatch } from "react";
 import {
   CellId,
   EditorCell,
-  Notebook,
+  NotebookDesc,
   NotebookId,
   OutputCellFlag,
   OutputValue,
@@ -10,17 +10,12 @@ import {
 } from "./notebook";
 import { DirEntry, StateAction } from "./state";
 import { NotificationType } from "../components/NotificationProvider";
-import {
-  extractGlobals,
-  JsonObjectStruct,
-  parseJsonObjectStruct,
-} from "./jobject";
 
 export type SendCommand = (message: FromClientMessage) => void;
 
 interface NewNotebookMsg {
   type: "NewNotebook";
-  notebook: Notebook;
+  notebook: NotebookDesc;
 }
 
 interface KernelReadyMsg {

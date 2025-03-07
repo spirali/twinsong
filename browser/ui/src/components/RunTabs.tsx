@@ -1,22 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useDispatch, useGlobalState } from "./StateProvider";
+import { useDispatch } from "./StateProvider";
 import RunView from "./RunView";
-import {
-  Ban,
-  Laptop,
-  ListTree,
-  MessageSquare,
-  Plus,
-  Square,
-  Terminal,
-  X,
-} from "lucide-react";
+import { Ban, ListTree, MessageSquare, Plus, Square, X } from "lucide-react";
 import { useSendCommand } from "./WsProvider";
 import { closeRun, newRun } from "../core/actions";
 import { Notebook, Run } from "../core/notebook";
 import Workspace from "./Workspace";
 import { StatusIndicator } from "./StatusIndicator";
-import { Menu, Pause, StopCircle, Play } from "lucide-react";
+import { Menu } from "lucide-react";
 
 const RunMenu = () => {
   const isComputing = false;
