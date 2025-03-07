@@ -143,12 +143,17 @@ pub(crate) struct Run {
 }
 
 impl Run {
-    pub fn new(title: String, output_cells: Vec<OutputCell>, kernel: KernelState) -> Self {
+    pub fn new(
+        title: String,
+        output_cells: Vec<OutputCell>,
+        kernel: KernelState,
+        globals: Globals,
+    ) -> Self {
         Run {
             title,
             output_cells,
             kernel,
-            globals: Globals::default(),
+            globals,
         }
     }
     pub fn set_crashed_kernel(&mut self, message: String) {
@@ -180,6 +185,10 @@ impl Run {
 
     pub fn update_globals(&mut self, update: GlobalsUpdate) {
         self.globals.update(update);
+    }
+
+    pub fn globals(&self) -> &Globals {
+        &self.globals
     }
 
     pub fn add_output(&mut self, cell_id: OutputCellId, value: OutputValue, flag: OutputFlag) {

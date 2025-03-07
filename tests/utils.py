@@ -18,7 +18,7 @@ def build_jobject_from_text(text_data):
 
 
 def build_raw_obj(obj):
-    json.loads(create_jobject(obj))
+    return json.loads(create_jobject(obj))
 
 
 def build_obj(obj):

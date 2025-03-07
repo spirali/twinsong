@@ -1,4 +1,4 @@
-use crate::notebook::{EditorCell, KernelState, Notebook, OutputCell, Run, RunId};
+use crate::notebook::{EditorCell, Globals, KernelState, Notebook, OutputCell, Run, RunId};
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -18,6 +18,7 @@ struct RunStore<'a> {
     title: &'a str,
     kernel_state: KernelStateStore,
     output_cells: &'a [OutputCell],
+    globals: &'a Globals,
 }
 
 #[derive(Debug, Serialize)]
@@ -33,6 +34,9 @@ struct RunLoad {
     title: String,
     output_cells: Vec<OutputCell>,
     kernel_state: KernelStateStore,
+
+    #[serde(default)]
+    globals: Globals,
 }
 
 #[derive(Debug, Deserialize)]
@@ -53,6 +57,7 @@ pub(crate) fn serialize_notebook(notebook: &Notebook) -> anyhow::Result<String> 
                 _ => KernelStateStore::Closed,
             },
             output_cells: run.output_cells(),
+            globals: run.globals(),
         })
         .collect();
     let s_notebook = NotebookStore {
@@ -82,6 +87,7 @@ pub(crate) fn deserialize_notebook(data: &str) -> anyhow::Result<Notebook> {
                         KernelStateStore::Closed => KernelState::Closed,
                         KernelStateStore::Crashed { message } => KernelState::Crashed(message),
                     },
+                    r.globals,
                 ),
             )
         })
