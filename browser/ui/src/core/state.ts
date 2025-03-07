@@ -1,9 +1,4 @@
-import { CurlyBraces } from "lucide-react";
-import {
-  extractGlobals,
-  JsonObjectStruct,
-  parseJsonObjectStruct,
-} from "./jobject";
+import { extractGlobals } from "./jobject";
 import {
   CellId,
   EditorCell,
@@ -37,7 +32,6 @@ interface FreshRunAction {
   notebook_id: NotebookId;
   run_id: RunId;
   run_title: string;
-  globals: [string, JsonObjectStruct][];
 }
 
 interface NewOutputCellAction {

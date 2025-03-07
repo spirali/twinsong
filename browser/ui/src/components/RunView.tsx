@@ -1,6 +1,5 @@
 import { Run } from "../core/notebook";
 import OutputCell from "./OutputCell";
-import { StatusIndicator } from "./StatusIndicator";
 
 const RunView: React.FC<{ run: Run }> = (props: { run: Run }) => {
   return (

@@ -1,5 +1,5 @@
 import React from "react";
-import { Loader2, CheckCircle, X, Circle } from "lucide-react";
+import { Loader2, X, Circle } from "lucide-react";
 import { KernelState } from "../core/notebook";
 
 interface StatusIndicatorProps {

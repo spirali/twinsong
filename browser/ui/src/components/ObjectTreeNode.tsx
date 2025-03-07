@@ -1,21 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   ChevronRight,
   ChevronDown,
-  Hash,
-  Type,
-  List,
   Box,
-  FileText,
-  BrainCircuit,
-  Code,
-  Globe,
-  Circle,
   CircleSmall,
   Brackets,
-  ArrowUpRightFromSquareIcon,
-  MoveRight,
-  MoveLeft,
   Square,
   Copyright,
   Parentheses,
