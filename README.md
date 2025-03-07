@@ -17,7 +17,7 @@ Twinsong is an alternative to Jupyter notebooks. It reimagines interactive progr
 ## Features
 
 - **Compact Code** – Code remains uncluttered as outputs are displayed separately.
-- **Memory State Inspection – Gain insights into variable states and execution history.
+- **Memory State Inspection** – Gain insights into variable states and execution history.
 - **Preserved Results** – Re-evaluating a cell does not overwrite previous results. TwinSong tracks the code that generated past outputs.
 - **Multiple Kernel Instances** – The separation of code and outputs allows multiple kernel instances to run over the same code at once.
 - **Rust Backend** – The backend is written in Rust. Package is statically linked, no dependencies needed.
