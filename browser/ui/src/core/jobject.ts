@@ -32,37 +32,39 @@ export function parseJsonObjectStruct(data: string): JsonObjectStruct {
 
 export function extractGlobals(
   globals_data: [string, string | null][],
-  old_globals: [string, JsonObjectStruct][]
+  old_globals: [string, JsonObjectStruct][],
 ): [string, JsonObjectStruct][] {
-  const globals = globals_data.map(
-    ([name, data]) =>
-    {
-      if (data === null) {
-          return old_globals.find(x => x[0] == name)!;
-      } else {
-          return [name, parseJsonObjectStruct(data)] as [string, JsonObjectStruct];
-      }
+  const globals = globals_data.map(([name, data]) => {
+    if (data === null) {
+      return old_globals.find((x) => x[0] == name)!;
+    } else {
+      return [name, parseJsonObjectStruct(data)] as [string, JsonObjectStruct];
     }
-  );
+  });
   globals.sort((a, b) => {
     const [a_name, a_struct] = a;
     const [b_name, b_struct] = b;
     const a_kind = a_struct.objects.get(a_struct.root)?.kind;
     const b_kind = b_struct.objects.get(b_struct.root)?.kind;
-    if (a_kind === "module" && b_kind !== "module") {
-      return -1;
+    for (const kind of ["module", "class", "callable"]) {
+      if (a_kind === kind && b_kind !== kind) {
+        return -1;
+      }
+      if (a_kind !== kind && b_kind === kind) {
+        return 1;
+      }
     }
-    if (a_kind !== "module" && b_kind === "module") {
-      return 1;
-    }
-    if (a_kind === "class" && b_kind !== "class") {
-      return -1;
-    }
-    if (a_kind !== "class" && b_kind === "class") {
-      return 1;
-    }
+    const minLength = Math.min(a_name.length, b_name.length);
 
-    return a_name.localeCompare(b_name);
+    for (let i = 0; i < minLength; i++) {
+      const charA = a_name.charCodeAt(i);
+      const charB = b_name.charCodeAt(i);
+
+      if (charA !== charB) {
+        return charA - charB;
+      }
+    }
+    return a_name.length - b_name.length;
   });
   return globals;
 }
