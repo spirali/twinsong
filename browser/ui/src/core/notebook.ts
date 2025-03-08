@@ -2,7 +2,7 @@ import { JsonObjectStruct } from "./jobject";
 
 export type RunId = string;
 export type NotebookId = number;
-export type CellId = string;
+export type EditorNodeId = string;
 
 export type KernelState =
   | { type: "Crashed"; message: string }
@@ -13,9 +13,20 @@ export type KernelState =
 export type OutputCellFlag = "Pending" | "Running" | "Success" | "Fail";
 
 export interface EditorCell {
-  id: CellId;
+  type: "Cell";
+  id: EditorNodeId;
   value: string;
 }
+
+export interface EditorNamedNode {
+  type: "Node";
+  id: EditorNodeId;
+  name: string;
+  children: EditorNode[];
+  open?: boolean;
+}
+
+export type EditorNode = EditorNamedNode | EditorCell;
 
 export interface TextOutputValue {
   type: "Text";
@@ -42,7 +53,7 @@ export type OutputValue =
   | { type: "None" };
 
 export interface OutputCell {
-  id: CellId;
+  id: EditorNodeId;
   values: OutputValue[];
   flag: OutputCellFlag;
   editor_cell: EditorCell;
@@ -63,17 +74,17 @@ export interface Run {
 export interface Notebook {
   id: NotebookId;
   path: string;
-  editor_cells: EditorCell[];
+  editor_root: EditorNamedNode;
   runs: Run[];
   waiting_for_fresh: EditorCell[];
   current_run_id: RunId | null;
-  selected_editor_cell_id: CellId | null;
+  selected_editor_cell_id: EditorNodeId | null;
   save_in_progress: boolean;
 }
 
 export interface NotebookDesc {
   id: NotebookId;
-  editor_cells: EditorCell[];
+  editor_root: EditorNamedNode;
   runs: RunDesc[];
   path: string;
 }

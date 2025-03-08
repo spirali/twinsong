@@ -13,6 +13,21 @@ use tokio::sync::mpsc::UnboundedSender;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub(crate) enum EditorNode {
+    Node(EditorNamedNode),
+    Cell(EditorCell),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub(crate) struct EditorNamedNode {
+    pub id: Uuid,
+    pub name: String,
+    pub children: Vec<EditorNode>,
+    pub open: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct EditorCell {
     pub id: Uuid,
     pub value: String,
@@ -212,7 +227,7 @@ impl Run {
 }
 
 pub(crate) struct Notebook {
-    pub editor_cells: Vec<EditorCell>,
+    pub editor_root: EditorNamedNode,
     pub path: String,
     pub runs: HashMap<RunId, Run>,
     pub run_order: Vec<RunId>,
@@ -221,7 +236,7 @@ pub(crate) struct Notebook {
 
 impl Notebook {
     pub fn new(path: String) -> Self {
-        let editor_cells = vec![
+        /*let editor_cells = vec![
             EditorCell {
                 id: Uuid::new_v4(),
                 value: "print(\"Hello world\")".to_string(),
@@ -246,10 +261,41 @@ impl Notebook {
                 "import time\nfor x in range(4):\n    print(x)\n    time.sleep(1)\n"
                     .to_string(),
             },*/
-        ];
+        ];*/
+        let editor_root = EditorNamedNode {
+            id: Uuid::new_v4(),
+            name: "root".to_string(),
+            children: vec![
+                EditorNode::Node(EditorNamedNode {
+                    id: Uuid::new_v4(),
+                    name: "init".to_string(),
+                    children: vec![EditorNode::Cell(EditorCell {
+                        id: Uuid::new_v4(),
+                        value: "import pandas as pd\nimport numpy as np".to_string(),
+                    })],
+                    open: true,
+                }),
+                EditorNode::Node(EditorNamedNode {
+                    id: Uuid::new_v4(),
+                    name: "main".to_string(),
+                    children: vec![
+                        EditorNode::Cell(EditorCell {
+                            id: Uuid::new_v4(),
+                            value: "print(\"Hello world\")\n\nx = 10\nx".to_string(),
+                        }),
+                        EditorNode::Cell(EditorCell {
+                            id: Uuid::new_v4(),
+                            value: "".to_string(),
+                        }),
+                    ],
+                    open: true,
+                }),
+            ],
+            open: true,
+        };
         Notebook {
             path,
-            editor_cells,
+            editor_root,
             runs: Default::default(),
             run_order: Vec::new(),
             observer: None,
@@ -325,7 +371,7 @@ impl Notebook {
         NotebookDesc {
             id: notebook_id,
             path: &self.path,
-            editor_cells: &self.editor_cells,
+            editor_root: &self.editor_root,
             runs,
         }
     }

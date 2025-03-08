@@ -1,4 +1,6 @@
-use crate::notebook::{EditorCell, Globals, KernelState, Notebook, OutputCell, Run, RunId};
+use crate::notebook::{
+    EditorCell, EditorNamedNode, Globals, KernelState, Notebook, OutputCell, Run, RunId,
+};
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -24,7 +26,7 @@ struct RunStore<'a> {
 #[derive(Debug, Serialize)]
 struct NotebookStore<'a> {
     version: &'a str,
-    editor_cells: &'a [EditorCell],
+    editor_root: &'a EditorNamedNode,
     runs: Vec<RunStore<'a>>,
 }
 
@@ -42,7 +44,7 @@ struct RunLoad {
 #[derive(Debug, Deserialize)]
 struct NotebookLoad {
     version: String,
-    editor_cells: Vec<EditorCell>,
+    editor_root: EditorNamedNode,
     runs: Vec<RunLoad>,
 }
 
@@ -62,7 +64,7 @@ pub(crate) fn serialize_notebook(notebook: &Notebook) -> anyhow::Result<String> 
         .collect();
     let s_notebook = NotebookStore {
         version: VERSION_STRING,
-        editor_cells: &notebook.editor_cells,
+        editor_root: &notebook.editor_root,
         runs,
     };
     Ok(toml::to_string(&s_notebook)?)
@@ -93,7 +95,7 @@ pub(crate) fn deserialize_notebook(data: &str) -> anyhow::Result<Notebook> {
         })
         .collect();
     Ok(Notebook {
-        editor_cells: store.editor_cells,
+        editor_root: store.editor_root,
         path: String::new(),
         runs,
         run_order,

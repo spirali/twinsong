@@ -166,7 +166,7 @@ pub(crate) fn save_notebook(
 ) -> anyhow::Result<()> {
     let notebook_id = msg.notebook_id;
     let notebook = state.find_notebook_by_id_mut(notebook_id)?;
-    notebook.editor_cells = msg.editor_cells;
+    notebook.editor_root = msg.editor_root;
     save_helper(notebook_id, notebook, state_ref, false)
 }
 

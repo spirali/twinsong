@@ -1,7 +1,10 @@
+import { Children } from "react";
 import { extractGlobals } from "./jobject";
 import {
-  CellId,
   EditorCell,
+  EditorNamedNode,
+  EditorNode,
+  EditorNodeId,
   KernelState,
   Notebook,
   NotebookDesc,
@@ -23,7 +26,7 @@ interface SetSelectedNotebookAction {
 interface EditCellAction {
   type: "cell_edit";
   notebook_id: NotebookId;
-  id: unknown;
+  path: EditorNodeId[];
   value: string;
 }
 
@@ -57,7 +60,7 @@ interface NewOutputAction {
   type: "new_output";
   notebook_id: NotebookId;
   run_id: RunId;
-  cell_id: CellId;
+  cell_id: EditorNodeId;
   flag: OutputCellFlag;
   value: OutputValue;
   globals: [string, string][] | null;
@@ -88,6 +91,12 @@ interface SaveNotebookAction {
   save_in_progress: boolean;
 }
 
+interface ToggleEditorNode {
+  type: "toggle_editor_node";
+  notebook_id: NotebookId;
+  path: EditorNodeId[];
+}
+
 interface NewEditorCellAction {
   type: "new_editor_cell";
   notebook_id: NotebookId;
@@ -97,7 +106,7 @@ interface NewEditorCellAction {
 interface SelectEditorCellAction {
   type: "select_editor_cell";
   notebook_id: NotebookId;
-  editor_cell_id: CellId | null;
+  editor_cell_id: EditorNodeId | null;
 }
 
 interface ToggleOpenObjectAction {
@@ -138,6 +147,7 @@ export type StateAction =
   | SetDirEntries
   | SaveNotebookAction
   | CloseRunAction
+  | ToggleEditorNode
   | ToggleOpenObjectAction;
 
 function updateNotebooks(state: State, notebook: Notebook): State {
@@ -157,6 +167,44 @@ function updateNotebooks(state: State, notebook: Notebook): State {
   };
 }
 
+function getEditorNode(
+  node: EditorNamedNode,
+  path: EditorNodeId[],
+): EditorNode | null {
+  if (path.length === 0) {
+    return node;
+  }
+  for (const child of node.children) {
+    if (child.id === path[0]) {
+      if (child.type === "Cell") {
+        return child;
+      }
+      return getEditorNode(child, path.slice(1));
+    }
+  }
+  return null;
+}
+
+function updateEditor(
+  node: EditorNode,
+  path: EditorNodeId[],
+  target: EditorNode,
+): EditorNode {
+  if (node.type === "Cell" || path.length === 0) {
+    return target;
+  }
+  return {
+    ...node,
+    children: node.children.map((c) => {
+      if (c.id == path[0]) {
+        return updateEditor(c, path.slice(1), target);
+      } else {
+        return c;
+      }
+    }),
+  };
+}
+
 export function stateReducer(state: State, action: StateAction): State {
   console.log("action", action);
   switch (action.type) {
@@ -173,7 +221,7 @@ export function stateReducer(state: State, action: StateAction): State {
       });
       const notebook = {
         id: action.notebook.id,
-        editor_cells: action.notebook.editor_cells,
+        editor_root: action.notebook.editor_root,
         runs: runs,
         waiting_for_fresh: [],
         current_run_id: runs.length > 0 ? runs[0].id : null,
@@ -204,14 +252,32 @@ export function stateReducer(state: State, action: StateAction): State {
     }
     case "cell_edit": {
       const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
-      const editor_cells = notebook.editor_cells.map((c) => {
-        if (c.id == action.id) {
-          return { ...c, value: action.value };
-        } else {
-          return c;
-        }
+      const editor_cell = getEditorNode(
+        notebook.editor_root,
+        action.path,
+      ) as EditorCell;
+      const editor_root = updateEditor(notebook.editor_root, action.path, {
+        ...editor_cell,
+        value: action.value,
       });
-      const new_notebook = { ...notebook, editor_cells: editor_cells };
+      const new_notebook = { ...notebook, editor_root } as Notebook;
+      return updateNotebooks(state, new_notebook);
+    }
+    case "toggle_editor_node": {
+      const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
+      const node = getEditorNode(
+        notebook.editor_root,
+        action.path,
+      ) as EditorNamedNode;
+      const editor_root = updateEditor(notebook.editor_root, action.path, {
+        ...node,
+        open: !node.open,
+      });
+      const new_notebook = {
+        ...notebook,
+        editor_root,
+        selected_editor_cell_id: node.id,
+      } as Notebook;
       return updateNotebooks(state, new_notebook);
     }
     case "fresh_run": {
@@ -358,7 +424,8 @@ export function stateReducer(state: State, action: StateAction): State {
       const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
       const new_notebook = {
         ...notebook,
-        editor_cells: [...notebook.editor_cells, action.editor_cell],
+        // TODO
+        editor_root: notebook.editor_root,
       };
       return updateNotebooks(state, new_notebook);
     }

@@ -126,7 +126,7 @@ export function saveNotebook(
   send_command({
     type: "SaveNotebook",
     notebook_id: notebook.id,
-    editor_cells: notebook.editor_cells,
+    editor_root: notebook.editor_root,
   });
   dispatch({
     type: "save_notebook",
