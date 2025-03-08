@@ -1,7 +1,8 @@
 import { Dispatch } from "react";
 import {
-  CellId,
   EditorCell,
+  EditorNamedNode,
+  EditorNodeId,
   NotebookDesc,
   NotebookId,
   OutputCellFlag,
@@ -35,7 +36,7 @@ interface OutputMsg {
   type: "Output";
   notebook_id: NotebookId;
   run_id: RunId;
-  cell_id: CellId;
+  cell_id: EditorNodeId;
   flag: OutputCellFlag;
   value: OutputValue;
   globals: null | [string, string][];
@@ -80,14 +81,14 @@ interface CreateNewKernelMsg {
 interface SaveNotebookMsg {
   type: "SaveNotebook";
   notebook_id: NotebookId;
-  editor_cells: EditorCell[];
+  editor_root: EditorNamedNode;
 }
 
 interface RunCellMsg {
   type: "RunCell";
   notebook_id: NotebookId;
   run_id: RunId;
-  cell_id: CellId;
+  cell_id: EditorNodeId;
   editor_cell: EditorCell;
 }
 
@@ -117,6 +118,10 @@ export function processMessage(
 ) {
   switch (message.type) {
     case "NewNotebook": {
+      /// Because the root node is alwas EditorNamedNode
+      /// so server does not send type
+      /// But JS bad system of enums force us to fill the type
+      message.notebook.editor_root.type = "Node";
       dispatch({
         type: "add_notebook",
         notebook: message.notebook,
