@@ -78,8 +78,8 @@ pub(crate) fn run_code(state: &mut AppState, msg: RunCodeMsg) -> anyhow::Result<
     tracing::debug!("Runnning code {:?}", msg);
     let notebook = state.find_notebook_by_id_mut(msg.notebook_id)?;
     let run = notebook.find_run_by_id_mut(msg.run_id)?;
-    let code = msg.editor_node.value.clone();
-    run.add_output_cell(OutputCell::new(msg.cell_id, msg.editor_cell));
+    let code = msg.editor_node.to_code_node();
+    run.add_output_cell(OutputCell::new(msg.cell_id, msg.editor_node));
     if let Some(kernel) = run
         .kernel_id()
         .and_then(|kernel_id| state.get_kernel_by_id_mut(kernel_id))

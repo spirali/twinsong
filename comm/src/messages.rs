@@ -3,18 +3,18 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) enum CodeNode {
+pub enum CodeNode {
     Group(CodeGroup),
     Leaf(CodeLeaf),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct CodeGroup {
+pub struct CodeGroup {
     pub children: Vec<CodeNode>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct CodeLeaf {
+pub struct CodeLeaf {
     pub id: Uuid,
     pub value: String,
 }
