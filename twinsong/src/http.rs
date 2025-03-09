@@ -138,7 +138,7 @@ fn process_client_message(
             tracing::debug!("Creating new kernel for notebook {}", msg.notebook_id);
             start_kernel(state, state_ref, msg.notebook_id, msg.run_id, msg.run_title)?
         }
-        FromClientMessage::RunCell(msg) => {
+        FromClientMessage::RunCode(msg) => {
             run_code(state, msg)?;
         }
         FromClientMessage::SaveNotebook(msg) => {

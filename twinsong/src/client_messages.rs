@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 pub(crate) enum FromClientMessage {
     CreateNewNotebook(CreateNewNotebookMsg),
     CreateNewKernel(CreateNewKernelMsg),
-    RunCell(RunCellMsg),
+    RunCode(RunCodeMsg),
     SaveNotebook(SaveNotebookMsg),
     LoadNotebook(LoadNotebookMsg),
     QueryDir,
@@ -36,11 +36,11 @@ pub(crate) struct CreateNewKernelMsg {
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct RunCellMsg {
+pub(crate) struct RunCodeMsg {
     pub notebook_id: NotebookId,
     pub run_id: RunId,
     pub cell_id: OutputCellId,
-    pub editor_cell: EditorCell,
+    pub editor_node: EditorNode,
 }
 
 #[derive(Debug, Deserialize)]
@@ -111,10 +111,6 @@ pub(crate) enum ToClientMessage<'a> {
     NewNotebook {
         notebook: NotebookDesc<'a>,
     },
-    // NewRun {
-    //     notebook_id: NotebookId,
-    //     run_id: RunId,
-    // },
     KernelReady {
         notebook_id: NotebookId,
         run_id: RunId,
