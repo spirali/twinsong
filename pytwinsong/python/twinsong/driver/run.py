@@ -4,7 +4,10 @@ import contextlib
 VARIABLES = {}
 
 
-def run_code(code, stdout):
+def run_code(code, stdout, return_last):
+    if not return_last:
+        with contextlib.redirect_stdout(stdout):
+            return exec(code, VARIABLES)
     tree = ast.parse(code)
     with contextlib.redirect_stdout(stdout):
         if tree.body:

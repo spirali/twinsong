@@ -1,5 +1,5 @@
 use crate::client_messages::{
-    serialize_client_message, DirEntry, DirEntryType, LoadNotebookMsg, RunCellMsg, SaveNotebookMsg,
+    serialize_client_message, DirEntry, DirEntryType, LoadNotebookMsg, RunCodeMsg, SaveNotebookMsg,
     ToClientMessage,
 };
 use crate::kernel::{spawn_kernel, KernelCtx};
@@ -74,12 +74,12 @@ pub(crate) fn start_kernel(
     Ok(())
 }
 
-pub(crate) fn run_code(state: &mut AppState, msg: RunCellMsg) -> anyhow::Result<()> {
+pub(crate) fn run_code(state: &mut AppState, msg: RunCodeMsg) -> anyhow::Result<()> {
     tracing::debug!("Runnning code {:?}", msg);
     let notebook = state.find_notebook_by_id_mut(msg.notebook_id)?;
     let run = notebook.find_run_by_id_mut(msg.run_id)?;
-    let code = msg.editor_cell.value.clone();
-    run.add_output_cell(OutputCell::new(msg.cell_id, msg.editor_cell));
+    let code = msg.editor_node.to_code_node();
+    run.add_output_cell(OutputCell::new(msg.cell_id, msg.editor_node));
     if let Some(kernel) = run
         .kernel_id()
         .and_then(|kernel_id| state.get_kernel_by_id_mut(kernel_id))

@@ -3,9 +3,26 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
+pub enum CodeNode {
+    Group(CodeGroup),
+    Leaf(CodeLeaf),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CodeGroup {
+    pub children: Vec<CodeNode>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CodeLeaf {
+    pub id: Uuid,
+    pub value: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ComputeMsg {
     pub cell_id: Uuid,
-    pub code: String,
+    pub code: CodeNode,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
