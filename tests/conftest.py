@@ -64,22 +64,25 @@ class Kernel:
         self.notebook_id = notebook_id
         self.run_id = run_id
         self.last_cell_id = None
-        self.last_editor_cell = None
+        self.last_editor_node = None
         self.last_globals = None
 
     def run_code(self, code):
         cell_id = str(uuid.uuid4())
-        editor_cell = {"id": str(uuid.uuid4()), "value": code}
-        self.last_editor_cell = editor_cell
+        if isinstance(code, str):
+            editor_node = {"type": "Cell", "id": str(uuid.uuid4()), "value": code}
+        else:
+            editor_node = code
+        self.last_editor_node = editor_node
         outputs = []
         self.client.send_message(
             {
-                "type": "RunCell",
+                "type": "RunCode",
                 "notebook_id": self.notebook_id,
                 "run_id": self.run_id,
                 "code": code,
                 "cell_id": cell_id,
-                "editor_cell": editor_cell,
+                "editor_node": editor_node,
             }
         )
         while True:

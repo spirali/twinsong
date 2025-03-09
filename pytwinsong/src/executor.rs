@@ -1,10 +1,10 @@
 use crate::control::start_control_process;
 use crate::jobject::create_jobject_string;
 use crate::stdio::RedirectedStdio;
-use comm::messages::{ComputeMsg, Exception, KernelOutputValue, OutputFlag};
-use pyo3::types::PyStringMethods;
+use comm::messages::{CodeLeaf, CodeNode, ComputeMsg, Exception, KernelOutputValue, OutputFlag};
 use pyo3::types::{PyAnyMethods, PyTracebackMethods};
-use pyo3::{Bound, PyAny, PyErr, PyResult, Python};
+use pyo3::types::{PyNone, PyStringMethods};
+use pyo3::{Bound, IntoPyObjectExt, PyAny, PyErr, PyResult, Python};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::runtime::Builder;
@@ -49,16 +49,39 @@ fn try_repr_html(obj: &Bound<PyAny>) -> PyResult<Option<String>> {
 fn eval_code<'a>(
     py: Python<'a>,
     code: &str,
-    stdout: RedirectedStdio,
+    stdout: &'a Bound<PyAny>,
+    return_last: bool,
 ) -> PyResult<Bound<'a, PyAny>> {
     let run_module = py.import("twinsong.driver.run")?;
-    run_module.getattr("run_code")?.call1((code, stdout))
+    run_module
+        .getattr("run_code")?
+        .call1((code, stdout, return_last))
 }
 
-fn run_code(py: &Python, code: &str, stdout: RedirectedStdio) -> PyResult<KernelOutputValue> {
+fn collect_code_leafs<'a>(node: &'a CodeNode, out: &mut Vec<&'a CodeLeaf>) {
+    match node {
+        CodeNode::Group(group) => {
+            for child in &group.children {
+                collect_code_leafs(child, out);
+            }
+        }
+        CodeNode::Leaf(leaf) => out.push(leaf),
+    }
+}
+
+fn run_code(py: Python, code: &CodeNode, stdout: Bound<PyAny>) -> PyResult<KernelOutputValue> {
     // let s = CString::new(code.as_bytes())?;
     // let result = py.eval(&s, None, None)?;
-    let result = eval_code(*py, code, stdout)?;
+    let mut codes = Vec::new();
+    collect_code_leafs(code, &mut codes);
+    if codes.is_empty() {
+        return Ok(KernelOutputValue::None);
+    }
+    let last = codes.pop().unwrap();
+    for code in codes {
+        eval_code(py, &code.value, &stdout, false)?;
+    }
+    let result = eval_code(py, &last.value, &stdout, true)?;
     if result.is_none() {
         return Ok(KernelOutputValue::None);
     }
@@ -109,21 +132,24 @@ async fn executor_main(
         tracing::debug!("New command: {:?}", msg);
         let stdout = RedirectedStdio::new(o_sender.clone(), msg.cell_id);
 
-        let out_msg = Python::with_gil(|py| match run_code(&py, &msg.code, stdout) {
-            Ok(output) => FromExecutorMessage::Output {
-                value: output,
-                cell_id: msg.cell_id,
-                flag: OutputFlag::Success,
-                globals: Some(get_globals(py)),
-            },
-            Err(e) => FromExecutorMessage::Output {
-                value: KernelOutputValue::Exception {
-                    value: create_traceback(&py, e).unwrap(),
+        let out_msg = Python::with_gil(|py| {
+            let stdout = stdout.into_bound_py_any(py).unwrap();
+            match run_code(py, &msg.code, stdout) {
+                Ok(output) => FromExecutorMessage::Output {
+                    value: output,
+                    cell_id: msg.cell_id,
+                    flag: OutputFlag::Success,
+                    globals: Some(get_globals(py)),
                 },
-                cell_id: msg.cell_id,
-                flag: OutputFlag::Fail,
-                globals: Some(get_globals(py)),
-            },
+                Err(e) => FromExecutorMessage::Output {
+                    value: KernelOutputValue::Exception {
+                        value: create_traceback(&py, e).unwrap(),
+                    },
+                    cell_id: msg.cell_id,
+                    flag: OutputFlag::Fail,
+                    globals: Some(get_globals(py)),
+                },
+            }
         });
         tracing::debug!("Send output: {:?}", out_msg);
         o_sender.send(out_msg).unwrap();

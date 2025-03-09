@@ -1,4 +1,6 @@
 import shutil
+import uuid
+
 import toml
 import psutil
 import time
@@ -11,12 +13,12 @@ def test_execute_command(client):
     k = client.create_new_kernel(r["notebook"]["id"])
     assert "3" == k.run_code_simple("1 + 2")
     assert [
-        {"type": "Text", "value": "Hello"},
-        {"type": "Text", "value": "\n"},
-        {"type": "Text", "value": "World"},
-        {"type": "Text", "value": "\n"},
-        {"type": "None"},
-    ] == k.run_code("print('Hello')\nprint('World')")
+               {"type": "Text", "value": "Hello"},
+               {"type": "Text", "value": "\n"},
+               {"type": "Text", "value": "World"},
+               {"type": "Text", "value": "\n"},
+               {"type": "None"},
+           ] == k.run_code("print('Hello')\nprint('World')")
 
 
 def test_globals_update(client):
@@ -49,16 +51,20 @@ def test_save_notebook_plain(client):
     k = client.create_new_kernel(r["notebook"]["id"])
     k.run_code_simple("import time; print('Hello'); time.sleep(0.8); print('world!')")
     cell_id = k.last_cell_id
-    editor_cells = [
-        {
+    editor_root = {
+        "id": "a0ff2759-edf5-44ac-a367-6d86c6bc4bcf",
+        "name": "root",
+        "open": True,
+        "children": [{
+            "type": "Cell",
             "id": "b3852a51-3782-4e11-9182-33a1455139b0",
             "value": 'print("Hello world!")',
-        },
-        {
+        }, {
+            "type": "Cell",
             "id": "16918374-b87d-4a7d-8667-064a6a752ff0",
             "value": 'print("Hello world!")\nx = 10\nprint(x)\nx',
-        },
-    ]
+        }]
+    }
 
     runs = [
         {
@@ -66,7 +72,7 @@ def test_save_notebook_plain(client):
             "kernel_state": {"type": "Closed"},
             "output_cells": [
                 {
-                    "editor_cell": k.last_editor_cell,
+                    "editor_node": k.last_editor_node,
                     "flag": "Success",
                     "id": cell_id,
                     "values": [
@@ -87,7 +93,7 @@ def test_save_notebook_plain(client):
         {
             "type": "SaveNotebook",
             "notebook_id": notebook_id,
-            "editor_cells": editor_cells,
+            "editor_root": editor_root,
         }
     )
     r = client.receive_message()
@@ -98,7 +104,7 @@ def test_save_notebook_plain(client):
         del run["globals"]
     assert data == {
         "version": "twinsong 0.0.1",
-        "editor_cells": editor_cells,
+        "editor_root": editor_root,
         "runs": runs,
     }
     shutil.copy(path, "copy.tsnb")
@@ -119,7 +125,7 @@ def test_save_notebook_plain(client):
     assert r == {
         "type": "NewNotebook",
         "notebook": {
-            "editor_cells": editor_cells,
+            "editor_root": editor_root,
             "runs": runs,
             "id": notebook_id + 1,
             "path": "copy.tsnb",
@@ -150,12 +156,12 @@ def test_save_notebook_plain(client):
 def test_save_empty(client):
     r = client.create_new_notebook()
     notebook_id = r["notebook"]["id"]
-    editor_cells = r["notebook"]["editor_cells"]
+    editor_root = r["notebook"]["editor_root"]
     client.send_message(
         {
             "type": "SaveNotebook",
             "notebook_id": notebook_id,
-            "editor_cells": editor_cells,
+            "editor_root": editor_root,
         }
     )
     s = client.receive_message()
@@ -165,7 +171,7 @@ def test_save_empty(client):
     assert data == {
         "version": "twinsong 0.0.1",
         "runs": [],
-        "editor_cells": editor_cells,
+        "editor_root": editor_root,
     }
 
 
@@ -202,3 +208,43 @@ def test_close_run(client):
         if psutil.pid_exists(kernel["pid"]):
             running += 1
     assert running == 1
+
+
+def test_execute_tree(client):
+    r = client.create_new_notebook()
+    k = client.create_new_kernel(r["notebook"]["id"])
+
+    code = {
+        "type": "Node",
+        "name": "root",
+        "id": "e21693b2-3b93-48e4-87ca-1b6226045438",
+        "children": [
+            {
+                "type": "Node",
+                "name": "root",
+                "id": "b8f6e75a-dd3b-4df1-88cb-edd4e74c1771",
+                "children": [
+                    {"type": "Cell",
+                     "id": "0e093025-1030-4458-b2c8-174066568ea9",
+                     "value": "print(\"One\")\n123"
+                     }
+                ],
+            },
+            {"type": "Cell",
+             "id": "28a20c2e-5868-4160-b384-92996d09ccfa",
+             "value": "x = 10\nx"
+             },
+            {"type": "Cell",
+             "id": "5360be7d-81e4-43aa-9abd-7ac57567ed12",
+             "value": "print(\"Two\")\nx"
+             }
+        ]
+    }
+
+    assert [
+               {"type": "Text", "value": "One"},
+               {"type": "Text", "value": "\n"},
+               {"type": "Text", "value": "Two"},
+               {"type": "Text", "value": "\n"},
+               {"type": "Text", "value": "10"},
+           ] == k.run_code(code)

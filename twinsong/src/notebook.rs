@@ -3,7 +3,9 @@ use crate::client_messages::{
 };
 use anyhow::anyhow;
 use axum::extract::ws::Message;
-use comm::messages::{Exception, GlobalsUpdate, KernelOutputValue, OutputFlag};
+use comm::messages::{
+    CodeGroup, CodeLeaf, CodeNode, Exception, GlobalsUpdate, KernelOutputValue, OutputFlag,
+};
 use nutype::nutype;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -19,11 +21,31 @@ pub(crate) enum EditorNode {
     Cell(EditorCell),
 }
 
+impl EditorNode {
+    pub fn to_code_node(&self) -> CodeNode {
+        match self {
+            EditorNode::Node(node) => CodeNode::Group(CodeGroup {
+                children: node
+                    .children
+                    .iter()
+                    .map(|child| child.to_code_node())
+                    .collect(),
+            }),
+            EditorNode::Cell(cell) => CodeNode::Leaf(CodeLeaf {
+                id: cell.id,
+                value: cell.value.clone(),
+            }),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct EditorNamedNode {
     pub id: Uuid,
     pub name: String,
     pub children: Vec<EditorNode>,
+
+    #[serde(default)]
     pub open: bool,
 }
 
@@ -59,16 +81,16 @@ pub(crate) struct OutputCell {
     // If flag is finished/failed then the last value is returned object/exception
     values: Vec<OutputValue>,
     flag: OutputFlag,
-    editor_cell: EditorCell,
+    editor_node: EditorNode,
 }
 
 impl OutputCell {
-    pub fn new(id: OutputCellId, editor_cell: EditorCell) -> Self {
+    pub fn new(id: OutputCellId, editor_node: EditorNode) -> Self {
         OutputCell {
             id,
             values: Vec::new(),
             flag: OutputFlag::Running,
-            editor_cell,
+            editor_node,
         }
     }
 }
