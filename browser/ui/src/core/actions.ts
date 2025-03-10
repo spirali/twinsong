@@ -1,5 +1,6 @@
 import {
   EditorCell,
+  EditorNode,
   Notebook,
   NotebookId,
   OutputCellFlag,
@@ -34,8 +35,8 @@ export function newRun(
   return run_id;
 }
 
-export function runCell(
-  cell: EditorCell,
+export function runCode(
+  node: EditorNode,
   notebook: Notebook,
   dispatch: Dispatch<StateAction>,
   send_command: SendCommand,
@@ -72,16 +73,16 @@ export function runCell(
       id: cell_id,
       values: [],
       flag,
-      editor_cell: cell,
+      editor_node: node,
     },
     run_id: run_id,
   });
   send_command({
-    type: "RunCell",
+    type: "RunCode",
     notebook_id: notebook.id,
     run_id: run_id,
     cell_id: cell_id,
-    editor_cell: cell,
+    editor_node: node,
   });
 }
 

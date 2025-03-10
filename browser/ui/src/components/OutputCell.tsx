@@ -1,10 +1,42 @@
 import React, { useEffect, useRef, useState } from "react";
 import { AlertCircle, CheckCircle, Clock, PlayCircle } from "lucide-react";
-import { OutputCell, OutputValue } from "../core/notebook";
+import { EditorNode, OutputCell, OutputValue } from "../core/notebook";
 import Editor from "react-simple-code-editor";
 import { highlight, languages } from "prismjs/components/prism-core";
 import "prismjs/components/prism-python";
 import { useGlobalState } from "./StateProvider";
+
+const CodeTree: React.FC<{ node: EditorNode; depth: number }> = ({
+  node,
+  depth,
+}) => {
+  if (node.type === "Cell") {
+    return (
+      <Editor
+        className={`${depth > 0 ? "border" : ""} mb-2 bt-1 border-gray-400 rounded`}
+        value={node.value}
+        highlight={(code) => highlight(code, languages.python)}
+        padding={5}
+        style={{
+          fontFamily: '"Fira code", "Fira Mono", monospace',
+          fontSize: 12,
+        }}
+        onValueChange={() => {}}
+      />
+    );
+  } else if (node.type === "Node") {
+    return (
+      <div>
+        <div className="flex">{node.name}</div>
+        <div className="ml-2">
+          {node.children.map((child) => (
+            <CodeTree key={child.id} node={child} depth={depth + 1} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+};
 
 const OutputValueView: React.FC<{ value: OutputValue }> = (props: {
   value: OutputValue;
@@ -76,7 +108,7 @@ const OutputCellView: React.FC<{
 
   return (
     <div
-      className={`border-l-6 pl-1 ${notebook.selected_editor_cell_id == props.cell.editor_cell.id ? "border-orange-200" : "border-white"}`}
+      className={`border-l-6 pl-1 ${notebook.selected_editor_node_id == props.cell.editor_node.id ? "border-orange-200" : "border-white"}`}
     >
       <div ref={ref} className="border border-gray-300 shadow-sm mb-2 mr-6">
         {/* Smaller Status Bar */}
@@ -99,17 +131,8 @@ const OutputCellView: React.FC<{
 
         {/* Metadata (conditionally rendered) */}
         {showMetadata && (
-          <div className="bg-gray-50 border-b text-sm border-gray-300">
-            <Editor
-              value={props.cell.editor_cell.value}
-              highlight={(code) => highlight(code, languages.python)}
-              padding={5}
-              style={{
-                fontFamily: '"Fira code", "Fira Mono", monospace',
-                fontSize: 12,
-              }}
-              onValueChange={() => {}}
-            />
+          <div className="bg-gray-50 border-b text-sm border-gray-300 p-1">
+            <CodeTree node={props.cell.editor_node} depth={0} />
           </div>
         )}
 
