@@ -27,7 +27,7 @@ interface EditCellAction {
   type: "cell_edit";
   notebook_id: NotebookId;
   path: EditorNodeId[];
-  value: string;
+  code: string;
 }
 
 interface FreshRunAction {
@@ -94,7 +94,7 @@ interface SaveNotebookAction {
 interface ToggleEditorNode {
   type: "toggle_editor_node";
   notebook_id: NotebookId;
-  path: EditorNodeId[];
+  node_id: EditorNodeId;
 }
 
 interface NewEditorCellAction {
@@ -222,6 +222,7 @@ export function stateReducer(state: State, action: StateAction): State {
       const notebook = {
         id: action.notebook.id,
         editor_root: action.notebook.editor_root,
+        editor_open_nodes: new Set(action.notebook.editor_open_nodes),
         runs: runs,
         waiting_for_fresh: [],
         current_run_id: runs.length > 0 ? runs[0].id : null,
@@ -258,25 +259,24 @@ export function stateReducer(state: State, action: StateAction): State {
       ) as EditorCell;
       const editor_root = updateEditor(notebook.editor_root, action.path, {
         ...editor_cell,
-        value: action.value,
+        code: action.code,
       });
       const new_notebook = { ...notebook, editor_root } as Notebook;
       return updateNotebooks(state, new_notebook);
     }
     case "toggle_editor_node": {
       const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
-      const node = getEditorNode(
-        notebook.editor_root,
-        action.path,
-      ) as EditorNamedNode;
-      const editor_root = updateEditor(notebook.editor_root, action.path, {
-        ...node,
-        open: !node.open,
-      });
+      const editor_open_nodes = new Set(notebook.editor_open_nodes);
+      const node_id = action.node_id;
+      if (editor_open_nodes.has(node_id)) {
+        editor_open_nodes.delete(node_id);
+      } else {
+        editor_open_nodes.add(node_id);
+      }
       const new_notebook = {
         ...notebook,
-        editor_root,
-        selected_editor_node_id: node.id,
+        editor_open_nodes,
+        selected_editor_node_id: node_id,
       } as Notebook;
       return updateNotebooks(state, new_notebook);
     }

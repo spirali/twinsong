@@ -114,7 +114,7 @@ export function newEdtorCell(
     notebook_id: notebook.id,
     editor_cell: {
       id: cell_id,
-      value: "",
+      code: "",
     },
   });
 }

@@ -14,7 +14,7 @@ const CodeTree: React.FC<{ node: EditorNode; depth: number }> = ({
     return (
       <Editor
         className={`${depth > 0 ? "border" : ""} mb-2 bt-1 border-gray-400 rounded`}
-        value={node.value}
+        value={node.code}
         highlight={(code) => highlight(code, languages.python)}
         padding={5}
         style={{
@@ -24,7 +24,7 @@ const CodeTree: React.FC<{ node: EditorNode; depth: number }> = ({
         onValueChange={() => {}}
       />
     );
-  } else if (node.type === "Node") {
+  } else if (node.type === "Group") {
     return (
       <div>
         <div className="flex">{node.name}</div>

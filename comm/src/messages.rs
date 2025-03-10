@@ -16,7 +16,7 @@ pub struct CodeGroup {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CodeLeaf {
     pub id: Uuid,
-    pub value: String,
+    pub code: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

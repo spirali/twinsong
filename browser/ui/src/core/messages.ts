@@ -1,7 +1,7 @@
 import { Dispatch } from "react";
 import {
   EditorCell,
-  EditorNamedNode,
+  EditorNamedNode as EditorGroup,
   EditorNode,
   EditorNodeId,
   NotebookDesc,
@@ -82,11 +82,11 @@ interface CreateNewKernelMsg {
 interface SaveNotebookMsg {
   type: "SaveNotebook";
   notebook_id: NotebookId;
-  editor_root: EditorNamedNode;
+  editor_root: EditorGroup;
 }
 
-interface RunCellMsg {
-  type: "RunCell";
+interface RunCodeMsg {
+  type: "RunCode";
   notebook_id: NotebookId;
   run_id: RunId;
   cell_id: EditorNodeId;
@@ -107,7 +107,7 @@ interface CloseRunMsg {
 export type FromClientMessage =
   | CreateNewNotebookMsg
   | CreateNewKernelMsg
-  | RunCellMsg
+  | RunCodeMsg
   | CloseRunMsg
   | LoadNotebookMsg
   | SaveNotebookMsg;
@@ -122,7 +122,7 @@ export function processMessage(
       /// Because the root node is alwas EditorNamedNode
       /// so server does not send type
       /// But JS bad system of enums force us to fill the type
-      message.notebook.editor_root.type = "Node";
+      message.notebook.editor_root.type = "Group";
       dispatch({
         type: "add_notebook",
         notebook: message.notebook,
