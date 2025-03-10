@@ -54,15 +54,14 @@ def test_save_notebook_plain(client):
     editor_root = {
         "id": "a0ff2759-edf5-44ac-a367-6d86c6bc4bcf",
         "name": "root",
-        "open": True,
         "children": [{
             "type": "Cell",
             "id": "b3852a51-3782-4e11-9182-33a1455139b0",
-            "value": 'print("Hello world!")',
+            "code": 'print("Hello world!")',
         }, {
             "type": "Cell",
             "id": "16918374-b87d-4a7d-8667-064a6a752ff0",
-            "value": 'print("Hello world!")\nx = 10\nprint(x)\nx',
+            "code": 'print("Hello world!")\nx = 10\nprint(x)\nx',
         }]
     }
 
@@ -129,6 +128,7 @@ def test_save_notebook_plain(client):
             "runs": runs,
             "id": notebook_id + 1,
             "path": "copy.tsnb",
+            'editor_open_nodes': ['a0ff2759-edf5-44ac-a367-6d86c6bc4bcf'],
         },
     }
     r2 = client.load_notebook("copy.tsnb")
@@ -215,28 +215,28 @@ def test_execute_tree(client):
     k = client.create_new_kernel(r["notebook"]["id"])
 
     code = {
-        "type": "Node",
+        "type": "Group",
         "name": "root",
         "id": "e21693b2-3b93-48e4-87ca-1b6226045438",
         "children": [
             {
-                "type": "Node",
+                "type": "Group",
                 "name": "root",
                 "id": "b8f6e75a-dd3b-4df1-88cb-edd4e74c1771",
                 "children": [
                     {"type": "Cell",
                      "id": "0e093025-1030-4458-b2c8-174066568ea9",
-                     "value": "print(\"One\")\n123"
+                     "code": "print(\"One\")\n123"
                      }
                 ],
             },
             {"type": "Cell",
              "id": "28a20c2e-5868-4160-b384-92996d09ccfa",
-             "value": "x = 10\nx"
+             "code": "x = 10\nx"
              },
             {"type": "Cell",
              "id": "5360be7d-81e4-43aa-9abd-7ac57567ed12",
-             "value": "print(\"Two\")\nx"
+             "code": "print(\"Two\")\nx"
              }
         ]
     }

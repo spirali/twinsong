@@ -1,5 +1,5 @@
 use crate::notebook::{
-    EditorCell, EditorNamedNode, Globals, KernelState, Notebook, OutputCell, Run, RunId,
+    EditorCell, EditorGroup, Globals, KernelState, Notebook, OutputCell, Run, RunId,
 };
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
@@ -26,7 +26,7 @@ struct RunStore<'a> {
 #[derive(Debug, Serialize)]
 struct NotebookStore<'a> {
     version: &'a str,
-    editor_root: &'a EditorNamedNode,
+    editor_root: &'a EditorGroup,
     runs: Vec<RunStore<'a>>,
 }
 
@@ -44,7 +44,7 @@ struct RunLoad {
 #[derive(Debug, Deserialize)]
 struct NotebookLoad {
     version: String,
-    editor_root: EditorNamedNode,
+    editor_root: EditorGroup,
     runs: Vec<RunLoad>,
 }
 
@@ -94,8 +94,10 @@ pub(crate) fn deserialize_notebook(data: &str) -> anyhow::Result<Notebook> {
             )
         })
         .collect();
+    let root_id = store.editor_root.id;
     Ok(Notebook {
         editor_root: store.editor_root,
+        editor_open_nodes: vec![root_id],
         path: String::new(),
         runs,
         run_order,

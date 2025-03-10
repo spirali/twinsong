@@ -22,8 +22,8 @@ import {
 } from "lucide-react";
 import { usePushNotification } from "./NotificationProvider";
 
-function getFirst(node: EditorNode): EditorNodeId | null {
-  if (node.type === "Node" && node.open && node.children.length > 0) {
+function getFirst(node: EditorNode, is_open: boolean): EditorNodeId | null {
+  if (node.type === "Group" && is_open && node.children.length > 0) {
     return node.children[0].id;
   } else {
     return null;
@@ -41,13 +41,14 @@ const EditorNamedNodeRenderer: React.FC<{
   const dispatch = useDispatch()!;
   const sendCommand = useSendCommand()!;
   const pushNotification = usePushNotification();
-  const is_selected = notebook.selected_editor_node_id == node.id;
+  const isSelected = notebook.selected_editor_node_id == node.id;
+  const isOpen = notebook.editor_open_nodes.has(node.id);
   return (
     <div className="w-full my-1">
       <div
         id={node.id}
         tabIndex={-1}
-        className={`select-none flex rounded px-2 mb-1 text-gray-500 font-semibold focus:outline-0 ${is_selected ? "bg-blue-200" : "hover:bg-blue-50"}`}
+        className={`select-none flex rounded px-2 mb-1 text-gray-500 font-semibold focus:outline-0 ${isSelected ? "bg-blue-200" : "hover:bg-blue-50"}`}
         onClick={() => {
           console.log(node.id, document.getElementById(node.id));
           document.getElementById(node.id)?.focus();
@@ -77,19 +78,19 @@ const EditorNamedNodeRenderer: React.FC<{
             e.preventDefault();
             move(prev_id, true);
           }
-          if (e.key === "ArrowDown" && (next_id || getFirst(node))) {
+          if (e.key === "ArrowDown" && (next_id || getFirst(node, isOpen))) {
             e.preventDefault();
-            move((getFirst(node) || next_id)!, false);
+            move((getFirst(node, isOpen) || next_id)!, false);
           }
           if (
-            (e.key === "ArrowLeft" && node.open) ||
-            (e.key === "ArrowRight" && !node.open)
+            (e.key === "ArrowLeft" && isOpen) ||
+            (e.key === "ArrowRight" && !isOpen)
           ) {
             e.preventDefault();
             dispatch({
               type: "toggle_editor_node",
               notebook_id: notebook.id,
-              path,
+              node_id: node.id,
             });
           }
           if (e.ctrlKey && e.key === "Enter") {
@@ -105,22 +106,22 @@ const EditorNamedNodeRenderer: React.FC<{
             dispatch({
               type: "toggle_editor_node",
               notebook_id: notebook.id,
-              path,
+              node_id: node.id,
             });
           }}
         >
-          {node.open ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
         {node.name}
       </div>
-      {node.open && (
+      {isOpen && (
         <div className="ml-2">
           {node.children.map((child, i) => {
             const p = [...path, child.id];
             const child_prev_id = i == 0 ? node.id : node.children[i - 1].id;
             const child_next_id =
               i == node.children.length - 1 ? next_id : node.children[i + 1].id;
-            if (child.type === "Node") {
+            if (child.type === "Group") {
               return (
                 <EditorNamedNodeRenderer
                   key={child.id}
@@ -221,13 +222,13 @@ const EditorCellRenderer: React.FC<{
             })
           }
           id={cell.id}
-          value={cell.value}
+          value={cell.code}
           onValueChange={(code) => {
             dispatch({
               type: "cell_edit",
               notebook_id: notebook.id,
               path,
-              value: code,
+              code,
             });
           }}
           highlight={(code) => highlight(code, languages.python)}

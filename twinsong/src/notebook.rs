@@ -17,14 +17,14 @@ use uuid::Uuid;
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub(crate) enum EditorNode {
-    Node(EditorNamedNode),
+    Group(EditorGroup),
     Cell(EditorCell),
 }
 
 impl EditorNode {
     pub fn to_code_node(&self) -> CodeNode {
         match self {
-            EditorNode::Node(node) => CodeNode::Group(CodeGroup {
+            EditorNode::Group(node) => CodeNode::Group(CodeGroup {
                 children: node
                     .children
                     .iter()
@@ -32,27 +32,39 @@ impl EditorNode {
                     .collect(),
             }),
             EditorNode::Cell(cell) => CodeNode::Leaf(CodeLeaf {
-                id: cell.id,
-                value: cell.value.clone(),
+                id: cell.id.into_inner(),
+                code: cell.code.clone(),
             }),
+        }
+    }
+    pub fn collect_group_ids(&self, out: &mut Vec<EditorId>) {
+        match self {
+            EditorNode::Group(group) => group.collect_group_ids(out),
+            EditorNode::Cell(_) => {}
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct EditorNamedNode {
-    pub id: Uuid,
+pub(crate) struct EditorGroup {
+    pub id: EditorId,
     pub name: String,
     pub children: Vec<EditorNode>,
+}
 
-    #[serde(default)]
-    pub open: bool,
+impl EditorGroup {
+    pub fn collect_group_ids(&self, out: &mut Vec<EditorId>) {
+        out.push(self.id);
+        for child in &self.children {
+            child.collect_group_ids(out);
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct EditorCell {
-    pub id: Uuid,
-    pub value: String,
+    pub id: EditorId,
+    pub code: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -146,6 +158,19 @@ pub(crate) struct KernelId(Uuid);
     Clone
 ))]
 pub(crate) struct OutputCellId(Uuid);
+
+#[nutype(derive(
+    Display,
+    Debug,
+    PartialEq,
+    Hash,
+    Eq,
+    Serialize,
+    Deserialize,
+    Copy,
+    Clone
+))]
+pub(crate) struct EditorId(Uuid);
 
 //#[allow(dead_code)] // TODO: Remove this when Run saving is implemented
 
@@ -249,7 +274,8 @@ impl Run {
 }
 
 pub(crate) struct Notebook {
-    pub editor_root: EditorNamedNode,
+    pub editor_root: EditorGroup,
+    pub editor_open_nodes: Vec<EditorId>,
     pub path: String,
     pub runs: HashMap<RunId, Run>,
     pub run_order: Vec<RunId>,
@@ -284,40 +310,40 @@ impl Notebook {
                     .to_string(),
             },*/
         ];*/
-        let editor_root = EditorNamedNode {
-            id: Uuid::new_v4(),
+        let editor_root = EditorGroup {
+            id: EditorId::new(Uuid::new_v4()),
             name: "root".to_string(),
             children: vec![
-                EditorNode::Node(EditorNamedNode {
-                    id: Uuid::new_v4(),
+                EditorNode::Group(EditorGroup {
+                    id: EditorId::new(Uuid::new_v4()),
                     name: "init".to_string(),
                     children: vec![EditorNode::Cell(EditorCell {
-                        id: Uuid::new_v4(),
-                        value: "import pandas as pd\nimport numpy as np".to_string(),
+                        id: EditorId::new(Uuid::new_v4()),
+                        code: "import pandas as pd\nimport numpy as np".to_string(),
                     })],
-                    open: true,
                 }),
-                EditorNode::Node(EditorNamedNode {
-                    id: Uuid::new_v4(),
+                EditorNode::Group(EditorGroup {
+                    id: EditorId::new(Uuid::new_v4()),
                     name: "main".to_string(),
                     children: vec![
                         EditorNode::Cell(EditorCell {
-                            id: Uuid::new_v4(),
-                            value: "print(\"Hello world\")\n\nx = 10\nx".to_string(),
+                            id: EditorId::new(Uuid::new_v4()),
+                            code: "print(\"Hello world\")\n\nx = 10\nx".to_string(),
                         }),
                         EditorNode::Cell(EditorCell {
-                            id: Uuid::new_v4(),
-                            value: "".to_string(),
+                            id: EditorId::new(Uuid::new_v4()),
+                            code: "".to_string(),
                         }),
                     ],
-                    open: true,
                 }),
             ],
-            open: true,
         };
+        let mut editor_open_nodes = Vec::new();
+        editor_root.collect_group_ids(&mut editor_open_nodes);
         Notebook {
             path,
             editor_root,
+            editor_open_nodes,
             runs: Default::default(),
             run_order: Vec::new(),
             observer: None,
@@ -394,6 +420,7 @@ impl Notebook {
             id: notebook_id,
             path: &self.path,
             editor_root: &self.editor_root,
+            editor_open_nodes: &self.editor_open_nodes,
             runs,
         }
     }

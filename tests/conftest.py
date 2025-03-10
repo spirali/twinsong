@@ -70,7 +70,7 @@ class Kernel:
     def run_code(self, code):
         cell_id = str(uuid.uuid4())
         if isinstance(code, str):
-            editor_node = {"type": "Cell", "id": str(uuid.uuid4()), "value": code}
+            editor_node = {"type": "Cell", "id": str(uuid.uuid4()), "code": code}
         else:
             editor_node = code
         self.last_editor_node = editor_node

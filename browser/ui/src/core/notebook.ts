@@ -15,15 +15,14 @@ export type OutputCellFlag = "Pending" | "Running" | "Success" | "Fail";
 export interface EditorCell {
   type: "Cell";
   id: EditorNodeId;
-  value: string;
+  code: string;
 }
 
 export interface EditorNamedNode {
-  type: "Node";
+  type: "Group";
   id: EditorNodeId;
   name: string;
   children: EditorNode[];
-  open?: boolean;
 }
 
 export type EditorNode = EditorNamedNode | EditorCell;
@@ -75,6 +74,7 @@ export interface Notebook {
   id: NotebookId;
   path: string;
   editor_root: EditorNamedNode;
+  editor_open_nodes: Set<string>;
   runs: Run[];
   waiting_for_fresh: EditorCell[];
   current_run_id: RunId | null;
@@ -85,6 +85,7 @@ export interface Notebook {
 export interface NotebookDesc {
   id: NotebookId;
   editor_root: EditorNamedNode;
+  editor_open_nodes: string[];
   runs: RunDesc[];
   path: string;
 }

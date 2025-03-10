@@ -1,5 +1,5 @@
 use crate::notebook::{
-    EditorCell, EditorNamedNode, EditorNode, Globals, KernelId, NotebookId, OutputCell,
+    EditorCell, EditorGroup, EditorId, EditorNode, Globals, KernelId, NotebookId, OutputCell,
     OutputCellId, OutputValue, RunId,
 };
 use axum::extract::ws::Message;
@@ -46,7 +46,7 @@ pub(crate) struct RunCodeMsg {
 #[derive(Debug, Deserialize)]
 pub(crate) struct SaveNotebookMsg {
     pub notebook_id: NotebookId,
-    pub editor_root: EditorNamedNode,
+    pub editor_root: EditorGroup,
 }
 
 #[derive(Debug, Deserialize)]
@@ -76,7 +76,8 @@ pub(crate) struct RunDesc<'a> {
 pub(crate) struct NotebookDesc<'a> {
     pub id: NotebookId,
     pub path: &'a str,
-    pub editor_root: &'a EditorNamedNode,
+    pub editor_root: &'a EditorGroup,
+    pub editor_open_nodes: &'a [EditorId],
     pub runs: Vec<RunDesc<'a>>,
 }
 

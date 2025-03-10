@@ -79,9 +79,9 @@ fn run_code(py: Python, code: &CodeNode, stdout: Bound<PyAny>) -> PyResult<Kerne
     }
     let last = codes.pop().unwrap();
     for code in codes {
-        eval_code(py, &code.value, &stdout, false)?;
+        eval_code(py, &code.code, &stdout, false)?;
     }
-    let result = eval_code(py, &last.value, &stdout, true)?;
+    let result = eval_code(py, &last.code, &stdout, true)?;
     if result.is_none() {
         return Ok(KernelOutputValue::None);
     }
