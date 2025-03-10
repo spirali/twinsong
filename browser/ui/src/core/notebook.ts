@@ -56,7 +56,7 @@ export interface OutputCell {
   id: EditorNodeId;
   values: OutputValue[];
   flag: OutputCellFlag;
-  editor_cell: EditorCell;
+  editor_node: EditorNode;
 }
 
 export type RunViewMode = "outputs" | "workspace";
@@ -78,7 +78,7 @@ export interface Notebook {
   runs: Run[];
   waiting_for_fresh: EditorCell[];
   current_run_id: RunId | null;
-  selected_editor_cell_id: EditorNodeId | null;
+  selected_editor_node_id: EditorNodeId | null;
   save_in_progress: boolean;
 }
 

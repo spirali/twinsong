@@ -12,7 +12,7 @@ import { highlight, languages } from "prismjs/components/prism-core";
 import "prismjs/components/prism-python";
 import "prismjs/themes/prism.css";
 import { useSendCommand } from "./WsProvider";
-import { newEdtorCell, runCell, saveNotebook } from "../core/actions";
+import { newEdtorCell, runCode, saveNotebook } from "../core/actions";
 import {
   SquarePlus,
   Save,
@@ -39,7 +39,9 @@ const EditorNamedNodeRenderer: React.FC<{
   next_id: string | null;
 }> = ({ notebook, path, node, depth, prev_id, next_id }) => {
   const dispatch = useDispatch()!;
-  const is_selected = notebook.selected_editor_cell_id == node.id;
+  const sendCommand = useSendCommand()!;
+  const pushNotification = usePushNotification();
+  const is_selected = notebook.selected_editor_node_id == node.id;
   return (
     <div className="w-full my-1">
       <div
@@ -57,16 +59,16 @@ const EditorNamedNodeRenderer: React.FC<{
         }}
         onFocus={() =>
           dispatch({
-            type: "select_editor_cell",
+            type: "select_editor_node",
             notebook_id: notebook.id,
-            editor_cell_id: node.id,
+            editor_node_id: node.id,
           })
         }
         onBlur={() =>
           dispatch({
-            type: "select_editor_cell",
+            type: "select_editor_node",
             notebook_id: notebook.id,
-            editor_cell_id: null,
+            editor_node_id: null,
           })
         }
         onKeyDown={(e) => {
@@ -89,6 +91,10 @@ const EditorNamedNodeRenderer: React.FC<{
               notebook_id: notebook.id,
               path,
             });
+          }
+          if (e.ctrlKey && e.key === "Enter") {
+            e.preventDefault();
+            runCode(node, notebook, dispatch, sendCommand, pushNotification);
           }
         }}
       >
@@ -165,10 +171,7 @@ function checkIfFirstLine(
   return !textarea.value.substring(0, cursorPosition).includes("\n");
 }
 
-function move(
-  new_id: string,
-  is_up: boolean,
-) {
+function move(new_id: string, is_up: boolean) {
   const element = document.getElementById(new_id)!;
   const textArea = element.getElementsByTagName("textarea")[0];
   if (textArea) {
@@ -195,7 +198,7 @@ const EditorCellRenderer: React.FC<{
   const dispatch = useDispatch()!;
   const sendCommand = useSendCommand()!;
   const pushNotification = usePushNotification();
-  const is_selected = notebook.selected_editor_cell_id == cell.id;
+  const is_selected = notebook.selected_editor_node_id == cell.id;
   console.log(cell, prev_id);
   return (
     <div
@@ -205,16 +208,16 @@ const EditorCellRenderer: React.FC<{
         <Editor
           onFocus={() =>
             dispatch({
-              type: "select_editor_cell",
+              type: "select_editor_node",
               notebook_id: notebook.id,
-              editor_cell_id: cell.id,
+              editor_node_id: cell.id,
             })
           }
           onBlur={() =>
             dispatch({
-              type: "select_editor_cell",
+              type: "select_editor_node",
               notebook_id: notebook.id,
-              editor_cell_id: null,
+              editor_node_id: null,
             })
           }
           id={cell.id}
@@ -236,7 +239,7 @@ const EditorCellRenderer: React.FC<{
           onKeyDown={(e) => {
             if (e.ctrlKey && e.key === "Enter") {
               e.preventDefault();
-              runCell(cell, notebook, dispatch, sendCommand, pushNotification);
+              runCode(cell, notebook, dispatch, sendCommand, pushNotification);
             }
             if (e.key === "ArrowUp" && prev_id && checkIfFirstLine(e)) {
               e.preventDefault();

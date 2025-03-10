@@ -103,10 +103,10 @@ interface NewEditorCellAction {
   editor_cell: EditorCell;
 }
 
-interface SelectEditorCellAction {
-  type: "select_editor_cell";
+interface SelectEditorNodeAction {
+  type: "select_editor_node";
   notebook_id: NotebookId;
-  editor_cell_id: EditorNodeId | null;
+  editor_node_id: EditorNodeId | null;
 }
 
 interface ToggleOpenObjectAction {
@@ -142,7 +142,7 @@ export type StateAction =
   | SetCurrentRunAction
   | SetRunViewModeAction
   | NewEditorCellAction
-  | SelectEditorCellAction
+  | SelectEditorNodeAction
   | SetSelectedNotebookAction
   | SetDirEntries
   | SaveNotebookAction
@@ -225,7 +225,7 @@ export function stateReducer(state: State, action: StateAction): State {
         runs: runs,
         waiting_for_fresh: [],
         current_run_id: runs.length > 0 ? runs[0].id : null,
-        selected_editor_cell_id: null,
+        selected_editor_node_id: null,
         save_in_progress: false,
         globals: [],
         path,
@@ -276,7 +276,7 @@ export function stateReducer(state: State, action: StateAction): State {
       const new_notebook = {
         ...notebook,
         editor_root,
-        selected_editor_cell_id: node.id,
+        selected_editor_node_id: node.id,
       } as Notebook;
       return updateNotebooks(state, new_notebook);
     }
@@ -429,11 +429,11 @@ export function stateReducer(state: State, action: StateAction): State {
       };
       return updateNotebooks(state, new_notebook);
     }
-    case "select_editor_cell": {
+    case "select_editor_node": {
       const notebook = state.selected_notebook!;
       const new_notebook = {
         ...notebook,
-        selected_editor_cell_id: action.editor_cell_id,
+        selected_editor_node_id: action.editor_node_id,
       };
       return updateNotebooks(state, new_notebook);
     }

@@ -2,6 +2,7 @@ import { Dispatch } from "react";
 import {
   EditorCell,
   EditorNamedNode,
+  EditorNode,
   EditorNodeId,
   NotebookDesc,
   NotebookId,
@@ -89,7 +90,7 @@ interface RunCellMsg {
   notebook_id: NotebookId;
   run_id: RunId;
   cell_id: EditorNodeId;
-  editor_cell: EditorCell;
+  editor_node: EditorNode;
 }
 
 interface LoadNotebookMsg {
