@@ -1,4 +1,10 @@
-import React, { Children, Dispatch, useCallback, useRef } from "react";
+import React, {
+  Children,
+  Dispatch,
+  useCallback,
+  useRef,
+  useState,
+} from "react";
 import {
   EditorCell,
   EditorNamedNode,
@@ -19,6 +25,11 @@ import {
   Loader2,
   ChevronDown,
   ChevronRight,
+  Plus,
+  Pencil,
+  Trash2,
+  FilePlus,
+  Play,
 } from "lucide-react";
 import { usePushNotification } from "./NotificationProvider";
 
@@ -29,6 +40,84 @@ function getFirst(node: EditorNode, is_open: boolean): EditorNodeId | null {
     return null;
   }
 }
+
+const NodeButton: React.FC<{
+  onClick: () => void;
+  isGroup: boolean;
+  children: React.ReactNode;
+}> = ({ onClick, isGroup, children }) => {
+  const className = isGroup
+    ? "text-blue bg-blue-100 p-1 mr-1 rounded hover:bg-gray-400"
+    : "text-gray-700 bg-gray-50 p-1 mr-1 rounded hover:bg-gray-400";
+  return (
+    <div
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onClick();
+      }}
+      className={className}
+    >
+      {children}
+    </div>
+  );
+};
+
+const NodeToolbar: React.FC<{
+  className: string;
+  node: EditorNode;
+  path: EditorNodeId[];
+  notebook: Notebook;
+}> = ({ className, node, path, notebook }) => {
+  const isGroup = node.type === "Group";
+  const dispatch = useDispatch()!;
+  return (
+    <div className={"flex " + className}>
+      {isGroup && (
+        /* Rename */
+        <NodeButton
+          onClick={() => {
+            dispatch({
+              type: "set_dialog",
+              dialog: {
+                title: "Group name",
+                value: node.name,
+                okText: "Rename group",
+                onCancel: () => {
+                  focusId(node.id);
+                },
+                onConfirm: (value: string) => {
+                  dispatch({
+                    type: "update_editor_node",
+                    notebook_id: notebook.id,
+                    path,
+                    node_update: { name: value },
+                  });
+                  focusId(node.id);
+                },
+              },
+            });
+          }}
+          isGroup={isGroup}
+        >
+          <Pencil size={14} />
+        </NodeButton>
+      )}
+      <NodeButton onClick={() => {}} isGroup={isGroup}>
+        <Play size={14} />
+      </NodeButton>
+      <NodeButton onClick={() => {}} isGroup={isGroup}>
+        <Plus size={14} />
+      </NodeButton>
+      <NodeButton onClick={() => {}} isGroup={isGroup}>
+        <FilePlus size={14} />
+      </NodeButton>
+      <NodeButton onClick={() => {}} isGroup={isGroup}>
+        <Trash2 size={14} />
+      </NodeButton>
+    </div>
+  );
+};
 
 const EditorNamedNodeRenderer: React.FC<{
   notebook: Notebook;
@@ -41,6 +130,7 @@ const EditorNamedNodeRenderer: React.FC<{
   const dispatch = useDispatch()!;
   const sendCommand = useSendCommand()!;
   const pushNotification = usePushNotification();
+
   const isSelected = notebook.selected_editor_node_id == node.id;
   const isOpen = notebook.editor_open_nodes.has(node.id);
   return (
@@ -48,7 +138,7 @@ const EditorNamedNodeRenderer: React.FC<{
       <div
         id={node.id}
         tabIndex={-1}
-        className={`select-none flex rounded px-2 mb-1 text-gray-500 font-semibold focus:outline-0 ${isSelected ? "bg-blue-200" : "hover:bg-blue-50"}`}
+        className={`flex justify-between select-none rounded px-2 py-1 mb-1 text-gray-500 font-semibold focus:outline-0 ${isSelected ? "bg-blue-200" : "hover:bg-blue-50"}`}
         onClick={() => {
           console.log(node.id, document.getElementById(node.id));
           document.getElementById(node.id)?.focus();
@@ -99,20 +189,32 @@ const EditorNamedNodeRenderer: React.FC<{
           }
         }}
       >
-        <button
-          className="mr-1"
-          onClick={(e) => {
-            e.stopPropagation();
-            dispatch({
-              type: "toggle_editor_node",
-              notebook_id: notebook.id,
-              node_id: node.id,
-            });
-          }}
-        >
-          {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-        </button>
-        {node.name}
+        <div className="mr-4">
+          <button
+            className="mr-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              dispatch({
+                type: "toggle_editor_node",
+                notebook_id: notebook.id,
+                node_id: node.id,
+              });
+            }}
+          >
+            {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          </button>
+          {node.name}
+        </div>
+        <div>
+          {isSelected && (
+            <NodeToolbar
+              className=""
+              node={node}
+              notebook={notebook}
+              path={path}
+            />
+          )}
+        </div>
       </div>
       {isOpen && (
         <div className="ml-2">
@@ -172,8 +274,18 @@ function checkIfFirstLine(
   return !textarea.value.substring(0, cursorPosition).includes("\n");
 }
 
-function move(new_id: string, is_up: boolean) {
-  const element = document.getElementById(new_id)!;
+function focusId(id: EditorNodeId) {
+  const element = document.getElementById(id)!;
+  const textArea = element.getElementsByTagName("textarea")[0];
+  if (textArea) {
+    textArea.focus();
+  } else {
+    element.focus();
+  }
+}
+
+function move(newId: EditorNodeId, is_up: boolean) {
+  const element = document.getElementById(newId)!;
   const textArea = element.getElementsByTagName("textarea")[0];
   if (textArea) {
     textArea.focus();
@@ -199,12 +311,19 @@ const EditorCellRenderer: React.FC<{
   const dispatch = useDispatch()!;
   const sendCommand = useSendCommand()!;
   const pushNotification = usePushNotification();
-  const is_selected = notebook.selected_editor_node_id == cell.id;
-  console.log(cell, prev_id);
+  const isSelected = notebook.selected_editor_node_id == cell.id;
   return (
     <div
-      className={`pl-1 border-l-6 ${is_selected ? "border-blue-200" : "border-white"} `}
+      className={`relative pl-1 border-l-6 ${isSelected ? "border-blue-200" : "border-white"} `}
     >
+      {isSelected && (
+        <NodeToolbar
+          className="z-10 absolute top-0 right-0 mt-2 mr-2"
+          node={cell}
+          notebook={notebook}
+          path={path}
+        />
+      )}
       <div className="mb-1 border border-gray-400 rounded-md overflow-hidden">
         <Editor
           onFocus={() =>
@@ -225,10 +344,10 @@ const EditorCellRenderer: React.FC<{
           value={cell.code}
           onValueChange={(code) => {
             dispatch({
-              type: "cell_edit",
+              type: "update_editor_node",
               notebook_id: notebook.id,
               path,
-              code,
+              node_update: { code: code },
             });
           }}
           highlight={(code) => highlight(code, languages.python)}

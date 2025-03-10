@@ -23,13 +23,6 @@ interface SetSelectedNotebookAction {
   id: NotebookId | null;
 }
 
-interface EditCellAction {
-  type: "cell_edit";
-  notebook_id: NotebookId;
-  path: EditorNodeId[];
-  code: string;
-}
-
 interface FreshRunAction {
   type: "fresh_run";
   notebook_id: NotebookId;
@@ -116,6 +109,13 @@ interface ToggleOpenObjectAction {
   object_path: string;
 }
 
+interface UpdateEditorNode {
+  type: "update_editor_node";
+  notebook_id: NotebookId;
+  path: EditorNodeId[];
+  node_update: Partial<EditorNode>;
+}
+
 export interface DirEntry {
   path: string;
   entry_type: "Notebook" | "LoadedNotebook" | "Dir" | "File";
@@ -126,14 +126,12 @@ interface SetDirEntries {
   entries: DirEntry[];
 }
 
-export interface State {
-  notebooks: Notebook[];
-  dir_entries: DirEntry[];
-  selected_notebook: Notebook | null;
+interface SetDialog {
+  type: "set_dialog";
+  dialog: DialogConfig | null;
 }
 
 export type StateAction =
-  | EditCellAction
   | AddNotebookAction
   | FreshRunAction
   | KernelStateChangedAction
@@ -148,7 +146,24 @@ export type StateAction =
   | SaveNotebookAction
   | CloseRunAction
   | ToggleEditorNode
-  | ToggleOpenObjectAction;
+  | ToggleOpenObjectAction
+  | UpdateEditorNode
+  | SetDialog;
+
+export interface DialogConfig {
+  title: string;
+  value: string;
+  okText: string;
+  onConfirm: (value: string) => void;
+  onCancel: () => void;
+}
+
+export interface State {
+  notebooks: Notebook[];
+  dir_entries: DirEntry[];
+  selected_notebook: Notebook | null;
+  dialog: DialogConfig | null;
+}
 
 function updateNotebooks(state: State, notebook: Notebook): State {
   return {
@@ -208,6 +223,19 @@ function updateEditor(
 export function stateReducer(state: State, action: StateAction): State {
   console.log("action", action);
   switch (action.type) {
+    case "update_editor_node": {
+      const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
+      const editor_node = getEditorNode(notebook.editor_root, action.path);
+      if (!editor_node) {
+        return state;
+      }
+      const editor_root = updateEditor(notebook.editor_root, action.path, {
+        ...editor_node,
+        ...action.node_update,
+      } as EditorNode);
+      const updated_notebook = { ...notebook, editor_root } as Notebook;
+      return updateNotebooks(state, updated_notebook);
+    }
     case "add_notebook": {
       const path = action.notebook.path;
       const runs = action.notebook.runs.map((r) => {
@@ -250,19 +278,6 @@ export function stateReducer(state: State, action: StateAction): State {
         selected_notebook:
           state.notebooks.find((n) => n.id == action.id) || null,
       };
-    }
-    case "cell_edit": {
-      const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
-      const editor_cell = getEditorNode(
-        notebook.editor_root,
-        action.path,
-      ) as EditorCell;
-      const editor_root = updateEditor(notebook.editor_root, action.path, {
-        ...editor_cell,
-        code: action.code,
-      });
-      const new_notebook = { ...notebook, editor_root } as Notebook;
-      return updateNotebooks(state, new_notebook);
     }
     case "toggle_editor_node": {
       const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
@@ -461,6 +476,9 @@ export function stateReducer(state: State, action: StateAction): State {
       };
       return updateNotebooks(state, new_notebook);
     }
+    case "set_dialog": {
+      return { ...state, dialog: action.dialog };
+    }
     case "toggle_open_object": {
       const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
 
@@ -492,4 +510,5 @@ export const INITIAL_STATE: State = {
   notebooks: [],
   dir_entries: [],
   selected_notebook: null,
+  dialog: null,
 };
