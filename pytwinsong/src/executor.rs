@@ -49,13 +49,16 @@ fn try_repr_html(obj: &Bound<PyAny>) -> PyResult<Option<String>> {
 fn eval_code<'a>(
     py: Python<'a>,
     code: &str,
-    stdout: RedirectedStdio,
+    stdout: &'a Bound<PyAny>,
+    return_last: bool,
 ) -> PyResult<Bound<'a, PyAny>> {
     let run_module = py.import("twinsong.driver.run")?;
-    run_module.getattr("run_code")?.call1((code, stdout))
+    run_module
+        .getattr("run_code")?
+        .call1((code, stdout, return_last))
 }
 
-fn collect_code_leafs(node: &CodeNode, out: &mut Vec<&CodeLeaf>) {
+fn collect_code_leafs<'a>(node: &'a CodeNode, out: &mut Vec<&'a CodeLeaf>) {
     match node {
         CodeNode::Group(group) => {
             for child in &group.children {
@@ -66,16 +69,7 @@ fn collect_code_leafs(node: &CodeNode, out: &mut Vec<&CodeLeaf>) {
     }
 }
 
-fn collect_code_nodes<'a>(py: Python<'a>, node: &CodeNode) -> PyResult<Option<Bound<'a, PyAny>>> {
-    match node {
-        CodeNode::Group(group) => {
-            todo!()
-        }
-        CodeNode::Leaf(leaf) => Some(eval_code(*py, leaf.value, stdout)?),
-    }
-}
-
-fn run_code(py: Python, code: &CodeNode, stdio: Bound<PyAny>) -> PyResult<KernelOutputValue> {
+fn run_code(py: Python, code: &CodeNode, stdout: Bound<PyAny>) -> PyResult<KernelOutputValue> {
     // let s = CString::new(code.as_bytes())?;
     // let result = py.eval(&s, None, None)?;
     let mut codes = Vec::new();
@@ -85,9 +79,9 @@ fn run_code(py: Python, code: &CodeNode, stdio: Bound<PyAny>) -> PyResult<Kernel
     }
     let last = codes.pop().unwrap();
     for code in codes {
-        todo!()
+        eval_code(py, &code.value, &stdout, false)?;
     }
-    let result = eval_code(*py, code, stdio)?;
+    let result = eval_code(py, &last.value, &stdout, true)?;
     if result.is_none() {
         return Ok(KernelOutputValue::None);
     }
@@ -136,11 +130,11 @@ async fn executor_main(
 ) -> anyhow::Result<()> {
     while let Some(msg) = c_receiver.recv().await {
         tracing::debug!("New command: {:?}", msg);
-        let stdio = RedirectedStdio::new(o_sender.clone(), msg.cell_id);
+        let stdout = RedirectedStdio::new(o_sender.clone(), msg.cell_id);
 
         let out_msg = Python::with_gil(|py| {
-            let stdio = stdio.into_bound_py_any(py).unwrap();
-            match run_code(py, &msg.code, stdio) {
+            let stdout = stdout.into_bound_py_any(py).unwrap();
+            match run_code(py, &msg.code, stdout) {
                 Ok(output) => FromExecutorMessage::Output {
                     value: output,
                     cell_id: msg.cell_id,
