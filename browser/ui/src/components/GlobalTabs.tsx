@@ -3,6 +3,7 @@ import NotebookList from "./DirList";
 import { useDispatch, useGlobalState } from "./StateProvider";
 import NotebookView from "./NotebookView";
 import { NotebookTabs } from "lucide-react";
+import Dialog from "./Dialog";
 
 const TabButton = (props: {
   highlighted: boolean;
@@ -36,6 +37,7 @@ const GlobalTabs = () => {
 
   return (
     <div className="w-full">
+      {state.dialog && <Dialog config={state.dialog} />}
       {/* Tab Navigation */}
       <div className="w-full border-b border-gray-200 bg-white">
         <div className="pl-4 flex">
