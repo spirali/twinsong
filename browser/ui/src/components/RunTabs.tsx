@@ -8,8 +8,35 @@ import { Notebook, Run } from "../core/notebook";
 import Workspace from "./Workspace";
 import { StatusIndicator } from "./StatusIndicator";
 import { Menu } from "lucide-react";
+import { PopupMenu } from "./PopupMenu";
 
-const RunMenu = () => {
+const RunMenu = () => (
+  <PopupMenu
+    createButton={(toggleMenu) => (
+      <button
+        onClick={toggleMenu}
+        className="flex items-center justify-center p-2 rounded-md hover:bg-gray-100 focus:outline-none"
+        aria-label="Menu"
+      >
+        <Menu size={24} />
+      </button>
+    )}
+    items={[
+      {
+        icon: "ban",
+        title: "Interrupt computation",
+        onClick: () => {},
+      },
+      {
+        icon: "square",
+        title: "Stop kernel",
+        onClick: () => {},
+      },
+    ]}
+  />
+);
+
+/*
   const isComputing = false;
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -40,13 +67,7 @@ const RunMenu = () => {
 
   return (
     <div className="relative" ref={menuRef}>
-      <button
-        onClick={toggleMenu}
-        className="flex items-center justify-center p-2 rounded-md hover:bg-gray-100 focus:outline-none"
-        aria-label="Menu"
-      >
-        <Menu size={24} />
-      </button>
+
 
       {isOpen && (
         <div className="absolute right-0 w-64 mt-2 origin-top-right bg-white border border-gray-200 divide-y divide-gray-100 rounded-md shadow-lg z-10">
@@ -72,7 +93,7 @@ const RunMenu = () => {
       )}
     </div>
   );
-};
+};*/
 
 const TabCloseButton: React.FC<{
   onClick: (event: React.MouseEvent) => void;
