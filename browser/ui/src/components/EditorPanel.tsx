@@ -32,6 +32,7 @@ import {
   Play,
 } from "lucide-react";
 import { usePushNotification } from "./NotificationProvider";
+import { NodeToolbar } from "./EditorToolbar";
 
 function getFirst(node: EditorNode, is_open: boolean): EditorNodeId | null {
   if (node.type === "Group" && is_open && node.children.length > 0) {
@@ -40,84 +41,6 @@ function getFirst(node: EditorNode, is_open: boolean): EditorNodeId | null {
     return null;
   }
 }
-
-const NodeButton: React.FC<{
-  onClick: () => void;
-  isGroup: boolean;
-  children: React.ReactNode;
-}> = ({ onClick, isGroup, children }) => {
-  const className = isGroup
-    ? "text-blue bg-blue-100 p-1 mr-1 rounded hover:bg-gray-400"
-    : "text-gray-700 bg-gray-50 p-1 mr-1 rounded hover:bg-gray-400";
-  return (
-    <div
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onClick();
-      }}
-      className={className}
-    >
-      {children}
-    </div>
-  );
-};
-
-const NodeToolbar: React.FC<{
-  className: string;
-  node: EditorNode;
-  path: EditorNodeId[];
-  notebook: Notebook;
-}> = ({ className, node, path, notebook }) => {
-  const isGroup = node.type === "Group";
-  const dispatch = useDispatch()!;
-  return (
-    <div className={"flex " + className}>
-      {isGroup && (
-        /* Rename */
-        <NodeButton
-          onClick={() => {
-            dispatch({
-              type: "set_dialog",
-              dialog: {
-                title: "Group name",
-                value: node.name,
-                okText: "Rename group",
-                onCancel: () => {
-                  focusId(node.id);
-                },
-                onConfirm: (value: string) => {
-                  dispatch({
-                    type: "update_editor_node",
-                    notebook_id: notebook.id,
-                    path,
-                    node_update: { name: value },
-                  });
-                  focusId(node.id);
-                },
-              },
-            });
-          }}
-          isGroup={isGroup}
-        >
-          <Pencil size={14} />
-        </NodeButton>
-      )}
-      <NodeButton onClick={() => {}} isGroup={isGroup}>
-        <Play size={14} />
-      </NodeButton>
-      <NodeButton onClick={() => {}} isGroup={isGroup}>
-        <Plus size={14} />
-      </NodeButton>
-      <NodeButton onClick={() => {}} isGroup={isGroup}>
-        <FilePlus size={14} />
-      </NodeButton>
-      <NodeButton onClick={() => {}} isGroup={isGroup}>
-        <Trash2 size={14} />
-      </NodeButton>
-    </div>
-  );
-};
 
 const EditorNamedNodeRenderer: React.FC<{
   notebook: Notebook;
@@ -274,7 +197,7 @@ function checkIfFirstLine(
   return !textarea.value.substring(0, cursorPosition).includes("\n");
 }
 
-function focusId(id: EditorNodeId) {
+export function focusId(id: EditorNodeId) {
   const element = document.getElementById(id)!;
   const textArea = element.getElementsByTagName("textarea")[0];
   if (textArea) {
@@ -397,7 +320,7 @@ const EditorPanel: React.FC<{ notebook: Notebook }> = ({ notebook }) => {
     saveNotebook(notebook, dispatch, sendCommand);
   }, [notebook, dispatch, sendCommand]);
   return (
-    <div className="h-full">
+    <div className={"h-full"}>
       {/* Toolbar */}
       <div className="sticky top-0 bg-white p-1 pb-3">
         <div className="flex space-x-2">
@@ -422,7 +345,10 @@ const EditorPanel: React.FC<{ notebook: Notebook }> = ({ notebook }) => {
       </div>
 
       {/* Cells Container */}
-      <div className="pl-1 pr-2 pt-2 pb-2 space-y-4 overflow-auto">
+      <div
+        className="pl-1 pr-2 pt-2 pb-2 space-y-4 overflow-auto"
+        style={{ height: "calc(100vh - 150px)" }}
+      >
         {/*notebook.editor_cells.map((cell, index) => (
           <EditorCellRenderer
             key={cell.id}
