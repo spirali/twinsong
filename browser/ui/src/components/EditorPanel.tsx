@@ -20,17 +20,12 @@ import "prismjs/themes/prism.css";
 import { useSendCommand } from "./WsProvider";
 import { newEdtorCell, runCode, saveNotebook } from "../core/actions";
 import {
-  SquarePlus,
-  Save,
-  Loader2,
-  ChevronDown,
-  ChevronRight,
-  Plus,
-  Pencil,
-  Trash2,
-  FilePlus,
-  Play,
-} from "lucide-react";
+  LuSquarePlus,
+  LuSave,
+  LuLoaderCircle,
+  LuChevronDown,
+  LuChevronRight,
+} from "react-icons/lu";
 import { usePushNotification } from "./NotificationProvider";
 import { NodeToolbar } from "./EditorToolbar";
 
@@ -124,7 +119,11 @@ const EditorNamedNodeRenderer: React.FC<{
               });
             }}
           >
-            {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            {isOpen ? (
+              <LuChevronDown size={16} />
+            ) : (
+              <LuChevronRight size={16} />
+            )}
           </button>
           {node.name}
         </div>
@@ -326,9 +325,9 @@ const EditorPanel: React.FC<{ notebook: Notebook }> = ({ notebook }) => {
         <div className="flex space-x-2">
           <ToolButton onClick={onSave}>
             {notebook.save_in_progress ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <LuLoaderCircle className="w-4 h-4 animate-spin" />
             ) : (
-              <Save className="w-4 h-4" />
+              <LuSave className="w-4 h-4" />
             )}
           </ToolButton>
 
@@ -338,7 +337,7 @@ const EditorPanel: React.FC<{ notebook: Notebook }> = ({ notebook }) => {
             }}
           >
             <div className="flex items-center">
-              <SquarePlus className="w-4 h-4 mr-2" /> Add code cell
+              <LuSquarePlus className="w-4 h-4 mr-2" /> Add code cell
             </div>
           </ToolButton>
         </div>

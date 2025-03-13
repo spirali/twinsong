@@ -1,13 +1,20 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch } from "./StateProvider";
 import RunView from "./RunView";
-import { Ban, ListTree, MessageSquare, Plus, Square, X } from "lucide-react";
+import {
+  LuBan,
+  LuListTree,
+  LuMessageSquare,
+  LuPlus,
+  LuSquare,
+  LuX,
+  LuMenu,
+} from "react-icons/lu";
 import { useSendCommand } from "./WsProvider";
 import { closeRun, newRun } from "../core/actions";
 import { Notebook, Run } from "../core/notebook";
 import Workspace from "./Workspace";
 import { StatusIndicator } from "./StatusIndicator";
-import { Menu } from "lucide-react";
 import { PopupMenu } from "./PopupMenu";
 
 const RunMenu = () => (
@@ -18,7 +25,7 @@ const RunMenu = () => (
         className="flex items-center justify-center p-2 rounded-md hover:bg-gray-100 focus:outline-none"
         aria-label="Menu"
       >
-        <Menu size={24} />
+        <LuMenu size={24} />
       </button>
     )}
     items={[
@@ -104,7 +111,7 @@ const TabCloseButton: React.FC<{
       onClick={onClick}
       aria-label="Close tab"
     >
-      <X size={16} />
+      <LuX size={16} />
     </button>
   );
 };
@@ -140,7 +147,7 @@ const ViewSwitch: React.FC<{ notebook: Notebook; run: Run }> = (props: {
             })
           }
         />
-        <MessageSquare className="w-4 h-4 mr-1" />
+        <LuMessageSquare className="w-4 h-4 mr-1" />
         <span>Outputs</span>
       </label>
 
@@ -166,7 +173,7 @@ const ViewSwitch: React.FC<{ notebook: Notebook; run: Run }> = (props: {
             })
           }
         />
-        <ListTree className="w-4 h-4 mr-1" />
+        <LuListTree className="w-4 h-4 mr-1" />
         <span>Workspace</span>
       </label>
     </div>
@@ -221,7 +228,7 @@ const RunTabs: React.FC<{ notebook: Notebook }> = (props: {
           className={`py-2 px-5 text-sm font-medium transition-colors duration-200
              'bg-gray-50 text-gray-600 hover:bg-orange-50 hover:text-orange-700'}`}
         >
-          <Plus className="w-4 h-4" />
+          <LuPlus className="w-4 h-4" />
         </button>
       </div>
       {notebook.current_run_id == null ? (

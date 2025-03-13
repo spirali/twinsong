@@ -2,7 +2,7 @@ import { JSX, useState } from "react";
 import NotebookList from "./DirList";
 import { useDispatch, useGlobalState } from "./StateProvider";
 import NotebookView from "./NotebookView";
-import { NotebookTabs } from "lucide-react";
+import { LuNotebookTabs } from "react-icons/lu";
 import Dialog from "./Dialog";
 
 const TabButton = (props: {
@@ -45,7 +45,7 @@ const GlobalTabs = () => {
             <TabButton
               border={false}
               highlighted={showNotebookList}
-              label={<NotebookTabs />}
+              label={<LuNotebookTabs />}
               onClick={() => setShowNotebookList(!showNotebookList)}
             />
           </div>

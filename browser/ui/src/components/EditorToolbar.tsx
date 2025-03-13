@@ -9,7 +9,14 @@ import React, {
 import { EditorNode, EditorNodeId, Notebook } from "../core/notebook";
 import { useDispatch } from "./StateProvider";
 import { focusId } from "./EditorPanel";
-import { FilePlus, FolderPlus, Pencil, Play, Plus, Trash2 } from "lucide-react";
+import {
+  LuPlus,
+  LuFolderPlus,
+  LuPencil,
+  LuPlay,
+  LuTrash2,
+} from "react-icons/lu";
+import { PopupMenu } from "./PopupMenu";
 
 const NodeButton: React.FC<{
   onClick: () => void;
@@ -70,20 +77,41 @@ export const NodeToolbar: React.FC<{
           }}
           isGroup={isGroup}
         >
-          <Pencil size={14} />
+          <LuPencil size={14} />
         </NodeButton>
       )}
       <NodeButton onClick={() => {}} isGroup={isGroup}>
-        <Play size={14} />
+        <LuPlay size={14} />
+      </NodeButton>
+      <PopupMenu
+        createButton={(toggleMenu) => (
+          <NodeButton onClick={toggleMenu} isGroup={isGroup}>
+            <LuFolderPlus size={14} />
+          </NodeButton>
+        )}
+        items={[
+          {
+            icon: "insert_child",
+            title: "Add child group",
+            onClick: () => {},
+          },
+          {
+            icon: "insert_above",
+            title: "Add group above",
+            onClick: () => {},
+          },
+          {
+            icon: "insert_below",
+            title: "Add group below",
+            onClick: () => {},
+          },
+        ]}
+      />
+      <NodeButton onClick={() => {}} isGroup={isGroup}>
+        <LuPlus size={14} />
       </NodeButton>
       <NodeButton onClick={() => {}} isGroup={isGroup}>
-        <FolderPlus size={14} />
-      </NodeButton>
-      <NodeButton onClick={() => {}} isGroup={isGroup}>
-        <Plus size={14} />
-      </NodeButton>
-      <NodeButton onClick={() => {}} isGroup={isGroup}>
-        <Trash2 size={14} />
+        <LuTrash2 size={14} />
       </NodeButton>
     </div>
   );

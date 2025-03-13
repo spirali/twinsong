@@ -1,6 +1,6 @@
 // NotificationContext.tsx
 import React, { createContext, useContext, useState, useCallback } from "react";
-import { X, AlertCircle, CheckCircle } from "lucide-react";
+import { LuX, LuCircleAlert, LuCircleCheck } from "react-icons/lu";
 
 // Define types
 export type NotificationType = "error" | "success";
@@ -102,7 +102,7 @@ const NotificationOverlay: React.FC = () => {
       {messages.map((message) => {
         const isError = message.type === "error";
         const bgColor = isError ? "bg-red-500" : "bg-green-500";
-        const Icon = isError ? AlertCircle : CheckCircle;
+        const Icon = isError ? LuCircleAlert : LuCircleCheck;
 
         return (
           <div
@@ -117,7 +117,7 @@ const NotificationOverlay: React.FC = () => {
               className="text-white hover:text-gray-100 focus:outline-none"
               aria-label="Close"
             >
-              <X size={20} />
+              <LuX size={20} />
             </button>
           </div>
         );
