@@ -1,7 +1,9 @@
-import { Ban, Square } from "lucide-react";
+import { LuBan, LuSquare } from "react-icons/lu";
 import { ReactNode, useEffect, useRef, useState } from "react";
+import { TbRowInsertBottom, TbRowInsertTop } from "react-icons/tb";
+import { PiTreeView } from "react-icons/pi";
 
-type Icon = "ban" | "square";
+type Icon = "ban" | "square" | "insert_above" | "insert_below" | "insert_child";
 
 export interface MenuItem {
   icon: Icon;
@@ -12,9 +14,15 @@ export interface MenuItem {
 function getIcon(name: Icon): ReactNode {
   switch (name) {
     case "ban":
-      return <Ban size={18} className="mr-2" />;
+      return <LuBan size={18} className="mr-2" />;
     case "square":
-      return <Square size={18} className="mr-2" />;
+      return <LuSquare size={18} className="mr-2" />;
+    case "insert_above":
+      return <TbRowInsertTop size={18} className="mr-2" />;
+    case "insert_below":
+      return <TbRowInsertBottom size={18} className="mr-2" />;
+    case "insert_child":
+      return <PiTreeView size={18} className="mr-2" />;
   }
 }
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { Loader2, X, Circle } from "lucide-react";
+import { LuLoaderCircle, LuX, LuCircle } from "react-icons/lu";
 import { KernelState } from "../core/notebook";
 
 interface StatusIndicatorProps {
@@ -11,25 +11,25 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status }) => {
     Init: {
       color: "bg-yellow-300",
       textColor: "text-yellow-700",
-      icon: <Loader2 className="w-4 h-4 mr-2 animate-spin" />,
+      icon: <LuLoaderCircle className="w-4 h-4 mr-2 animate-spin" />,
       label: "Initializing kernel",
     },
     Running: {
       color: "bg-green-300",
       textColor: "text-green-700",
-      icon: <Circle fill="green" className="w-4 h-4 mr-2" />,
+      icon: <LuCircle fill="green" className="w-4 h-4 mr-2" />,
       label: "Online",
     },
     Crashed: {
       color: "bg-red-300",
       textColor: "text-red-700",
-      icon: <X className="w-4 h-4 mr-2" />,
+      icon: <LuX className="w-4 h-4 mr-2" />,
       label: "Kernel crashed",
     },
     Closed: {
       color: "bg-gray-300",
       textColor: "text-red-700",
-      icon: <Circle className="w-4 h-4 mr-2" />,
+      icon: <LuCircle className="w-4 h-4 mr-2" />,
       label: "Inactive",
     },
   };

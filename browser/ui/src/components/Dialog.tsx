@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
+import { LuX } from "react-icons/lu";
 import { DialogConfig } from "../core/state";
 import { useDispatch } from "./StateProvider";
 
@@ -49,7 +49,7 @@ const ModalDialog: React.FC<ModalProps> = ({ config }) => {
             className="text-gray-500 hover:text-gray-700 focus:outline-none"
             aria-label="Close"
           >
-            <X size={20} />
+            <LuX size={20} />
           </button>
         </div>
 

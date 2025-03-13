@@ -1,5 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AlertCircle, CheckCircle, Clock, PlayCircle } from "lucide-react";
+import {
+  LuCircleAlert,
+  LuCircleCheck,
+  LuClock,
+  LuCirclePlay,
+} from "react-icons/lu";
 import { EditorNode, OutputCell, OutputValue } from "../core/notebook";
 import Editor from "react-simple-code-editor";
 import { highlight, languages } from "prismjs/components/prism-core";
@@ -78,13 +83,13 @@ const OutputCellView: React.FC<{
   const getStatusIcon = () => {
     switch (props.cell.flag) {
       case "Pending":
-        return <Clock className="h-4 w-4 text-blue-700" />;
+        return <LuClock className="h-4 w-4 text-blue-700" />;
       case "Running":
-        return <PlayCircle className="h-4 w-4 text-yellow-700" />;
+        return <LuCirclePlay className="h-4 w-4 text-yellow-700" />;
       case "Success":
-        return <CheckCircle className="h-4 w-4 text-green-700" />;
+        return <LuCircleCheck className="h-4 w-4 text-green-700" />;
       case "Fail":
-        return <AlertCircle className="h-4 w-4 text-red-700" />;
+        return <LuCircleAlert className="h-4 w-4 text-red-700" />;
       default:
         return null;
     }

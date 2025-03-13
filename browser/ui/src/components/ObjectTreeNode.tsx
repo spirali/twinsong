@@ -1,16 +1,16 @@
 import React from "react";
 import {
-  ChevronRight,
-  ChevronDown,
-  Box,
-  CircleSmall,
-  Brackets,
-  Square,
-  Copyright,
-  Parentheses,
-  Braces,
-  Cog,
-} from "lucide-react";
+  LuChevronRight,
+  LuChevronDown,
+  LuBox,
+  LuBrackets,
+  LuSquare,
+  LuCopyright,
+  LuParentheses,
+  LuBraces,
+  LuCog,
+} from "react-icons/lu";
+import { VscCircle } from "react-icons/vsc";
 import { JsonObjectId, JsonObjectStruct } from "../core/jobject";
 
 // Tree Node Component
@@ -39,30 +39,30 @@ const ObjectTreeNode: React.FC<{
 
   const getIcon = () => {
     if (object.kind === "list") {
-      return <Brackets className="text-blue-500" size={16} />;
+      return <LuBrackets className="text-blue-500" size={16} />;
     }
     if (object.kind === "tuple") {
-      return <Parentheses className="text-blue-500" size={16} />;
+      return <LuParentheses className="text-blue-500" size={16} />;
     }
     if (object.kind === "dict") {
-      return <Braces className="text-blue-500" size={16} />;
+      return <LuBraces className="text-blue-500" size={16} />;
     }
     if (object.kind === "class") {
-      return <Copyright className="text-blue-600" size={16} />;
+      return <LuCopyright className="text-blue-600" size={16} />;
     }
     if (object.kind === "dataclass") {
-      return <Box className="text-blue-600" size={16} />;
+      return <LuBox className="text-blue-600" size={16} />;
     }
     if (object.kind === "module") {
-      return <Box className="text-purple-600" size={16} />;
+      return <LuBox className="text-purple-600" size={16} />;
     }
     if (object.kind === "callable") {
-      return <Cog className="text-purple-600" size={16} />;
+      return <LuCog className="text-purple-600" size={16} />;
     }
     if (object.kind?.length ?? 0 > 0) {
-      return <CircleSmall className="text-blue-500" size={16} />;
+      return <VscCircle className="text-blue-500" size={16} />;
     }
-    return <Square className="text-blue-600" size={16} />;
+    return <LuSquare className="text-blue-600" size={16} />;
   };
 
   const formatValue = () => {
@@ -129,7 +129,11 @@ const ObjectTreeNode: React.FC<{
             onClick={() => toggleOpenObject(slotPath)}
             className="mr-1 focus:outline-none"
           >
-            {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            {isOpen ? (
+              <LuChevronDown size={16} />
+            ) : (
+              <LuChevronRight size={16} />
+            )}
           </button>
         ) : (
           <span className="mr-1 w-4"></span>

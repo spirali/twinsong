@@ -1,4 +1,4 @@
-import { Folder, File, SquarePlus, FileCog2 } from "lucide-react";
+import { LuFolder, LuFile, LuSquarePlus, LuFileCog } from "react-icons/lu";
 import { useSendCommand } from "./WsProvider";
 import { useDispatch, useGlobalState } from "./StateProvider";
 import { loadNotebook } from "../core/actions";
@@ -6,13 +6,13 @@ import { loadNotebook } from "../core/actions";
 const getIcon = (type: string) => {
   switch (type) {
     case "LoadedNotebook":
-      return <FileCog2 size={16} className="text-green-600" />;
+      return <LuFileCog size={16} className="text-green-600" />;
     case "Notebook":
-      return <FileCog2 size={16} className="text-orange-600" />;
+      return <LuFileCog size={16} className="text-orange-600" />;
     case "Dir":
-      return <Folder size={16} className="text-gray-600" />;
+      return <LuFolder size={16} className="text-gray-600" />;
     default:
-      return <File size={16} className="text-gray-500" />;
+      return <LuFile size={16} className="text-gray-500" />;
   }
 };
 
@@ -49,7 +49,7 @@ const NotebookList = () => {
         className="bg-gray-100 text-black px-4 py-2 rounded hover:bg-gray-200"
       >
         <div className="flex items-center">
-          <SquarePlus className="w-4 h-4 mr-2" />
+          <LuSquarePlus className="w-4 h-4 mr-2" />
           Add notebook
         </div>
       </button>
