@@ -36,7 +36,7 @@ const ModalDialog: React.FC<ModalProps> = ({ config }) => {
     });
   };
 
-  console.log(inputValue);
+  const isDisabled = inputValue.length == 0;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -74,8 +74,9 @@ const ModalDialog: React.FC<ModalProps> = ({ config }) => {
             Cancel
           </button>
           <button
+            disabled={isDisabled}
             onClick={handleConfirm}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`px-4 py-2 text-white rounded-md ${isDisabled ? "bg-gray-300" : "bg-blue-600 hover:bg-blue-700"} focus:outline-none focus:ring-2 focus:ring-blue-500`}
           >
             {config.okText}
           </button>

@@ -90,10 +90,14 @@ interface ToggleEditorNode {
   node_id: EditorNodeId;
 }
 
-interface NewEditorCellAction {
-  type: "new_editor_cell";
+export type InsertType = "before" | "after" | "child";
+
+interface NewEditorNodeAction {
+  type: "new_editor_node";
   notebook_id: NotebookId;
-  editor_cell: EditorCell;
+  path: EditorNodeId[];
+  editor_node: EditorNode;
+  insert_type: InsertType;
 }
 
 interface SelectEditorNodeAction {
@@ -114,6 +118,12 @@ interface UpdateEditorNode {
   notebook_id: NotebookId;
   path: EditorNodeId[];
   node_update: Partial<EditorNode>;
+}
+
+interface RemoveEditorNode {
+  type: "remove_editor_node";
+  notebook_id: NotebookId;
+  path: EditorNodeId[];
 }
 
 export interface DirEntry {
@@ -139,7 +149,7 @@ export type StateAction =
   | NewOutputCellAction
   | SetCurrentRunAction
   | SetRunViewModeAction
-  | NewEditorCellAction
+  | NewEditorNodeAction
   | SelectEditorNodeAction
   | SetSelectedNotebookAction
   | SetDirEntries
@@ -148,6 +158,7 @@ export type StateAction =
   | ToggleEditorNode
   | ToggleOpenObjectAction
   | UpdateEditorNode
+  | RemoveEditorNode
   | SetDialog;
 
 export interface DialogConfig {
@@ -235,6 +246,83 @@ export function stateReducer(state: State, action: StateAction): State {
       } as EditorNode);
       const updated_notebook = { ...notebook, editor_root } as Notebook;
       return updateNotebooks(state, updated_notebook);
+    }
+    case "new_editor_node": {
+      const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
+      let editor_root;
+      let editor_open_nodes = notebook.editor_open_nodes;
+      if (action.insert_type === "child") {
+        const editor_node = getEditorNode(notebook.editor_root, action.path);
+        if (editor_node === null || editor_node.type !== "Group") {
+          return state;
+        }
+        editor_root = updateEditor(notebook.editor_root, action.path, {
+          ...editor_node,
+          children: [...editor_node.children, action.editor_node],
+        } as EditorNode);
+        if (!notebook.editor_open_nodes.has(editor_node.id)) {
+          editor_open_nodes = new Set(notebook.editor_open_nodes);
+          editor_open_nodes.add(editor_node.id);
+        }
+      } else {
+        const path = action.path.slice(0, -1);
+        const parent_node = getEditorNode(notebook.editor_root, path);
+        if (parent_node === null || parent_node.type !== "Group") {
+          return state;
+        }
+        const idx = parent_node.children.findIndex(
+          (c) => c.id === action.path[action.path.length - 1],
+        );
+        if (idx === -1) {
+          return state;
+        }
+        editor_root = updateEditor(notebook.editor_root, path, {
+          ...parent_node,
+          children:
+            action.insert_type === "before"
+              ? [
+                  ...parent_node.children.slice(0, idx),
+                  action.editor_node,
+                  ...parent_node.children.slice(idx),
+                ]
+              : [
+                  ...parent_node.children.slice(0, idx + 1),
+                  action.editor_node,
+                  ...parent_node.children.slice(idx + 1),
+                ],
+        } as EditorNode);
+      }
+      const new_notebook = {
+        ...notebook,
+        editor_root,
+        editor_open_nodes,
+      } as Notebook;
+      return updateNotebooks(state, new_notebook);
+    }
+    case "remove_editor_node": {
+      const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
+      const path = action.path.slice(0, -1);
+      const parent_node = getEditorNode(notebook.editor_root, path);
+      if (parent_node === null || parent_node.type !== "Group") {
+        return state;
+      }
+      const idx = parent_node.children.findIndex(
+        (c) => c.id === action.path[action.path.length - 1],
+      );
+      if (idx === -1) {
+        return state;
+      }
+      const editor_root = updateEditor(notebook.editor_root, path, {
+        ...parent_node,
+        children: parent_node.children.filter(
+          (n) => n.id !== action.path[action.path.length - 1],
+        ),
+      } as EditorNode);
+      const new_notebook = {
+        ...notebook,
+        editor_root,
+      } as Notebook;
+      return updateNotebooks(state, new_notebook);
     }
     case "add_notebook": {
       const path = action.notebook.path;
@@ -433,15 +521,6 @@ export function stateReducer(state: State, action: StateAction): State {
         }
       }
       const new_notebook = { ...notebook, runs, current_run_id };
-      return updateNotebooks(state, new_notebook);
-    }
-    case "new_editor_cell": {
-      const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
-      const new_notebook = {
-        ...notebook,
-        // TODO
-        editor_root: notebook.editor_root,
-      };
       return updateNotebooks(state, new_notebook);
     }
     case "select_editor_node": {

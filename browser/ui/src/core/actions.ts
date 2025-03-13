@@ -1,17 +1,19 @@
 import {
   EditorCell,
   EditorNode,
+  EditorNodeId,
   Notebook,
   NotebookId,
   OutputCellFlag,
   RunId,
 } from "./notebook";
-import { State } from "./state";
+import { InsertType, State } from "./state";
 import { Dispatch } from "react";
 import { StateAction } from "./state";
 import { SendCommand } from "./messages";
 import { v4 as uuidv4 } from "uuid";
 import { PushNotification } from "../components/NotificationProvider";
+import { focusId } from "../components/EditorPanel";
 
 export function newRun(
   notebook: Notebook,
@@ -104,18 +106,72 @@ export function closeRun(
   });
 }
 
-export function newEdtorCell(
+export function newEditorGroup(
   notebook: Notebook,
+  node: EditorNode,
+  path: EditorNodeId[],
+  insert_type: InsertType,
   dispatch: Dispatch<StateAction>,
 ) {
-  const cell_id = uuidv4();
   dispatch({
-    type: "new_editor_cell",
+    type: "set_dialog",
+    dialog: {
+      title: "New group",
+      value: "",
+      okText: "Create new group",
+      onConfirm: (value) => {
+        const id = uuidv4();
+        dispatch({
+          type: "new_editor_node",
+          notebook_id: notebook.id,
+          path,
+          editor_node: {
+            type: "Group",
+            name: value,
+            id,
+            children: [],
+          },
+          insert_type,
+        });
+      },
+      onCancel: () => {
+        focusId(node.id);
+      },
+    },
+  });
+}
+
+export function newEditorCode(
+  notebook: Notebook,
+  path: EditorNodeId[],
+  insert_type: InsertType,
+  dispatch: Dispatch<StateAction>,
+) {
+  console.log("NEW CODE");
+  const id = uuidv4();
+
+  dispatch({
+    type: "new_editor_node",
     notebook_id: notebook.id,
-    editor_cell: {
-      id: cell_id,
+    path,
+    editor_node: {
+      type: "Cell",
+      id,
       code: "",
     },
+    insert_type,
+  });
+}
+
+export function removeEditorNode(
+  notebook: Notebook,
+  path: EditorNodeId[],
+  dispatch: Dispatch<StateAction>,
+) {
+  dispatch({
+    type: "remove_editor_node",
+    notebook_id: notebook.id,
+    path,
   });
 }
 
@@ -154,4 +210,27 @@ export function loadNotebook(
       path,
     });
   }
+}
+
+export function newGroup() {
+  dispatch({
+    type: "set_dialog",
+    dialog: {
+      title: "Group name",
+      value: node.name,
+      okText: "Rename group",
+      onCancel: () => {
+        focusId(node.id);
+      },
+      onConfirm: (value: string) => {
+        dispatch({
+          type: "update_editor_node",
+          notebook_id: notebook.id,
+          path,
+          node_update: { name: value },
+        });
+        focusId(node.id);
+      },
+    },
+  });
 }
