@@ -16,7 +16,11 @@ import {
   LuPlay,
   LuTrash2,
 } from "react-icons/lu";
-import { PopupMenu } from "./PopupMenu";
+import {
+  newEditorCode,
+  newEditorGroup,
+  removeEditorNode,
+} from "../core/actions";
 
 const NodeButton: React.FC<{
   onClick: () => void;
@@ -45,8 +49,9 @@ export const NodeToolbar: React.FC<{
   node: EditorNode;
   path: EditorNodeId[];
   notebook: Notebook;
-}> = ({ className, node, path, notebook }) => {
-  const isGroup = node.type === "Group";
+  isRoot: boolean;
+}> = ({ className, node, path, notebook, isRoot }) => {
+  const isGroup = node !== null && node.type === "Group";
   const dispatch = useDispatch()!;
   return (
     <div className={"flex " + className}>
@@ -80,39 +85,39 @@ export const NodeToolbar: React.FC<{
           <LuPencil size={14} />
         </NodeButton>
       )}
-      <NodeButton onClick={() => {}} isGroup={isGroup}>
+      {/* <NodeButton onClick={() => { }} isGroup={isGroup}>
         <LuPlay size={14} />
-      </NodeButton>
-      <PopupMenu
-        createButton={(toggleMenu) => (
-          <NodeButton onClick={toggleMenu} isGroup={isGroup}>
-            <LuFolderPlus size={14} />
-          </NodeButton>
-        )}
-        items={[
-          {
-            icon: "insert_child",
-            title: "Add child group",
-            onClick: () => {},
-          },
-          {
-            icon: "insert_above",
-            title: "Add group above",
-            onClick: () => {},
-          },
-          {
-            icon: "insert_below",
-            title: "Add group below",
-            onClick: () => {},
-          },
-        ]}
-      />
-      <NodeButton onClick={() => {}} isGroup={isGroup}>
-        <LuPlus size={14} />
-      </NodeButton>
-      <NodeButton onClick={() => {}} isGroup={isGroup}>
-        <LuTrash2 size={14} />
-      </NodeButton>
+      </NodeButton> */}
+      {isGroup && (
+        <NodeButton
+          onClick={() => {
+            newEditorGroup(notebook, node, path, "child", dispatch);
+          }}
+          isGroup={isGroup}
+        >
+          <LuFolderPlus size={14} />
+        </NodeButton>
+      )}
+      {isGroup && (
+        <NodeButton
+          onClick={() => {
+            newEditorCode(notebook, path, "child", dispatch);
+          }}
+          isGroup={isGroup}
+        >
+          <LuPlus size={14} />
+        </NodeButton>
+      )}
+      {!isRoot && (
+        <NodeButton
+          onClick={() => {
+            removeEditorNode(notebook, path, dispatch);
+          }}
+          isGroup={isGroup}
+        >
+          <LuTrash2 size={14} />
+        </NodeButton>
+      )}
     </div>
   );
 };

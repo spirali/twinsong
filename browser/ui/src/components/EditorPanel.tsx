@@ -1,10 +1,4 @@
-import React, {
-  Children,
-  Dispatch,
-  useCallback,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback } from "react";
 import {
   EditorCell,
   EditorNamedNode,
@@ -18,33 +12,30 @@ import { highlight, languages } from "prismjs/components/prism-core";
 import "prismjs/components/prism-python";
 import "prismjs/themes/prism.css";
 import { useSendCommand } from "./WsProvider";
-import { newEdtorCell, runCode, saveNotebook } from "../core/actions";
 import {
-  LuSquarePlus,
+  newEditorCode,
+  newEditorGroup,
+  runCode,
+  saveNotebook,
+} from "../core/actions";
+import {
   LuSave,
   LuLoaderCircle,
   LuChevronDown,
   LuChevronRight,
+  LuFolderPlus,
+  LuPlus,
 } from "react-icons/lu";
 import { usePushNotification } from "./NotificationProvider";
 import { NodeToolbar } from "./EditorToolbar";
-
-function getFirst(node: EditorNode, is_open: boolean): EditorNodeId | null {
-  if (node.type === "Group" && is_open && node.children.length > 0) {
-    return node.children[0].id;
-  } else {
-    return null;
-  }
-}
 
 const EditorNamedNodeRenderer: React.FC<{
   notebook: Notebook;
   path: EditorNodeId[];
   node: EditorNamedNode;
   depth: number;
-  prev_id: string | null;
-  next_id: string | null;
-}> = ({ notebook, path, node, depth, prev_id, next_id }) => {
+  orderedNodes: EditorNode[];
+}> = ({ notebook, path, node, depth, orderedNodes }) => {
   const dispatch = useDispatch()!;
   const sendCommand = useSendCommand()!;
   const pushNotification = usePushNotification();
@@ -58,7 +49,6 @@ const EditorNamedNodeRenderer: React.FC<{
         tabIndex={-1}
         className={`flex justify-between select-none rounded px-2 py-1 mb-1 text-gray-500 font-semibold focus:outline-0 ${isSelected ? "bg-blue-200" : "hover:bg-blue-50"}`}
         onClick={() => {
-          console.log(node.id, document.getElementById(node.id));
           document.getElementById(node.id)?.focus();
           // dispatch({
           //   type: "select_editor_cell",
@@ -81,14 +71,13 @@ const EditorNamedNodeRenderer: React.FC<{
           })
         }
         onKeyDown={(e) => {
-          console.log(e.key, prev_id);
-          if (e.key === "ArrowUp" && prev_id) {
+          if (e.key === "ArrowUp") {
             e.preventDefault();
-            move(prev_id, true);
+            move(node, orderedNodes, true);
           }
-          if (e.key === "ArrowDown" && (next_id || getFirst(node, isOpen))) {
+          if (e.key === "ArrowDown") {
             e.preventDefault();
-            move((getFirst(node, isOpen) || next_id)!, false);
+            move(node, orderedNodes, false);
           }
           if (
             (e.key === "ArrowLeft" && isOpen) ||
@@ -134,17 +123,40 @@ const EditorNamedNodeRenderer: React.FC<{
               node={node}
               notebook={notebook}
               path={path}
+              isRoot={depth === 0}
             />
           )}
         </div>
       </div>
       {isOpen && (
         <div className="ml-2">
+          {node.children.length == 0 && (
+            <div className="flex ml-5">
+              <div className="italic mr-3">Group is empty</div>
+              <NodeButton2
+                onClick={() => {
+                  newEditorGroup(notebook, node, path, "child", dispatch);
+                }}
+              >
+                <div className="inline-flex items-center">
+                  <LuFolderPlus className="mr-2" />
+                  Add group
+                </div>
+              </NodeButton2>
+              <NodeButton2
+                onClick={() => {
+                  newEditorCode(notebook, path, "child", dispatch);
+                }}
+              >
+                <div className="inline-flex items-center">
+                  <LuPlus className="mr-2" />
+                  Add code
+                </div>
+              </NodeButton2>
+            </div>
+          )}
           {node.children.map((child, i) => {
             const p = [...path, child.id];
-            const child_prev_id = i == 0 ? node.id : node.children[i - 1].id;
-            const child_next_id =
-              i == node.children.length - 1 ? next_id : node.children[i + 1].id;
             if (child.type === "Group") {
               return (
                 <EditorNamedNodeRenderer
@@ -153,8 +165,7 @@ const EditorNamedNodeRenderer: React.FC<{
                   path={p}
                   node={child}
                   depth={depth + 1}
-                  prev_id={child_prev_id}
-                  next_id={child_next_id}
+                  orderedNodes={orderedNodes}
                 />
               );
             } else if (child.type === "Cell") {
@@ -164,8 +175,7 @@ const EditorNamedNodeRenderer: React.FC<{
                   notebook={notebook}
                   path={p}
                   cell={child}
-                  prev_id={child_prev_id}
-                  next_id={child_next_id}
+                  orderedNodes={orderedNodes}
                 />
               );
             }
@@ -206,7 +216,21 @@ export function focusId(id: EditorNodeId) {
   }
 }
 
-function move(newId: EditorNodeId, is_up: boolean) {
+function move(node: EditorNode, orderedNodes: EditorNode[], is_up: boolean) {
+  let idx = orderedNodes.indexOf(node);
+  if (is_up) {
+    if (idx === 0) {
+      return;
+    }
+    idx -= 1;
+  } else {
+    if (idx === orderedNodes.length - 1) {
+      return;
+    }
+    idx += 1;
+  }
+  let newId = orderedNodes[idx].id;
+
   const element = document.getElementById(newId)!;
   const textArea = element.getElementsByTagName("textarea")[0];
   if (textArea) {
@@ -227,9 +251,8 @@ const EditorCellRenderer: React.FC<{
   notebook: Notebook;
   path: EditorNodeId[];
   cell: EditorCell;
-  prev_id: string | null;
-  next_id: string | null;
-}> = ({ notebook, path, cell, prev_id, next_id }) => {
+  orderedNodes: EditorNode[];
+}> = ({ notebook, path, cell, orderedNodes }) => {
   const dispatch = useDispatch()!;
   const sendCommand = useSendCommand()!;
   const pushNotification = usePushNotification();
@@ -244,6 +267,7 @@ const EditorCellRenderer: React.FC<{
           node={cell}
           notebook={notebook}
           path={path}
+          isRoot={false}
         />
       )}
       <div className="mb-1 border border-gray-400 rounded-md overflow-hidden">
@@ -255,13 +279,13 @@ const EditorCellRenderer: React.FC<{
               editor_node_id: cell.id,
             })
           }
-          onBlur={() =>
-            dispatch({
-              type: "select_editor_node",
-              notebook_id: notebook.id,
-              editor_node_id: null,
-            })
-          }
+          onBlur={() => {
+            // dispatch({
+            //   type: "select_editor_node",
+            //   notebook_id: notebook.id,
+            //   editor_node_id: null,
+            // })
+          }}
           id={cell.id}
           value={cell.code}
           onValueChange={(code) => {
@@ -283,13 +307,13 @@ const EditorCellRenderer: React.FC<{
               e.preventDefault();
               runCode(cell, notebook, dispatch, sendCommand, pushNotification);
             }
-            if (e.key === "ArrowUp" && prev_id && checkIfFirstLine(e)) {
+            if (e.key === "ArrowUp" && checkIfFirstLine(e)) {
               e.preventDefault();
-              move(prev_id, true);
+              move(cell, orderedNodes, true);
             }
-            if (e.key === "ArrowDown" && next_id && checkIfLastLine(e)) {
+            if (e.key === "ArrowDown" && checkIfLastLine(e)) {
               e.preventDefault();
-              move(next_id, false);
+              move(cell, orderedNodes, false);
             }
           }}
         />
@@ -312,12 +336,27 @@ const ToolButton: React.FC<{
   );
 };
 
+function crawlOpen(
+  node: EditorNode,
+  opens: Set<EditorNodeId>,
+  out: EditorNode[],
+) {
+  out.push(node);
+  if (node.type === "Group" && opens.has(node.id)) {
+    for (const child of node.children) {
+      crawlOpen(child, opens, out);
+    }
+  }
+}
+
 const EditorPanel: React.FC<{ notebook: Notebook }> = ({ notebook }) => {
   const dispatch = useDispatch()!;
   const sendCommand = useSendCommand()!;
   const onSave = useCallback(() => {
     saveNotebook(notebook, dispatch, sendCommand);
   }, [notebook, dispatch, sendCommand]);
+  const orderedNodes: EditorNode[] = [];
+  crawlOpen(notebook.editor_root, notebook.editor_open_nodes, orderedNodes);
   return (
     <div className={"h-full"}>
       {/* Toolbar */}
@@ -330,16 +369,6 @@ const EditorPanel: React.FC<{ notebook: Notebook }> = ({ notebook }) => {
               <LuSave className="w-4 h-4" />
             )}
           </ToolButton>
-
-          <ToolButton
-            onClick={() => {
-              newEdtorCell(notebook, dispatch);
-            }}
-          >
-            <div className="flex items-center">
-              <LuSquarePlus className="w-4 h-4 mr-2" /> Add code cell
-            </div>
-          </ToolButton>
         </div>
       </div>
 
@@ -348,25 +377,35 @@ const EditorPanel: React.FC<{ notebook: Notebook }> = ({ notebook }) => {
         className="pl-1 pr-2 pt-2 pb-2 space-y-4 overflow-auto"
         style={{ height: "calc(100vh - 150px)" }}
       >
-        {/*notebook.editor_cells.map((cell, index) => (
-          <EditorCellRenderer
-            key={cell.id}
-            notebook={notebook}
-            cell={cell}
-            prev_id={notebook.editor_cells[index - 1]?.id || null}
-            next_id={notebook.editor_cells[index + 1]?.id || null}
-          />
-        ))*/}
         <EditorNamedNodeRenderer
           notebook={notebook}
           path={[]}
           node={notebook.editor_root}
           depth={0}
-          prev_id={null}
-          next_id={null}
+          orderedNodes={orderedNodes}
         />
       </div>
     </div>
+  );
+};
+
+const NodeButton2: React.FC<{
+  onClick: () => void;
+  children: React.ReactNode;
+}> = ({ onClick, children }) => {
+  const className =
+    "text-gray-700 bg-gray-200 py-1 px-3 mr-1 rounded hover:bg-gray-400";
+  return (
+    <button
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onClick();
+      }}
+      className={className}
+    >
+      {children}
+    </button>
   );
 };
 
