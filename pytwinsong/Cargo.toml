@@ -15,7 +15,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 anyhow = { workspace = true }
 
-comm = { path = "../comm" }
+comm = { path = "../common" }
 twinsong = { path = "../twinsong" }
 
 tokio-util = { workspace = true, features = ["codec"] }

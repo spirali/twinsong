@@ -4,7 +4,7 @@ use crate::client_messages::{
 };
 use crate::kernel::{spawn_kernel, KernelCtx};
 use crate::notebook::{
-    generate_new_notebook_path, Globals, KernelId, KernelState, Notebook, NotebookId, OutputCell,
+    generate_new_notebook_path, KernelId, KernelState, Notebook, NotebookId, OutputCell,
     OutputCellId, OutputValue, Run, RunId,
 };
 use crate::state::{AppState, AppStateRef};
@@ -12,6 +12,7 @@ use crate::storage::{deserialize_notebook, serialize_notebook};
 use anyhow::bail;
 use axum::extract::ws::Message;
 use comm::messages::{ComputeMsg, FromKernelMessage, ToKernelMessage};
+use comm::scopes::SerializedGlobals;
 use std::path::Path;
 use tokio::spawn;
 use tokio::sync::mpsc::UnboundedSender;
@@ -53,7 +54,7 @@ pub(crate) fn start_kernel(
         run_title,
         Vec::new(),
         KernelState::Init(kernel_ctx.kernel_id),
-        Globals::default(),
+        SerializedGlobals::default(),
     );
     notebook.add_run(run_id, run);
     match spawn_kernel(state_ref, kernel_ctx, kernel_port) {
@@ -103,7 +104,7 @@ pub(crate) fn process_kernel_message(
             value,
             cell_id,
             flag,
-            globals,
+            update,
         } => {
             let value = OutputValue::new(value);
             let notebook = state.find_notebook_by_id_mut(kernel_ctx.notebook_id)?;
@@ -113,10 +114,10 @@ pub(crate) fn process_kernel_message(
                 cell_id: OutputCellId::new(cell_id),
                 value: &value,
                 flag,
-                globals: globals.as_ref(),
+                update: update.as_ref(),
             });
             let run = notebook.find_run_by_id_mut(kernel_ctx.run_id)?;
-            if let Some(update) = globals {
+            if let Some(update) = update {
                 run.update_globals(update)
             }
             run.add_output(OutputCellId::new(cell_id), value, flag);

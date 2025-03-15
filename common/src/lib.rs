@@ -1,5 +1,6 @@
 pub mod messages;
 mod protocol;
+pub mod scopes;
 
 use tokio::net::TcpStream;
 use tokio_util::codec::{Framed, LengthDelimitedCodec};

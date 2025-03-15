@@ -1,17 +1,17 @@
 use crate::control::start_control_process;
-use crate::jobject::create_jobject_string;
+use crate::scopes::ScopedPyGlobals;
 use crate::stdio::RedirectedStdio;
-use comm::messages::{CodeLeaf, CodeNode, ComputeMsg, Exception, KernelOutputValue, OutputFlag};
-use pyo3::types::{PyAnyMethods, PyTracebackMethods};
-use pyo3::types::{PyNone, PyStringMethods};
+use comm::messages::{
+    CodeLeaf, CodeNode, CodeScope, ComputeMsg, Exception, KernelOutputValue, OutputFlag,
+    OwnCodeScope,
+};
+use comm::scopes::SerializedGlobals;
+use pyo3::types::{PyAnyMethods, PyDict, PyTracebackMethods};
+use pyo3::types::PyStringMethods;
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyErr, PyResult, Python};
-use std::collections::HashMap;
-use std::sync::Arc;
 use tokio::runtime::Builder;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use uuid::Uuid;
-
-pub type Globals = HashMap<String, Arc<String>>;
 
 #[derive(Debug)]
 pub enum FromExecutorMessage {
@@ -19,7 +19,7 @@ pub enum FromExecutorMessage {
         value: KernelOutputValue,
         cell_id: Uuid,
         flag: OutputFlag,
-        globals: Option<Globals>,
+        update: Option<SerializedGlobals>,
     },
 }
 
@@ -49,39 +49,94 @@ fn try_repr_html(obj: &Bound<PyAny>) -> PyResult<Option<String>> {
 fn eval_code<'a>(
     py: Python<'a>,
     code: &str,
+    globals: &Bound<'a, PyDict>,
+    locals: &Bound<'a, PyDict>,
     stdout: &'a Bound<PyAny>,
     return_last: bool,
 ) -> PyResult<Bound<'a, PyAny>> {
     let run_module = py.import("twinsong.driver.run")?;
     run_module
         .getattr("run_code")?
-        .call1((code, stdout, return_last))
+        .call1((code, globals, locals, stdout, return_last))
 }
 
-fn collect_code_leafs<'a>(node: &'a CodeNode, out: &mut Vec<&'a CodeLeaf>) {
+struct CodeEnv<'a> {
+    leaf: &'a CodeLeaf,
+    globals: Bound<'a, PyDict>,
+    locals: Bound<'a, PyDict>,
+}
+
+fn collect_code_leafs<'a, 'b>(
+    node: &'a CodeNode,
+    py: Python<'a>,
+    scope_storage: &'b mut ScopedPyGlobals,
+    parent_scopes: &'b mut Vec<&'a OwnCodeScope>,
+    out: &mut Vec<CodeEnv<'a>>,
+) {
     match node {
         CodeNode::Group(group) => {
+            match &group.scope {
+                CodeScope::Own(own_scope) => {
+                    parent_scopes.push(own_scope);
+                }
+                CodeScope::Inherit => {}
+            }
             for child in &group.children {
-                collect_code_leafs(child, out);
+                collect_code_leafs(child, py, scope_storage, parent_scopes, out);
+            }
+            match group.scope {
+                CodeScope::Own(_) => {
+                    parent_scopes.pop();
+                }
+                CodeScope::Inherit => {}
             }
         }
-        CodeNode::Leaf(leaf) => out.push(leaf),
+        CodeNode::Leaf(leaf) => {
+            let (globals, locals) = scope_storage
+                .make_globals_and_locals(py, parent_scopes)
+                .unwrap();
+            out.push(CodeEnv {
+                leaf,
+                globals,
+                locals,
+            })
+        }
     }
 }
 
-fn run_code(py: Python, code: &CodeNode, stdout: Bound<PyAny>) -> PyResult<KernelOutputValue> {
+fn run_code(
+    py: Python<'_>,
+    py_scopes: &mut ScopedPyGlobals,
+    code: &CodeNode,
+    stdout: Bound<PyAny>,
+) -> PyResult<KernelOutputValue> {
     // let s = CString::new(code.as_bytes())?;
     // let result = py.eval(&s, None, None)?;
     let mut codes = Vec::new();
-    collect_code_leafs(code, &mut codes);
+    let mut parent_scopes = Vec::new();
+    collect_code_leafs(code, py, py_scopes, &mut parent_scopes, &mut codes);
     if codes.is_empty() {
         return Ok(KernelOutputValue::None);
     }
     let last = codes.pop().unwrap();
     for code in codes {
-        eval_code(py, &code.code, &stdout, false)?;
+        eval_code(
+            py,
+            &code.leaf.code,
+            &code.globals,
+            &code.locals,
+            &stdout,
+            false,
+        )?;
     }
-    let result = eval_code(py, &last.code, &stdout, true)?;
+    let result = eval_code(
+        py,
+        &last.leaf.code,
+        &last.globals,
+        &last.locals,
+        &stdout,
+        true,
+    )?;
     if result.is_none() {
         return Ok(KernelOutputValue::None);
     }
@@ -108,10 +163,7 @@ fn create_traceback(py: &Python, e: PyErr) -> PyResult<Exception> {
     })
 }
 
-fn get_globals(py: Python) -> Globals {
-    let run_module = py.import("twinsong.driver.run").unwrap();
-    let variables: HashMap<String, Bound<'_, PyAny>> =
-        run_module.getattr("VARIABLES").unwrap().extract().unwrap();
+/*fn get_globals(py: Python, scope_storage: &ScopeStorage) -> ScopeObjects {
     variables
         .into_iter()
         .filter_map(|(k, v)| {
@@ -122,24 +174,24 @@ fn get_globals(py: Python) -> Globals {
             }
         })
         .collect()
-}
+}*/
 
 async fn executor_main(
     o_sender: UnboundedSender<FromExecutorMessage>,
     mut c_receiver: UnboundedReceiver<ComputeMsg>,
 ) -> anyhow::Result<()> {
+    let mut py_scopes = Python::with_gil(ScopedPyGlobals::new);
     while let Some(msg) = c_receiver.recv().await {
         tracing::debug!("New command: {:?}", msg);
         let stdout = RedirectedStdio::new(o_sender.clone(), msg.cell_id);
-
         let out_msg = Python::with_gil(|py| {
             let stdout = stdout.into_bound_py_any(py).unwrap();
-            match run_code(py, &msg.code, stdout) {
+            match run_code(py, &mut py_scopes, &msg.code, stdout) {
                 Ok(output) => FromExecutorMessage::Output {
                     value: output,
                     cell_id: msg.cell_id,
                     flag: OutputFlag::Success,
-                    globals: Some(get_globals(py)),
+                    update: Some(py_scopes.serialize(py)),
                 },
                 Err(e) => FromExecutorMessage::Output {
                     value: KernelOutputValue::Exception {
@@ -147,7 +199,7 @@ async fn executor_main(
                     },
                     cell_id: msg.cell_id,
                     flag: OutputFlag::Fail,
-                    globals: Some(get_globals(py)),
+                    update: Some(py_scopes.serialize(py)),
                 },
             }
         });
