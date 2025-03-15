@@ -4,7 +4,8 @@ use crate::client_messages::{
 use anyhow::anyhow;
 use axum::extract::ws::Message;
 use comm::messages::{
-    CodeGroup, CodeLeaf, CodeNode, Exception, GlobalsUpdate, KernelOutputValue, OutputFlag,
+    CodeGroup, CodeLeaf, CodeNode, CodeScope, Exception, GlobalsUpdate, KernelOutputValue,
+    OutputFlag,
 };
 use nutype::nutype;
 use serde::{Deserialize, Serialize};
@@ -30,6 +31,10 @@ impl EditorNode {
                     .iter()
                     .map(|child| child.to_code_node())
                     .collect(),
+                scope: match node.scope {
+                    ScopeType::Own => CodeScope::Scope(node.id.into_inner()),
+                    ScopeType::Inherit => CodeScope::Inherit,
+                },
             }),
             EditorNode::Cell(cell) => CodeNode::Leaf(CodeLeaf {
                 id: cell.id.into_inner(),
@@ -46,10 +51,17 @@ impl EditorNode {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub(crate) enum ScopeType {
+    Own,
+    Inherit,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct EditorGroup {
     pub id: EditorId,
     pub name: String,
     pub children: Vec<EditorNode>,
+    pub scope: ScopeType,
 }
 
 impl EditorGroup {
@@ -313,6 +325,7 @@ impl Notebook {
         let editor_root = EditorGroup {
             id: EditorId::new(Uuid::new_v4()),
             name: "root".to_string(),
+            scope: ScopeType::Own,
             children: vec![
                 EditorNode::Group(EditorGroup {
                     id: EditorId::new(Uuid::new_v4()),
@@ -321,6 +334,7 @@ impl Notebook {
                         id: EditorId::new(Uuid::new_v4()),
                         code: "import pandas as pd\nimport numpy as np".to_string(),
                     })],
+                    scope: ScopeType::Own,
                 }),
                 EditorNode::Group(EditorGroup {
                     id: EditorId::new(Uuid::new_v4()),
@@ -335,6 +349,7 @@ impl Notebook {
                             code: "".to_string(),
                         }),
                     ],
+                    scope: ScopeType::Inherit,
                 }),
             ],
         };

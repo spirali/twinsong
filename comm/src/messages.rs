@@ -2,6 +2,12 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum CodeScope {
+    Scope(Uuid),
+    Inherit,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub enum CodeNode {
     Group(CodeGroup),
@@ -11,6 +17,7 @@ pub enum CodeNode {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CodeGroup {
     pub children: Vec<CodeNode>,
+    pub scope: CodeScope,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

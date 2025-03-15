@@ -211,26 +211,3 @@ export function loadNotebook(
     });
   }
 }
-
-export function newGroup() {
-  dispatch({
-    type: "set_dialog",
-    dialog: {
-      title: "Group name",
-      value: node.name,
-      okText: "Rename group",
-      onCancel: () => {
-        focusId(node.id);
-      },
-      onConfirm: (value: string) => {
-        dispatch({
-          type: "update_editor_node",
-          notebook_id: notebook.id,
-          path,
-          node_update: { name: value },
-        });
-        focusId(node.id);
-      },
-    },
-  });
-}
