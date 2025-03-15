@@ -1,4 +1,4 @@
-use crate::executor::FromExecutorMessage;
+use crate::executor::{FromExecutorMessage, SerializedScopes};
 use anyhow::anyhow;
 use comm::messages::{ComputeMsg, FromKernelMessage, ToKernelMessage};
 use comm::{make_protocol_builder, parse_to_kernel_message, serialize_from_kernel_message, Codec};
@@ -62,43 +62,48 @@ async fn forward_sender(
     mut sender: SplitSink<Codec, Bytes>,
     mut o_receiver: UnboundedReceiver<FromExecutorMessage>,
 ) -> anyhow::Result<()> {
-    let mut last_globals: HashMap<String, Arc<String>> = HashMap::new();
+    let mut last_objects: SerializedScopes = HashMap::new();
     while let Some(msg) = o_receiver.recv().await {
         let out_msg = match msg {
             FromExecutorMessage::Output {
                 value,
                 cell_id,
                 flag,
-                globals,
+                objects,
             } => {
-                dbg!(&last_globals);
-                let globals = if let Some(new_globals) = globals {
-                    let g = new_globals
+                let update = if let Some(new_objects) = objects {
+                    let update = new_objects
                         .iter()
-                        .map(|(name, value)| {
+                        .map(|(key, objs)| {
                             (
-                                name.clone(),
-                                if let Some(true) =
-                                    last_globals.get(name).map(|v| v.as_str() == value.as_str())
-                                {
-                                    None
-                                } else {
-                                    Some(value.clone())
-                                },
+                                key.clone(),
+                                objs.map(|(name, value)| {
+                                    (
+                                        name.clone(),
+                                        if let Some(true) = last_objects
+                                            .get(name)
+                                            .map(|v| v.as_str() == value.as_str())
+                                        {
+                                            None
+                                        } else {
+                                            Some(value.clone())
+                                        },
+                                    )
+                                })
+                                .collect(),
                             )
                         })
                         .collect();
-                    last_globals = new_globals;
-                    Some(g)
+                    last_objects = new_objects;
+                    Some(update)
                 } else {
                     None
                 };
-                dbg!(&globals);
                 FromKernelMessage::Output {
                     value,
                     cell_id,
                     flag,
-                    globals,
+                    update,
                 }
             }
         };

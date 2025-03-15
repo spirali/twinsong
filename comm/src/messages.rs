@@ -68,7 +68,9 @@ pub enum KernelOutputValue {
     None,
 }
 
-pub type GlobalsUpdate = Vec<(String, Option<Arc<String>>)>;
+pub type ScopeKey = Vec<Uuid>;
+pub type ScopeUpdate = Vec<(String, Option<Arc<String>>)>;
+pub type ScopeUpdates = Vec<(ScopeKey, ScopeUpdate)>;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum FromKernelMessage {
@@ -79,6 +81,6 @@ pub enum FromKernelMessage {
         value: KernelOutputValue,
         cell_id: Uuid,
         flag: OutputFlag,
-        globals: Option<GlobalsUpdate>,
+        update: Option<ScopeUpdates>,
     },
 }

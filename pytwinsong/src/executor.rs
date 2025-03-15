@@ -1,6 +1,6 @@
 use crate::control::start_control_process;
 use crate::jobject::create_jobject_string;
-use crate::scopes::ScopeStorage;
+use crate::scopes::ScopePyStorage;
 use crate::stdio::RedirectedStdio;
 use comm::messages::{
     CodeLeaf, CodeNode, CodeScope, ComputeMsg, Exception, KernelOutputValue, OutputFlag,
@@ -14,15 +14,13 @@ use tokio::runtime::Builder;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use uuid::Uuid;
 
-pub type Globals = HashMap<String, Arc<String>>;
-
 #[derive(Debug)]
 pub enum FromExecutorMessage {
     Output {
         value: KernelOutputValue,
         cell_id: Uuid,
         flag: OutputFlag,
-        globals: Option<Globals>,
+        objects: Option<SerializedScopes>,
     },
 }
 
@@ -72,7 +70,7 @@ struct CodeEnv<'a> {
 fn collect_code_leafs<'a, 'b>(
     node: &'a CodeNode,
     py: Python<'a>,
-    scope_storage: &'b mut ScopeStorage,
+    scope_storage: &'b mut ScopePyStorage,
     parent_scopes: &'b mut Vec<Uuid>,
     out: &mut Vec<CodeEnv<'a>>,
 ) {
@@ -109,7 +107,7 @@ fn collect_code_leafs<'a, 'b>(
 
 fn run_code(
     py: Python,
-    scope_storage: &mut ScopeStorage,
+    scope_storage: &mut ScopePyStorage,
     parent_scopes: &mut Vec<Uuid>,
     code: &CodeNode,
     stdout: Bound<PyAny>,
@@ -166,10 +164,7 @@ fn create_traceback(py: &Python, e: PyErr) -> PyResult<Exception> {
     })
 }
 
-fn get_globals(py: Python) -> Globals {
-    let run_module = py.import("twinsong.driver.run").unwrap();
-    let variables: HashMap<String, Bound<'_, PyAny>> =
-        run_module.getattr("VARIABLES").unwrap().extract().unwrap();
+/*fn get_globals(py: Python, scope_storage: &ScopeStorage) -> ScopeObjects {
     variables
         .into_iter()
         .filter_map(|(k, v)| {
@@ -180,14 +175,14 @@ fn get_globals(py: Python) -> Globals {
             }
         })
         .collect()
-}
+}*/
 
 async fn executor_main(
     o_sender: UnboundedSender<FromExecutorMessage>,
     mut c_receiver: UnboundedReceiver<ComputeMsg>,
 ) -> anyhow::Result<()> {
     let mut parent_scopes = Vec::new();
-    let mut scope_storage = ScopeStorage::default();
+    let mut scope_storage = ScopePyStorage::default();
     while let Some(msg) = c_receiver.recv().await {
         tracing::debug!("New command: {:?}", msg);
         let stdout = RedirectedStdio::new(o_sender.clone(), msg.cell_id);
@@ -204,7 +199,7 @@ async fn executor_main(
                     value: output,
                     cell_id: msg.cell_id,
                     flag: OutputFlag::Success,
-                    globals: Some(get_globals(py)),
+                    objects: Some(get_globals(py)),
                 },
                 Err(e) => FromExecutorMessage::Output {
                     value: KernelOutputValue::Exception {
@@ -212,7 +207,7 @@ async fn executor_main(
                     },
                     cell_id: msg.cell_id,
                     flag: OutputFlag::Fail,
-                    globals: Some(get_globals(py)),
+                    objects: Some(get_globals(py)),
                 },
             }
         });

@@ -1,5 +1,5 @@
 use crate::notebook::{
-    EditorCell, EditorGroup, Globals, KernelState, Notebook, OutputCell, Run, RunId,
+    EditorCell, EditorGroup, KernelState, Notebook, OutputCell, Run, RunId, ScopedObjects,
 };
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
@@ -20,7 +20,7 @@ struct RunStore<'a> {
     title: &'a str,
     kernel_state: KernelStateStore,
     output_cells: &'a [OutputCell],
-    globals: &'a Globals,
+    globals: &'a ScopedObjects,
 }
 
 #[derive(Debug, Serialize)]
@@ -38,7 +38,7 @@ struct RunLoad {
     kernel_state: KernelStateStore,
 
     #[serde(default)]
-    globals: Globals,
+    globals: ScopedObjects,
 }
 
 #[derive(Debug, Deserialize)]

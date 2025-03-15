@@ -4,8 +4,8 @@ use crate::client_messages::{
 use anyhow::anyhow;
 use axum::extract::ws::Message;
 use comm::messages::{
-    CodeGroup, CodeLeaf, CodeNode, CodeScope, Exception, GlobalsUpdate, KernelOutputValue,
-    OutputFlag,
+    CodeGroup, CodeLeaf, CodeNode, CodeScope, Exception, KernelOutputValue, OutputFlag, ScopeKey,
+    ScopeUpdates,
 };
 use nutype::nutype;
 use serde::{Deserialize, Serialize};
@@ -196,12 +196,13 @@ pub enum KernelState {
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 #[serde(transparent)]
-pub struct Globals(Vec<(String, Arc<String>)>);
+pub struct ScopedObjects(Vec<(ScopeKey, Vec<(String, Arc<String>)>)>);
 
-impl Globals {
-    pub fn update(&mut self, update: GlobalsUpdate) {
+impl ScopedObjects {
+    pub fn update(&mut self, update: ScopeUpdates) {
         let mut old = self.0.drain(..).collect::<HashMap<_, _>>();
-        for up in update {
+        for (key, ups) in update {
+            for up in ups {}
             let data = up.1.unwrap_or_else(|| old.remove(&up.0).unwrap());
             self.0.push((up.0, data));
         }
@@ -213,7 +214,7 @@ pub(crate) struct Run {
     title: String,
     output_cells: Vec<OutputCell>,
     kernel: KernelState,
-    globals: Globals,
+    globals: ScopedObjects,
 }
 
 impl Run {
@@ -221,7 +222,7 @@ impl Run {
         title: String,
         output_cells: Vec<OutputCell>,
         kernel: KernelState,
-        globals: Globals,
+        globals: ScopedObjects,
     ) -> Self {
         Run {
             title,
@@ -257,11 +258,11 @@ impl Run {
         self.output_cells.push(output_cell);
     }
 
-    pub fn update_globals(&mut self, update: GlobalsUpdate) {
+    pub fn update_scopes(&mut self, update: ScopeUpdates) {
         self.globals.update(update);
     }
 
-    pub fn globals(&self) -> &Globals {
+    pub fn globals(&self) -> &ScopedObjects {
         &self.globals
     }
 

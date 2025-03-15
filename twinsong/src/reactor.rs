@@ -4,8 +4,8 @@ use crate::client_messages::{
 };
 use crate::kernel::{spawn_kernel, KernelCtx};
 use crate::notebook::{
-    generate_new_notebook_path, Globals, KernelId, KernelState, Notebook, NotebookId, OutputCell,
-    OutputCellId, OutputValue, Run, RunId,
+    generate_new_notebook_path, KernelId, KernelState, Notebook, NotebookId, OutputCell,
+    OutputCellId, OutputValue, Run, RunId, ScopedObjects,
 };
 use crate::state::{AppState, AppStateRef};
 use crate::storage::{deserialize_notebook, serialize_notebook};
@@ -53,7 +53,7 @@ pub(crate) fn start_kernel(
         run_title,
         Vec::new(),
         KernelState::Init(kernel_ctx.kernel_id),
-        Globals::default(),
+        ScopedObjects::default(),
     );
     notebook.add_run(run_id, run);
     match spawn_kernel(state_ref, kernel_ctx, kernel_port) {
@@ -103,7 +103,7 @@ pub(crate) fn process_kernel_message(
             value,
             cell_id,
             flag,
-            globals,
+            update: globals,
         } => {
             let value = OutputValue::new(value);
             let notebook = state.find_notebook_by_id_mut(kernel_ctx.notebook_id)?;
