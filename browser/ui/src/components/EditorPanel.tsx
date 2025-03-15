@@ -25,6 +25,11 @@ import {
   LuChevronRight,
   LuFolderPlus,
   LuPlus,
+  LuGlobe,
+  LuArrowBigDown,
+  LuArrowBigUp,
+  LuCross,
+  LuDelete,
 } from "react-icons/lu";
 import { usePushNotification } from "./NotificationProvider";
 import { NodeToolbar } from "./EditorToolbar";
@@ -96,7 +101,7 @@ const EditorNamedNodeRenderer: React.FC<{
           }
         }}
       >
-        <div className="mr-4">
+        <div className="mr-4 flex items-center">
           <button
             className="mr-1"
             onClick={(e) => {
@@ -114,6 +119,9 @@ const EditorNamedNodeRenderer: React.FC<{
               <LuChevronRight size={16} />
             )}
           </button>
+          <div className="mr-2 text-purple-300">
+          { depth == 0 ? <LuGlobe size={18}/> :  <LuArrowBigUp size={18}/> }
+          </div>
           {node.name}
         </div>
         <div>

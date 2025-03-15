@@ -1,6 +1,7 @@
 mod control;
 mod executor;
 mod jobject;
+mod scopes;
 mod stdio;
 
 use crate::executor::start_executor;

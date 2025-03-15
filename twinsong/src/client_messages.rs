@@ -1,9 +1,10 @@
 use crate::notebook::{
-    EditorCell, EditorGroup, EditorId, EditorNode, Globals, KernelId, NotebookId, OutputCell,
-    OutputCellId, OutputValue, RunId,
+    EditorGroup, EditorId, EditorNode, KernelId, NotebookId, OutputCell, OutputCellId,
+    OutputValue, RunId,
 };
 use axum::extract::ws::Message;
-use comm::messages::{GlobalsUpdate, OutputFlag};
+use comm::messages::OutputFlag;
+use comm::scopes::{SerializedGlobals, SerializedGlobalsUpdate};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
@@ -69,7 +70,7 @@ pub(crate) struct RunDesc<'a> {
     pub title: &'a str,
     pub output_cells: &'a [OutputCell],
     pub kernel_state: KernelStateDesc<'a>,
-    pub globals: &'a Globals,
+    pub globals: &'a SerializedGlobals,
 }
 
 #[derive(Debug, Serialize)]
@@ -127,7 +128,7 @@ pub(crate) enum ToClientMessage<'a> {
         cell_id: OutputCellId,
         value: &'a OutputValue,
         flag: OutputFlag,
-        globals: Option<&'a GlobalsUpdate>,
+        update: Option<&'a SerializedGlobalsUpdate>,
     },
     SaveCompleted {
         notebook_id: NotebookId,

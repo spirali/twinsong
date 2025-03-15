@@ -1,7 +1,6 @@
-use crate::notebook::{
-    EditorCell, EditorGroup, Globals, KernelState, Notebook, OutputCell, Run, RunId,
-};
+use crate::notebook::{EditorGroup, KernelState, Notebook, OutputCell, Run, RunId};
 use anyhow::bail;
+use comm::scopes::SerializedGlobals;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -20,7 +19,7 @@ struct RunStore<'a> {
     title: &'a str,
     kernel_state: KernelStateStore,
     output_cells: &'a [OutputCell],
-    globals: &'a Globals,
+    globals: &'a SerializedGlobals,
 }
 
 #[derive(Debug, Serialize)]
@@ -38,7 +37,7 @@ struct RunLoad {
     kernel_state: KernelStateStore,
 
     #[serde(default)]
-    globals: Globals,
+    globals: SerializedGlobals,
 }
 
 #[derive(Debug, Deserialize)]

@@ -21,27 +21,53 @@ def test_execute_command(client):
            ] == k.run_code("print('Hello')\nprint('World')")
 
 
-def test_globals_update(client):
+def test_globals_update_without_scopes(client):
     r = client.create_new_notebook()
     k = client.create_new_kernel(r["notebook"]["id"])
     k.run_code("x = 2")
-    assert len(k.last_globals) == 1
-    x = build_jobject_from_text(k.last_globals["x"])
+    assert len(k.last_update["variables"]) == 1
+    x = build_jobject_from_text(k.last_update["variables"]["x"])
     assert x == {"kind": "number", "repr": "2", "value_type": "int"}
 
     k.run_code("x = 3\ny = 4")
-    print(k.last_globals)
-    assert len(k.last_globals) == 2
-    x = build_jobject_from_text(k.last_globals["x"])
+    print(k.last_update)
+    assert len(k.last_update["variables"]) == 2
+    x = build_jobject_from_text(k.last_update["variables"]["x"])
     assert x == {"kind": "number", "repr": "3", "value_type": "int"}
-    x = build_jobject_from_text(k.last_globals["y"])
+    x = build_jobject_from_text(k.last_update["variables"]["y"])
     assert x == {"kind": "number", "repr": "4", "value_type": "int"}
 
     k.run_code("x = 5")
-    assert len(k.last_globals) == 2
-    x = build_jobject_from_text(k.last_globals["x"])
+    assert len(k.last_update["variables"]) == 2
+    x = build_jobject_from_text(k.last_update["variables"]["x"])
     assert x == {"kind": "number", "repr": "5", "value_type": "int"}
-    assert k.last_globals["y"] is None
+    assert k.last_update["variables"]["y"] is None
+
+
+def test_globals_update_scopes(client):
+    r = client.create_new_notebook()
+    k = client.create_new_kernel(r["notebook"]["id"])
+    k.run_code("x = 2")
+    group_id1 = str(uuid.uuid4())
+    group_id2 = str(uuid.uuid4())
+    k.run_code({"type": "Group", "id": group_id1, "name": "G1", "scope": "Own", "children": [
+        {"type": "Cell", "id": str(uuid.uuid4()), "code": "x = 3"},
+    ]})
+    assert len(k.last_update["children"]) == 1
+    assert k.last_update["name"] == ""
+    assert k.last_update["children"][group_id1]["name"] == "G1"
+
+    x = build_jobject_from_text(k.last_update["children"][group_id1]["variables"]["x"])
+    assert x == {"kind": "number", "repr": "3", "value_type": "int"}
+
+    k.run_code(
+        {"type": "Group", "id": group_id2, "name": "G1", "scope": "Inherit", "children": [
+            {"type": "Cell", "id": str(uuid.uuid4()), "code": "x = 4"}
+        ]})
+    assert len(k.last_update["children"]) == 1
+    x = build_jobject_from_text(k.last_update["variables"]["x"])
+    assert x == {"kind": "number", "repr": "4", "value_type": "int"}
+    assert k.last_update["children"][group_id1]["variables"]["x"] is None
 
 
 def test_save_notebook_plain(client):
@@ -54,6 +80,7 @@ def test_save_notebook_plain(client):
     editor_root = {
         "id": "a0ff2759-edf5-44ac-a367-6d86c6bc4bcf",
         "name": "root",
+        "scope": "Own",
         "children": [{
             "type": "Cell",
             "id": "b3852a51-3782-4e11-9182-33a1455139b0",
@@ -218,11 +245,13 @@ def test_execute_tree(client):
         "type": "Group",
         "name": "root",
         "id": "e21693b2-3b93-48e4-87ca-1b6226045438",
+        "scope": "Own",
         "children": [
             {
                 "type": "Group",
                 "name": "root",
                 "id": "b8f6e75a-dd3b-4df1-88cb-edd4e74c1771",
+                "scope": "Inherit",
                 "children": [
                     {"type": "Cell",
                      "id": "0e093025-1030-4458-b2c8-174066568ea9",

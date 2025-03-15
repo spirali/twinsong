@@ -1,6 +1,18 @@
+use crate::scopes::SerializedGlobalsUpdate;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use uuid::Uuid;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OwnCodeScope {
+    pub id: Uuid,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum CodeScope {
+    Own(OwnCodeScope),
+    Inherit,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum CodeNode {
@@ -11,6 +23,7 @@ pub enum CodeNode {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CodeGroup {
     pub children: Vec<CodeNode>,
+    pub scope: CodeScope,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -61,8 +74,6 @@ pub enum KernelOutputValue {
     None,
 }
 
-pub type GlobalsUpdate = Vec<(String, Option<Arc<String>>)>;
-
 #[derive(Debug, Serialize, Deserialize)]
 pub enum FromKernelMessage {
     Login {
@@ -72,6 +83,6 @@ pub enum FromKernelMessage {
         value: KernelOutputValue,
         cell_id: Uuid,
         flag: OutputFlag,
-        globals: Option<GlobalsUpdate>,
+        update: Option<SerializedGlobalsUpdate>,
     },
 }

@@ -1,11 +1,10 @@
 use crate::executor::FromExecutorMessage;
 use anyhow::anyhow;
 use comm::messages::{ComputeMsg, FromKernelMessage, ToKernelMessage};
+use comm::scopes::SerializedGlobals;
 use comm::{make_protocol_builder, parse_to_kernel_message, serialize_from_kernel_message, Codec};
 use futures_util::stream::{SplitSink, SplitStream, StreamExt};
 use futures_util::SinkExt;
-use std::collections::HashMap;
-use std::sync::Arc;
 use tokio::net::TcpStream;
 use tokio::runtime::Builder;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
@@ -62,43 +61,25 @@ async fn forward_sender(
     mut sender: SplitSink<Codec, Bytes>,
     mut o_receiver: UnboundedReceiver<FromExecutorMessage>,
 ) -> anyhow::Result<()> {
-    let mut last_globals: HashMap<String, Arc<String>> = HashMap::new();
+    let mut last_globals = SerializedGlobals::default();
     while let Some(msg) = o_receiver.recv().await {
         let out_msg = match msg {
             FromExecutorMessage::Output {
                 value,
                 cell_id,
                 flag,
-                globals,
+                update: globals,
             } => {
-                dbg!(&last_globals);
-                let globals = if let Some(new_globals) = globals {
-                    let g = new_globals
-                        .iter()
-                        .map(|(name, value)| {
-                            (
-                                name.clone(),
-                                if let Some(true) =
-                                    last_globals.get(name).map(|v| v.as_str() == value.as_str())
-                                {
-                                    None
-                                } else {
-                                    Some(value.clone())
-                                },
-                            )
-                        })
-                        .collect();
-                    last_globals = new_globals;
-                    Some(g)
-                } else {
-                    None
-                };
-                dbg!(&globals);
+                let update = globals.map(|g| {
+                    let update = g.create_update(Some(&last_globals));
+                    last_globals = g;
+                    update
+                });
                 FromKernelMessage::Output {
                     value,
                     cell_id,
                     flag,
-                    globals,
+                    update,
                 }
             }
         };

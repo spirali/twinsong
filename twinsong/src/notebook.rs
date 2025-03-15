@@ -4,13 +4,14 @@ use crate::client_messages::{
 use anyhow::anyhow;
 use axum::extract::ws::Message;
 use comm::messages::{
-    CodeGroup, CodeLeaf, CodeNode, Exception, GlobalsUpdate, KernelOutputValue, OutputFlag,
+    CodeGroup, CodeLeaf, CodeNode, CodeScope, Exception, KernelOutputValue, OutputFlag,
+    OwnCodeScope,
 };
+use comm::scopes::{SerializedGlobals, SerializedGlobalsUpdate};
 use nutype::nutype;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
-use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
 use uuid::Uuid;
 
@@ -24,12 +25,19 @@ pub(crate) enum EditorNode {
 impl EditorNode {
     pub fn to_code_node(&self) -> CodeNode {
         match self {
-            EditorNode::Group(node) => CodeNode::Group(CodeGroup {
-                children: node
+            EditorNode::Group(group) => CodeNode::Group(CodeGroup {
+                children: group
                     .children
                     .iter()
                     .map(|child| child.to_code_node())
                     .collect(),
+                scope: match group.scope {
+                    ScopeType::Own => CodeScope::Own(OwnCodeScope {
+                        id: group.id.into_inner(),
+                        name: group.name.clone(),
+                    }),
+                    ScopeType::Inherit => CodeScope::Inherit,
+                },
             }),
             EditorNode::Cell(cell) => CodeNode::Leaf(CodeLeaf {
                 id: cell.id.into_inner(),
@@ -46,10 +54,17 @@ impl EditorNode {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub(crate) enum ScopeType {
+    Own,
+    Inherit,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct EditorGroup {
     pub id: EditorId,
     pub name: String,
     pub children: Vec<EditorNode>,
+    pub scope: ScopeType,
 }
 
 impl EditorGroup {
@@ -182,26 +197,27 @@ pub enum KernelState {
     Closed,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
-#[serde(transparent)]
-pub struct Globals(Vec<(String, Arc<String>)>);
-
-impl Globals {
-    pub fn update(&mut self, update: GlobalsUpdate) {
-        let mut old = self.0.drain(..).collect::<HashMap<_, _>>();
-        for up in update {
-            let data = up.1.unwrap_or_else(|| old.remove(&up.0).unwrap());
-            self.0.push((up.0, data));
-        }
-    }
-}
+// #[derive(Debug, Serialize, Deserialize, Default)]
+// #[serde(transparent)]
+// pub struct ScopedObjects(Vec<(ScopeId, Vec<(String, Arc<String>)>)>);
+//
+// impl ScopedObjects {
+//     pub fn update(&mut self, update: ScopeUpdates) {
+//         let mut old = self.0.drain(..).collect::<HashMap<_, _>>();
+//         for (key, ups) in update {
+//             for up in ups {}
+//             let data = up.1.unwrap_or_else(|| old.remove(&up.0).unwrap());
+//             self.0.push((up.0, data));
+//         }
+//     }
+// }
 
 #[derive(Debug)]
 pub(crate) struct Run {
     title: String,
     output_cells: Vec<OutputCell>,
     kernel: KernelState,
-    globals: Globals,
+    globals: SerializedGlobals,
 }
 
 impl Run {
@@ -209,7 +225,7 @@ impl Run {
         title: String,
         output_cells: Vec<OutputCell>,
         kernel: KernelState,
-        globals: Globals,
+        globals: SerializedGlobals,
     ) -> Self {
         Run {
             title,
@@ -245,11 +261,11 @@ impl Run {
         self.output_cells.push(output_cell);
     }
 
-    pub fn update_globals(&mut self, update: GlobalsUpdate) {
-        self.globals.update(update);
+    pub fn update_globals(&mut self, update: SerializedGlobalsUpdate) {
+        self.globals = update.apply(Some(&mut self.globals));
     }
 
-    pub fn globals(&self) -> &Globals {
+    pub fn globals(&self) -> &SerializedGlobals {
         &self.globals
     }
 
@@ -313,6 +329,7 @@ impl Notebook {
         let editor_root = EditorGroup {
             id: EditorId::new(Uuid::new_v4()),
             name: "root".to_string(),
+            scope: ScopeType::Own,
             children: vec![
                 EditorNode::Group(EditorGroup {
                     id: EditorId::new(Uuid::new_v4()),
@@ -321,6 +338,7 @@ impl Notebook {
                         id: EditorId::new(Uuid::new_v4()),
                         code: "import pandas as pd\nimport numpy as np".to_string(),
                     })],
+                    scope: ScopeType::Own,
                 }),
                 EditorNode::Group(EditorGroup {
                     id: EditorId::new(Uuid::new_v4()),
@@ -335,6 +353,7 @@ impl Notebook {
                             code: "".to_string(),
                         }),
                     ],
+                    scope: ScopeType::Inherit,
                 }),
             ],
         };

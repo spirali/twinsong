@@ -15,7 +15,7 @@ tracing-subscriber = { workspace = true }
 futures-util = { workspace = true, features = ["tokio-io", "sink"] }
 serde_json = { workspace = true }
 clap = { version = "4.5", features = ["derive"] }
-comm = { path = "../comm" }
+comm = { path = "../common" }
 which = "7.0"
 ctrlc = "3.4"
 termcolor = "1.4"

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["twinsong", "pytwinsong", "comm"]
+members = ["twinsong", "pytwinsong", "common"]
 
 [workspace.dependencies]
 tokio = "1"
