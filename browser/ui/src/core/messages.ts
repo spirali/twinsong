@@ -1,7 +1,6 @@
 import { Dispatch } from "react";
 import {
-  EditorCell,
-  EditorNamedNode as EditorGroup,
+  EditorGroupNode as EditorGroup,
   EditorNode,
   EditorNodeId,
   NotebookDesc,
@@ -33,6 +32,18 @@ interface KernelCrashedMsg {
   message: string;
 }
 
+export interface SerializedGlobalsUpdate {
+  variables: { string: string | null };
+  name: string;
+  children: { string: SerializedGlobalsUpdate };
+}
+
+export interface SerializedGlobals {
+  variables: { string: string };
+  name: string;
+  children: { string: SerializedGlobalsUpdate };
+}
+
 interface OutputMsg {
   type: "Output";
   notebook_id: NotebookId;
@@ -40,7 +51,7 @@ interface OutputMsg {
   cell_id: EditorNodeId;
   flag: OutputCellFlag;
   value: OutputValue;
-  globals: null | [string, string][];
+  update: null | SerializedGlobalsUpdate;
 }
 
 interface SaveCompletedMsg {
@@ -155,7 +166,7 @@ export function processMessage(
         cell_id: message.cell_id,
         flag: message.flag,
         value: message.value,
-        globals: message.globals,
+        update: message.update,
       });
       break;
     }

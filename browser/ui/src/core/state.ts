@@ -1,8 +1,7 @@
-import { Children } from "react";
-import { extractGlobals } from "./jobject";
+import { applyGlobalsUpdate } from "./jobject";
+import { SerializedGlobalsUpdate } from "./messages";
 import {
-  EditorCell,
-  EditorNamedNode,
+  EditorGroupNode,
   EditorNode,
   EditorNodeId,
   KernelState,
@@ -15,7 +14,7 @@ import {
   Run,
   RunId,
   RunViewMode,
-  TextOutputValue,
+  TextOutputValue
 } from "./notebook";
 
 interface SetSelectedNotebookAction {
@@ -56,7 +55,7 @@ interface NewOutputAction {
   cell_id: EditorNodeId;
   flag: OutputCellFlag;
   value: OutputValue;
-  globals: [string, string][] | null;
+  update: null | SerializedGlobalsUpdate;
 }
 
 interface SetCurrentRunAction {
@@ -194,7 +193,7 @@ function updateNotebooks(state: State, notebook: Notebook): State {
 }
 
 function getEditorNode(
-  node: EditorNamedNode,
+  node: EditorGroupNode,
   path: EditorNodeId[],
 ): EditorNode | null {
   if (path.length === 0) {
@@ -327,7 +326,7 @@ export function stateReducer(state: State, action: StateAction): State {
     case "add_notebook": {
       const path = action.notebook.path;
       const runs = action.notebook.runs.map((r) => {
-        const globals = extractGlobals(r.globals, []);
+        const globals = applyGlobalsUpdate(r.globals, null);
         return {
           ...r,
           globals,
@@ -395,7 +394,7 @@ export function stateReducer(state: State, action: StateAction): State {
             kernel_state: { type: "Init" },
             output_cells: [],
             kernel_state_message: null,
-            globals: [],
+            globals: { name: "", variables: [], children: [] },
             view_mode: "outputs",
             open_objects: new Set(),
           } as Run,
@@ -490,8 +489,8 @@ export function stateReducer(state: State, action: StateAction): State {
               }
             });
             let globals = r.globals;
-            if (action.globals) {
-              globals = extractGlobals(action.globals, r.globals);
+            if (action.update) {
+              globals = applyGlobalsUpdate(action.update, r.globals);
             }
             return { ...r, globals, output_cells } as Run;
           } else {

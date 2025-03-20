@@ -2,12 +2,12 @@ use crate::control::start_control_process;
 use crate::scopes::ScopedPyGlobals;
 use crate::stdio::RedirectedStdio;
 use comm::messages::{
-    CodeLeaf, CodeNode, CodeScope, ComputeMsg, Exception, KernelOutputValue, OutputFlag,
+    CodeGroup, CodeLeaf, CodeNode, CodeScope, ComputeMsg, Exception, KernelOutputValue, OutputFlag,
     OwnCodeScope,
 };
 use comm::scopes::SerializedGlobals;
-use pyo3::types::{PyAnyMethods, PyDict, PyTracebackMethods};
 use pyo3::types::PyStringMethods;
+use pyo3::types::{PyAnyMethods, PyDict, PyTracebackMethods};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyErr, PyResult, Python};
 use tokio::runtime::Builder;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
@@ -67,39 +67,39 @@ struct CodeEnv<'a> {
 }
 
 fn collect_code_leafs<'a, 'b>(
-    node: &'a CodeNode,
+    group: &'a CodeGroup,
     py: Python<'a>,
     scope_storage: &'b mut ScopedPyGlobals,
     parent_scopes: &'b mut Vec<&'a OwnCodeScope>,
     out: &mut Vec<CodeEnv<'a>>,
 ) {
-    match node {
-        CodeNode::Group(group) => {
-            match &group.scope {
-                CodeScope::Own(own_scope) => {
-                    parent_scopes.push(own_scope);
+    for child in &group.children {
+        match child {
+            CodeNode::Group(group) => {
+                match &group.scope {
+                    CodeScope::Own(own_scope) => {
+                        parent_scopes.push(own_scope);
+                    }
+                    CodeScope::Inherit => {}
                 }
-                CodeScope::Inherit => {}
-            }
-            for child in &group.children {
-                collect_code_leafs(child, py, scope_storage, parent_scopes, out);
-            }
-            match group.scope {
-                CodeScope::Own(_) => {
-                    parent_scopes.pop();
+                collect_code_leafs(group, py, scope_storage, parent_scopes, out);
+                match group.scope {
+                    CodeScope::Own(_) => {
+                        parent_scopes.pop();
+                    }
+                    CodeScope::Inherit => {}
                 }
-                CodeScope::Inherit => {}
             }
-        }
-        CodeNode::Leaf(leaf) => {
-            let (globals, locals) = scope_storage
-                .make_globals_and_locals(py, parent_scopes)
-                .unwrap();
-            out.push(CodeEnv {
-                leaf,
-                globals,
-                locals,
-            })
+            CodeNode::Leaf(leaf) => {
+                let (globals, locals) = scope_storage
+                    .make_globals_and_locals(py, parent_scopes)
+                    .unwrap();
+                out.push(CodeEnv {
+                    leaf,
+                    globals,
+                    locals,
+                })
+            }
         }
     }
 }
@@ -107,7 +107,7 @@ fn collect_code_leafs<'a, 'b>(
 fn run_code(
     py: Python<'_>,
     py_scopes: &mut ScopedPyGlobals,
-    code: &CodeNode,
+    code: &CodeGroup,
     stdout: Bound<PyAny>,
 ) -> PyResult<KernelOutputValue> {
     // let s = CString::new(code.as_bytes())?;
