@@ -25,20 +25,7 @@ pub(crate) enum EditorNode {
 impl EditorNode {
     pub fn to_code_node(&self) -> CodeNode {
         match self {
-            EditorNode::Group(group) => CodeNode::Group(CodeGroup {
-                children: group
-                    .children
-                    .iter()
-                    .map(|child| child.to_code_node())
-                    .collect(),
-                scope: match group.scope {
-                    ScopeType::Own => CodeScope::Own(OwnCodeScope {
-                        id: group.id.into_inner(),
-                        name: group.name.clone(),
-                    }),
-                    ScopeType::Inherit => CodeScope::Inherit,
-                },
-            }),
+            EditorNode::Group(group) => CodeNode::Group(group.to_code_group()),
             EditorNode::Cell(cell) => CodeNode::Leaf(CodeLeaf {
                 id: cell.id.into_inner(),
                 code: cell.code.clone(),
@@ -72,6 +59,23 @@ impl EditorGroup {
         out.push(self.id);
         for child in &self.children {
             child.collect_group_ids(out);
+        }
+    }
+
+    pub fn to_code_group(&self) -> CodeGroup {
+        CodeGroup {
+            children: self
+                .children
+                .iter()
+                .map(|child| child.to_code_node())
+                .collect(),
+            scope: match self.scope {
+                ScopeType::Own => CodeScope::Own(OwnCodeScope {
+                    id: self.id.into_inner(),
+                    name: self.name.clone(),
+                }),
+                ScopeType::Inherit => CodeScope::Inherit,
+            },
         }
     }
 }
@@ -108,11 +112,11 @@ pub(crate) struct OutputCell {
     // If flag is finished/failed then the last value is returned object/exception
     values: Vec<OutputValue>,
     flag: OutputFlag,
-    editor_node: EditorNode,
+    editor_node: EditorGroup,
 }
 
 impl OutputCell {
-    pub fn new(id: OutputCellId, editor_node: EditorNode) -> Self {
+    pub fn new(id: OutputCellId, editor_node: EditorGroup) -> Self {
         OutputCell {
             id,
             values: Vec::new(),

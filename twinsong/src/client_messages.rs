@@ -1,6 +1,5 @@
 use crate::notebook::{
-    EditorGroup, EditorId, EditorNode, KernelId, NotebookId, OutputCell, OutputCellId,
-    OutputValue, RunId,
+    EditorGroup, EditorId, KernelId, NotebookId, OutputCell, OutputCellId, OutputValue, RunId,
 };
 use axum::extract::ws::Message;
 use comm::messages::OutputFlag;
@@ -41,7 +40,7 @@ pub(crate) struct RunCodeMsg {
     pub notebook_id: NotebookId,
     pub run_id: RunId,
     pub cell_id: OutputCellId,
-    pub editor_node: EditorNode,
+    pub editor_node: EditorGroup,
 }
 
 #[derive(Debug, Deserialize)]

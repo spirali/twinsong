@@ -2,7 +2,7 @@ use crate::jobject::create_jobject_string;
 use comm::messages::OwnCodeScope;
 use comm::scopes::{ScopeId, SerializedGlobals};
 use pyo3::types::{PyDict, PyDictMethods};
-use pyo3::{Bound, BoundObject, Py, PyResult, Python};
+use pyo3::{Bound, Py, PyResult, Python};
 use std::collections::HashMap;
 use std::sync::Arc;
 

@@ -20,21 +20,19 @@ const ObjectTreeNode: React.FC<{
   slotPath: string;
   slotName: string;
   depth: number;
-  isRoot?: boolean;
-  open_objects: Set<string>;
-  toggleOpenObject: (object_path: string) => void;
+  openObjects: Set<string>;
+  toggleOpenObject: (path: string) => void;
 }> = ({
   struct,
   id,
   slotPath,
   slotName,
   depth,
-  isRoot = false,
-  open_objects,
+  openObjects,
   toggleOpenObject,
 }) => {
   const object = struct.objects.get(id)!;
-  const isOpen = open_objects.has(slotPath);
+  const isOpen = openObjects.has(slotPath);
   //const indent = `ml-${depth * 4}`;
 
   const getIcon = () => {
@@ -54,7 +52,7 @@ const ObjectTreeNode: React.FC<{
       return <LuBox className="text-blue-600" size={16} />;
     }
     if (object.kind === "module") {
-      return <LuBox className="text-purple-600" size={16} />;
+      return <LuBox className="text-lime-600" size={16} />;
     }
     if (object.kind === "callable") {
       return <LuCog className="text-purple-600" size={16} />;
@@ -68,7 +66,7 @@ const ObjectTreeNode: React.FC<{
   const formatValue = () => {
     if (object.kind === "module") {
       return (
-        <span className="text-purple-600">
+        <span className="text-lime-600">
           {object?.repr}
           {object?.value_type && (
             <>
@@ -111,19 +109,15 @@ const ObjectTreeNode: React.FC<{
         struct={struct}
         id={child}
         depth={depth + 1}
-        open_objects={open_objects}
+        openObjects={openObjects}
         toggleOpenObject={toggleOpenObject}
       />
     ));
   };
 
-  const indent = "";
-
   return (
     <div className={""}>
-      <div
-        className={`flex items-center py-1 ${indent} ${isRoot ? "bg-gray-100 p-2 hover:bg-gray-300" : "hover:bg-gray-50"}`}
-      >
+      <div className={"flex items-center py-1 hover:bg-gray-50"}>
         {hasChildren ? (
           <button
             onClick={() => toggleOpenObject(slotPath)}
@@ -139,10 +133,8 @@ const ObjectTreeNode: React.FC<{
           <span className="mr-1 w-4"></span>
         )}
         {getIcon()}
-        <span className={`mx-1 font-mono ${isRoot ? "" : ""}`}>
-          <span className={`${isRoot ? "text-blue-800" : "text-blue-800"}`}>
-            {slotName}
-          </span>
+        <span className="mx-1 font-mono">
+          <span className="text-blue-800">{slotName}</span>
           {": "}
           {formatValue()}
         </span>

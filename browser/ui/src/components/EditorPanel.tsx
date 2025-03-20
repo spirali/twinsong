@@ -1,17 +1,18 @@
-import React, { useCallback } from "react";
-import {
-  EditorCell,
-  EditorNamedNode,
-  EditorNode,
-  EditorNodeId,
-  Notebook,
-} from "../core/notebook";
-import { useDispatch } from "./StateProvider";
-import Editor from "react-simple-code-editor";
 import { highlight, languages } from "prismjs/components/prism-core";
 import "prismjs/components/prism-python";
 import "prismjs/themes/prism.css";
-import { useSendCommand } from "./WsProvider";
+import React, { useCallback } from "react";
+import {
+  LuArrowBigUp,
+  LuChevronDown,
+  LuChevronRight,
+  LuFolderPlus,
+  LuGlobe,
+  LuLoaderCircle,
+  LuPlus,
+  LuSave
+} from "react-icons/lu";
+import Editor from "react-simple-code-editor";
 import {
   newEditorCode,
   newEditorGroup,
@@ -19,25 +20,22 @@ import {
   saveNotebook,
 } from "../core/actions";
 import {
-  LuSave,
-  LuLoaderCircle,
-  LuChevronDown,
-  LuChevronRight,
-  LuFolderPlus,
-  LuPlus,
-  LuGlobe,
-  LuArrowBigDown,
-  LuArrowBigUp,
-  LuCross,
-  LuDelete,
-} from "react-icons/lu";
-import { usePushNotification } from "./NotificationProvider";
+  EditorCell,
+  EditorGroupNode,
+  EditorNode,
+  EditorNodeId,
+  EditorScope,
+  Notebook,
+} from "../core/notebook";
 import { NodeToolbar } from "./EditorToolbar";
+import { usePushNotification } from "./NotificationProvider";
+import { useDispatch } from "./StateProvider";
+import { useSendCommand } from "./WsProvider";
 
 const EditorNamedNodeRenderer: React.FC<{
   notebook: Notebook;
   path: EditorNodeId[];
-  node: EditorNamedNode;
+  node: EditorGroupNode;
   depth: number;
   orderedNodes: EditorNode[];
 }> = ({ notebook, path, node, depth, orderedNodes }) => {
@@ -97,7 +95,7 @@ const EditorNamedNodeRenderer: React.FC<{
           }
           if (e.ctrlKey && e.key === "Enter") {
             e.preventDefault();
-            runCode(node, notebook, dispatch, sendCommand, pushNotification);
+            runCode(path, notebook, dispatch, sendCommand, pushNotification);
           }
         }}
       >
@@ -119,8 +117,12 @@ const EditorNamedNodeRenderer: React.FC<{
               <LuChevronRight size={16} />
             )}
           </button>
-          <div className="mr-2 text-purple-300">
-          { depth == 0 ? <LuGlobe size={18}/> :  <LuArrowBigUp size={18}/> }
+          <div className="mr-2 text-purple-400">
+            {node.scope === EditorScope.Own ? (
+              <LuGlobe size={18} />
+            ) : (
+              <LuArrowBigUp size={18} />
+            )}
           </div>
           {node.name}
         </div>
@@ -163,7 +165,7 @@ const EditorNamedNodeRenderer: React.FC<{
               </NodeButton2>
             </div>
           )}
-          {node.children.map((child, i) => {
+          {node.children.map((child) => {
             const p = [...path, child.id];
             if (child.type === "Group") {
               return (
@@ -313,7 +315,7 @@ const EditorCellRenderer: React.FC<{
           onKeyDown={(e) => {
             if (e.ctrlKey && e.key === "Enter") {
               e.preventDefault();
-              runCode(cell, notebook, dispatch, sendCommand, pushNotification);
+              runCode(path, notebook, dispatch, sendCommand, pushNotification);
             }
             if (e.key === "ArrowUp" && checkIfFirstLine(e)) {
               e.preventDefault();

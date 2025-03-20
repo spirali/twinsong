@@ -13,12 +13,12 @@ def test_execute_command(client):
     k = client.create_new_kernel(r["notebook"]["id"])
     assert "3" == k.run_code_simple("1 + 2")
     assert [
-               {"type": "Text", "value": "Hello"},
-               {"type": "Text", "value": "\n"},
-               {"type": "Text", "value": "World"},
-               {"type": "Text", "value": "\n"},
-               {"type": "None"},
-           ] == k.run_code("print('Hello')\nprint('World')")
+        {"type": "Text", "value": "Hello"},
+        {"type": "Text", "value": "\n"},
+        {"type": "Text", "value": "World"},
+        {"type": "Text", "value": "\n"},
+        {"type": "None"},
+    ] == k.run_code("print('Hello')\nprint('World')")
 
 
 def test_globals_update_without_scopes(client):
@@ -50,9 +50,17 @@ def test_globals_update_scopes(client):
     k.run_code("x = 2")
     group_id1 = str(uuid.uuid4())
     group_id2 = str(uuid.uuid4())
-    k.run_code({"type": "Group", "id": group_id1, "name": "G1", "scope": "Own", "children": [
-        {"type": "Cell", "id": str(uuid.uuid4()), "code": "x = 3"},
-    ]})
+    k.run_code(
+        {
+            "type": "Group",
+            "id": group_id1,
+            "name": "G1",
+            "scope": "Own",
+            "children": [
+                {"type": "Cell", "id": str(uuid.uuid4()), "code": "x = 3"},
+            ],
+        }
+    )
     assert len(k.last_update["children"]) == 1
     assert k.last_update["name"] == ""
     assert k.last_update["children"][group_id1]["name"] == "G1"
@@ -61,9 +69,14 @@ def test_globals_update_scopes(client):
     assert x == {"kind": "number", "repr": "3", "value_type": "int"}
 
     k.run_code(
-        {"type": "Group", "id": group_id2, "name": "G1", "scope": "Inherit", "children": [
-            {"type": "Cell", "id": str(uuid.uuid4()), "code": "x = 4"}
-        ]})
+        {
+            "type": "Group",
+            "id": group_id2,
+            "name": "G1",
+            "scope": "Inherit",
+            "children": [{"type": "Cell", "id": str(uuid.uuid4()), "code": "x = 4"}],
+        }
+    )
     assert len(k.last_update["children"]) == 1
     x = build_jobject_from_text(k.last_update["variables"]["x"])
     assert x == {"kind": "number", "repr": "4", "value_type": "int"}
@@ -81,16 +94,21 @@ def test_save_notebook_plain(client):
         "id": "a0ff2759-edf5-44ac-a367-6d86c6bc4bcf",
         "name": "root",
         "scope": "Own",
-        "children": [{
-            "type": "Cell",
-            "id": "b3852a51-3782-4e11-9182-33a1455139b0",
-            "code": 'print("Hello world!")',
-        }, {
-            "type": "Cell",
-            "id": "16918374-b87d-4a7d-8667-064a6a752ff0",
-            "code": 'print("Hello world!")\nx = 10\nprint(x)\nx',
-        }]
+        "children": [
+            {
+                "type": "Cell",
+                "id": "b3852a51-3782-4e11-9182-33a1455139b0",
+                "code": 'print("Hello world!")',
+            },
+            {
+                "type": "Cell",
+                "id": "16918374-b87d-4a7d-8667-064a6a752ff0",
+                "code": 'print("Hello world!")\nx = 10\nprint(x)\nx',
+            },
+        ],
     }
+
+    print("!!!!!", k.last_editor_node)
 
     runs = [
         {
@@ -155,7 +173,7 @@ def test_save_notebook_plain(client):
             "runs": runs,
             "id": notebook_id + 1,
             "path": "copy.tsnb",
-            'editor_open_nodes': ['a0ff2759-edf5-44ac-a367-6d86c6bc4bcf'],
+            "editor_open_nodes": ["a0ff2759-edf5-44ac-a367-6d86c6bc4bcf"],
         },
     }
     r2 = client.load_notebook("copy.tsnb")
@@ -253,27 +271,30 @@ def test_execute_tree(client):
                 "id": "b8f6e75a-dd3b-4df1-88cb-edd4e74c1771",
                 "scope": "Inherit",
                 "children": [
-                    {"type": "Cell",
-                     "id": "0e093025-1030-4458-b2c8-174066568ea9",
-                     "code": "print(\"One\")\n123"
-                     }
+                    {
+                        "type": "Cell",
+                        "id": "0e093025-1030-4458-b2c8-174066568ea9",
+                        "code": 'print("One")\n123',
+                    }
                 ],
             },
-            {"type": "Cell",
-             "id": "28a20c2e-5868-4160-b384-92996d09ccfa",
-             "code": "x = 10\nx"
-             },
-            {"type": "Cell",
-             "id": "5360be7d-81e4-43aa-9abd-7ac57567ed12",
-             "code": "print(\"Two\")\nx"
-             }
-        ]
+            {
+                "type": "Cell",
+                "id": "28a20c2e-5868-4160-b384-92996d09ccfa",
+                "code": "x = 10\nx",
+            },
+            {
+                "type": "Cell",
+                "id": "5360be7d-81e4-43aa-9abd-7ac57567ed12",
+                "code": 'print("Two")\nx',
+            },
+        ],
     }
 
     assert [
-               {"type": "Text", "value": "One"},
-               {"type": "Text", "value": "\n"},
-               {"type": "Text", "value": "Two"},
-               {"type": "Text", "value": "\n"},
-               {"type": "Text", "value": "10"},
-           ] == k.run_code(code)
+        {"type": "Text", "value": "One"},
+        {"type": "Text", "value": "\n"},
+        {"type": "Text", "value": "Two"},
+        {"type": "Text", "value": "\n"},
+        {"type": "Text", "value": "10"},
+    ] == k.run_code(code)

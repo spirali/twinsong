@@ -1,21 +1,19 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useDispatch } from "./StateProvider";
-import RunView from "./RunView";
+import React from "react";
 import {
-  LuBan,
   LuListTree,
+  LuMenu,
   LuMessageSquare,
   LuPlus,
-  LuSquare,
-  LuX,
-  LuMenu,
+  LuX
 } from "react-icons/lu";
-import { useSendCommand } from "./WsProvider";
 import { closeRun, newRun } from "../core/actions";
 import { Notebook, Run } from "../core/notebook";
-import Workspace from "./Workspace";
-import { StatusIndicator } from "./StatusIndicator";
 import { PopupMenu } from "./PopupMenu";
+import RunView from "./RunView";
+import { useDispatch } from "./StateProvider";
+import { StatusIndicator } from "./StatusIndicator";
+import Workspace from "./Workspace";
+import { useSendCommand } from "./WsProvider";
 
 const RunMenu = () => (
   <PopupMenu

@@ -1,3 +1,6 @@
+import { SerializedGlobalsUpdate } from "./messages";
+import { Globals } from "./notebook";
+
 export type JsonObjectId = number;
 
 export interface JsonObjectDump {
@@ -30,18 +33,18 @@ export function parseJsonObjectStruct(data: string): JsonObjectStruct {
   };
 }
 
-export function extractGlobals(
-  globals_data: [string, string | null][],
-  old_globals: [string, JsonObjectStruct][],
-): [string, JsonObjectStruct][] {
-  const globals = globals_data.map(([name, data]) => {
+export function applyGlobalsUpdate(
+  update: SerializedGlobalsUpdate,
+  old_globals: Globals | null,
+): Globals {
+  const variables = Object.entries(update.variables).map(([name, data]) => {
     if (data === null) {
-      return old_globals.find((x) => x[0] == name)!;
+      return old_globals!.variables.find((x) => x[0] == name)!;
     } else {
       return [name, parseJsonObjectStruct(data)] as [string, JsonObjectStruct];
     }
   });
-  globals.sort((a, b) => {
+  variables.sort((a, b) => {
     const [a_name, a_struct] = a;
     const [b_name, b_struct] = b;
     const a_kind = a_struct.objects.get(a_struct.root)?.kind;
@@ -66,5 +69,20 @@ export function extractGlobals(
     }
     return a_name.length - b_name.length;
   });
-  return globals;
+  const children = Object.entries(update.children).map(
+    ([id, up]) =>
+      [
+        id,
+        applyGlobalsUpdate(
+          up,
+          old_globals?.children.find((x) => x[0] == id)?.[1] ?? null,
+        ),
+      ] as [string, Globals],
+  );
+  children.sort((a, b) => a[1].name.localeCompare(b[1].name));
+  return {
+    variables,
+    name: update.name,
+    children,
+  };
 }

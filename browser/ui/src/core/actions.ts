@@ -1,19 +1,18 @@
+import { Dispatch } from "react";
+import { v4 as uuidv4 } from "uuid";
+import { focusId } from "../components/EditorPanel";
+import { PushNotification } from "../components/NotificationProvider";
+import { SendCommand } from "./messages";
 import {
-  EditorCell,
   EditorNode,
   EditorNodeId,
+  EditorScope,
   Notebook,
   NotebookId,
   OutputCellFlag,
-  RunId,
+  RunId
 } from "./notebook";
-import { InsertType, State } from "./state";
-import { Dispatch } from "react";
-import { StateAction } from "./state";
-import { SendCommand } from "./messages";
-import { v4 as uuidv4 } from "uuid";
-import { PushNotification } from "../components/NotificationProvider";
-import { focusId } from "../components/EditorPanel";
+import { InsertType, State, StateAction } from "./state";
 
 export function newRun(
   notebook: Notebook,
@@ -37,13 +36,31 @@ export function newRun(
   return run_id;
 }
 
+export function extractRunNode(node: EditorNode, path: EditorNodeId[]): EditorNode {
+  if (path.length === 0) {
+    return node;
+  }
+  if (node.type === "Cell") {
+    return node;
+  }
+  let child = node.children.find((c) => c.id === path[0])!;
+  return {
+    name: node.name,
+    id: node.id,
+    type: "Group",
+    scope: node.scope,
+    children: [child],
+  };
+}
+
 export function runCode(
-  node: EditorNode,
+  path: EditorNodeId[],
   notebook: Notebook,
   dispatch: Dispatch<StateAction>,
   send_command: SendCommand,
   pushNotification: PushNotification,
 ) {
+  const node = extractRunNode(notebook.editor_root, path);
   let run_id = notebook.current_run_id;
   let flag: OutputCellFlag = "Pending";
   if (run_id === null) {
@@ -130,6 +147,7 @@ export function newEditorGroup(
             name: value,
             id,
             children: [],
+            scope: EditorScope.Inherit,
           },
           insert_type,
         });
@@ -147,7 +165,6 @@ export function newEditorCode(
   insert_type: InsertType,
   dispatch: Dispatch<StateAction>,
 ) {
-  console.log("NEW CODE");
   const id = uuidv4();
 
   dispatch({

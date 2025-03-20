@@ -66,13 +66,22 @@ class Kernel:
         self.last_cell_id = None
         self.last_editor_node = None
         self.last_update = None
+        self.editor_root_id = str(uuid.uuid4())
 
     def run_code(self, code):
         cell_id = str(uuid.uuid4())
         if isinstance(code, str):
-            editor_node = {"type": "Cell", "id": str(uuid.uuid4()), "code": code}
+            children = [{"type": "Cell", "id": str(uuid.uuid4()), "code": code}]
+        elif isinstance(code, list):
+            children = code
         else:
-            editor_node = code
+            children = [code]
+        editor_node = {
+            "name": "",
+            "scope": "Own",
+            "id": self.editor_root_id,
+            "children": children,
+        }
         self.last_editor_node = editor_node
         outputs = []
         self.client.send_message(

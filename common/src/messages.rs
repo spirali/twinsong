@@ -35,7 +35,7 @@ pub struct CodeLeaf {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ComputeMsg {
     pub cell_id: Uuid,
-    pub code: CodeNode,
+    pub code: CodeGroup,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

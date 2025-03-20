@@ -1,19 +1,10 @@
-import React, {
-  Children,
-  Dispatch,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import { EditorNode, EditorNodeId, Notebook } from "../core/notebook";
-import { useDispatch } from "./StateProvider";
-import { focusId } from "./EditorPanel";
+import React from "react";
 import {
-  LuPlus,
+  LuArrowBigUp,
   LuFolderPlus,
+  LuGlobe,
   LuPencil,
-  LuPlay,
+  LuPlus,
   LuTrash2,
 } from "react-icons/lu";
 import {
@@ -21,6 +12,14 @@ import {
   newEditorGroup,
   removeEditorNode,
 } from "../core/actions";
+import {
+  EditorNode,
+  EditorNodeId,
+  EditorScope,
+  Notebook,
+} from "../core/notebook";
+import { focusId } from "./EditorPanel";
+import { useDispatch } from "./StateProvider";
 
 const NodeButton: React.FC<{
   onClick: () => void;
@@ -55,6 +54,31 @@ export const NodeToolbar: React.FC<{
   const dispatch = useDispatch()!;
   return (
     <div className={"flex " + className}>
+      {isGroup && !isRoot && (
+        <NodeButton
+          onClick={() => {
+            dispatch({
+              type: "update_editor_node",
+              notebook_id: notebook.id,
+              path,
+              node_update: {
+                scope:
+                  node.scope === EditorScope.Own
+                    ? EditorScope.Inherit
+                    : EditorScope.Own,
+              },
+            });
+            focusId(node.id);
+          }}
+          isGroup={isGroup}
+        >
+          {node.scope === EditorScope.Own ? (
+            <LuGlobe size={14} />
+          ) : (
+            <LuArrowBigUp size={14} />
+          )}
+        </NodeButton>
+      )}
       {isGroup && (
         /* Rename */
         <NodeButton

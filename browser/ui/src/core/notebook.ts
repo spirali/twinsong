@@ -1,4 +1,5 @@
 import { JsonObjectStruct } from "./jobject";
+import { SerializedGlobals } from "./messages";
 
 export type RunId = string;
 export type NotebookId = number;
@@ -18,14 +19,20 @@ export interface EditorCell {
   code: string;
 }
 
-export interface EditorNamedNode {
+export enum EditorScope {
+  Own = "Own",
+  Inherit = "Inherit",
+}
+
+export interface EditorGroupNode {
   type: "Group";
   id: EditorNodeId;
   name: string;
   children: EditorNode[];
+  scope: EditorScope;
 }
 
-export type EditorNode = EditorNamedNode | EditorCell;
+export type EditorNode = EditorGroupNode | EditorCell;
 
 export interface TextOutputValue {
   type: "Text";
@@ -60,20 +67,26 @@ export interface OutputCell {
 
 export type RunViewMode = "outputs" | "workspace";
 
+export interface Globals {
+  variables: [string, JsonObjectStruct][];
+  name: string;
+  children: [string, Globals][];
+}
+
 export interface Run {
   id: RunId;
   title: string;
   kernel_state: KernelState;
   output_cells: OutputCell[];
   view_mode: RunViewMode;
-  globals: [string, JsonObjectStruct][];
+  globals: Globals;
   open_objects: Set<string>;
 }
 
 export interface Notebook {
   id: NotebookId;
   path: string;
-  editor_root: EditorNamedNode;
+  editor_root: EditorGroupNode;
   editor_open_nodes: Set<string>;
   runs: Run[];
   waiting_for_fresh: EditorCell[];
@@ -84,7 +97,7 @@ export interface Notebook {
 
 export interface NotebookDesc {
   id: NotebookId;
-  editor_root: EditorNamedNode;
+  editor_root: EditorGroupNode;
   editor_open_nodes: string[];
   runs: RunDesc[];
   path: string;
@@ -95,5 +108,5 @@ export interface RunDesc {
   title: string;
   kernel_state: KernelState;
   output_cells: OutputCell[];
-  globals: [string, string][];
+  globals: SerializedGlobals;
 }
