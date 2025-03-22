@@ -108,8 +108,6 @@ def test_save_notebook_plain(client):
         ],
     }
 
-    print("!!!!!", k.last_editor_node)
-
     runs = [
         {
             "id": k.run_id,
@@ -144,14 +142,12 @@ def test_save_notebook_plain(client):
     assert r == {"type": "SaveCompleted", "error": None, "notebook_id": notebook_id}
     with open(path) as f:
         data = toml.loads(f.read())
-    for run in data["runs"]:
-        del run["globals"]
     assert data == {
         "version": "twinsong 0.0.1",
         "editor_root": editor_root,
-        "runs": runs,
     }
     shutil.copy(path, "copy.tsnb")
+    shutil.copytree(path + ".runs", "copy.tsnb.runs")
 
     client.send_message({"type": "QueryDir"})
     r = client.receive_message(skip_async=False)
@@ -182,8 +178,6 @@ def test_save_notebook_plain(client):
     assert r == r2
     with open("copy.tsnb") as f:
         data2 = toml.loads(f.read())
-    for run in data2["runs"]:
-        del run["globals"]
     assert data == data2
     client.send_message({"type": "QueryDir"})
     r = client.receive_message(skip_async=False)
@@ -215,7 +209,6 @@ def test_save_empty(client):
         data = toml.loads(f.read())
     assert data == {
         "version": "twinsong 0.0.1",
-        "runs": [],
         "editor_root": editor_root,
     }
 

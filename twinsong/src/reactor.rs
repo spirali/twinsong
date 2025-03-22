@@ -8,11 +8,12 @@ use crate::notebook::{
     OutputCellId, OutputValue, Run, RunId,
 };
 use crate::state::{AppState, AppStateRef};
-use crate::storage::{deserialize_notebook, serialize_notebook};
+use crate::storage::{deserialize_notebook, serialize_notebook, SerializedNotebook};
 use anyhow::bail;
 use axum::extract::ws::Message;
 use comm::messages::{ComputeMsg, FromKernelMessage, ToKernelMessage};
 use comm::scopes::SerializedGlobals;
+use jiff::Timestamp;
 use std::path::Path;
 use tokio::spawn;
 use tokio::sync::mpsc::UnboundedSender;
@@ -55,6 +56,7 @@ pub(crate) fn start_kernel(
         Vec::new(),
         KernelState::Init(kernel_ctx.kernel_id),
         SerializedGlobals::default(),
+        Timestamp::now(),
     );
     notebook.add_run(run_id, run);
     match spawn_kernel(state_ref, kernel_ctx, kernel_port) {
@@ -134,10 +136,11 @@ fn save_helper(
 ) -> anyhow::Result<()> {
     let path = Path::new(&notebook.path).to_path_buf();
     tracing::debug!("Saving notebook as {}", path.display());
-    let data = serialize_notebook(notebook)?;
+    let serialized_notebook = serialize_notebook(notebook)?;
     let state_ref = state_ref.clone();
     spawn(async move {
-        let error = tokio::fs::write(&path, data)
+        let error = serialized_notebook
+            .save(&path)
             .await
             .err()
             .map(|e| e.to_string());
@@ -189,10 +192,9 @@ pub(crate) fn load_notebook(
     }
     let state_ref = state_ref.clone();
     spawn(async move {
-        match tokio::fs::read_to_string(Path::new(&path))
+        match SerializedNotebook::load(Path::new(&path))
             .await
-            .map_err(|err| err.into())
-            .and_then(|s| deserialize_notebook(s.as_str()))
+            .and_then(|s| deserialize_notebook(&s))
         {
             Err(e) => {
                 let _ = sender.send(
@@ -231,6 +233,9 @@ fn query_helper(state: &mut AppState) -> anyhow::Result<Message> {
                     DirEntryType::Notebook
                 }
             } else if file_type.is_dir() {
+                if path.ends_with(".tsnb.runs") {
+                    return None;
+                }
                 DirEntryType::Dir
             } else {
                 DirEntryType::File
