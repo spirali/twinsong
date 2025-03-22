@@ -8,6 +8,7 @@ use comm::messages::{
     OwnCodeScope,
 };
 use comm::scopes::{SerializedGlobals, SerializedGlobalsUpdate};
+use jiff::Timestamp;
 use nutype::nutype;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -222,6 +223,7 @@ pub(crate) struct Run {
     output_cells: Vec<OutputCell>,
     kernel: KernelState,
     globals: SerializedGlobals,
+    created: Timestamp,
 }
 
 impl Run {
@@ -230,13 +232,18 @@ impl Run {
         output_cells: Vec<OutputCell>,
         kernel: KernelState,
         globals: SerializedGlobals,
+        created: Timestamp,
     ) -> Self {
         Run {
             title,
             output_cells,
             kernel,
             globals,
+            created,
         }
+    }
+    pub fn created(&self) -> Timestamp {
+        self.created
     }
     pub fn set_crashed_kernel(&mut self, message: String) {
         self.kernel = KernelState::Crashed(message)
