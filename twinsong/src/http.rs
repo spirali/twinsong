@@ -1,23 +1,23 @@
 use crate::client_messages::{
-    parse_client_message, serialize_client_message, FromClientMessage, ToClientMessage,
+    FromClientMessage, ToClientMessage, parse_client_message, serialize_client_message,
 };
 use crate::reactor::{
     close_run, load_notebook, new_notebook, query_dir, run_code, save_notebook, start_kernel,
 };
 use crate::state::{AppState, AppStateRef};
+use axum::Router;
 use axum::body::Body;
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::{Path, State, WebSocketUpgrade};
 use axum::http::header;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{any, get};
-use axum::Router;
-use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::SinkExt;
 use futures_util::StreamExt;
+use futures_util::stream::{SplitSink, SplitStream};
 use std::io::Write;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
 pub(crate) async fn http_server_main(state: AppStateRef, port: u16) -> anyhow::Result<()> {
     let app = Router::new()

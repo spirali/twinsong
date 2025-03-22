@@ -14,7 +14,7 @@ import {
   Run,
   RunId,
   RunViewMode,
-  TextOutputValue
+  TextOutputValue,
 } from "./notebook";
 
 interface SetSelectedNotebookAction {
@@ -56,6 +56,7 @@ interface NewOutputAction {
   flag: OutputCellFlag;
   value: OutputValue;
   update: null | SerializedGlobalsUpdate;
+  kernel_state: KernelState;
 }
 
 interface SetCurrentRunAction {
@@ -492,7 +493,12 @@ export function stateReducer(state: State, action: StateAction): State {
             if (action.update) {
               globals = applyGlobalsUpdate(action.update, r.globals);
             }
-            return { ...r, globals, output_cells } as Run;
+            return {
+              ...r,
+              globals,
+              output_cells,
+              kernel_state: action.kernel_state,
+            } as Run;
           } else {
             return r;
           }

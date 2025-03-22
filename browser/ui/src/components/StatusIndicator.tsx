@@ -14,11 +14,17 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({ status }) => {
       icon: <LuLoaderCircle className="w-4 h-4 mr-2 animate-spin" />,
       label: "Initializing kernel",
     },
-    Running: {
+    Ready: {
       color: "bg-green-300",
       textColor: "text-green-700",
       icon: <LuCircle fill="green" className="w-4 h-4 mr-2" />,
-      label: "Online",
+      label: "Ready",
+    },
+    Running: {
+      color: "bg-green-300",
+      textColor: "text-green-700",
+      icon: <LuLoaderCircle className="w-4 h-4 mr-2 animate-spin" />,
+      label: "Running",
     },
     Crashed: {
       color: "bg-red-300",

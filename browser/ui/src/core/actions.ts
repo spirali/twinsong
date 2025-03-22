@@ -10,7 +10,7 @@ import {
   Notebook,
   NotebookId,
   OutputCellFlag,
-  RunId
+  RunId,
 } from "./notebook";
 import { InsertType, State, StateAction } from "./state";
 
@@ -36,7 +36,10 @@ export function newRun(
   return run_id;
 }
 
-export function extractRunNode(node: EditorNode, path: EditorNodeId[]): EditorNode {
+export function extractRunNode(
+  node: EditorNode,
+  path: EditorNodeId[],
+): EditorNode {
   if (path.length === 0) {
     return node;
   }

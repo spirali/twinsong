@@ -56,10 +56,11 @@ pub(crate) struct LoadNotebookMsg {
 
 #[derive(Debug, Serialize)]
 #[serde(tag = "type")]
-pub(crate) enum KernelStateDesc<'a> {
+pub(crate) enum KernelStateDesc {
     Init,
+    Ready,
     Running,
-    Crashed { message: &'a str },
+    Crashed { message: String },
     Closed,
 }
 
@@ -68,7 +69,7 @@ pub(crate) struct RunDesc<'a> {
     pub id: RunId,
     pub title: &'a str,
     pub output_cells: &'a [OutputCell],
-    pub kernel_state: KernelStateDesc<'a>,
+    pub kernel_state: KernelStateDesc,
     pub globals: &'a SerializedGlobals,
 }
 
@@ -128,6 +129,7 @@ pub(crate) enum ToClientMessage<'a> {
         value: &'a OutputValue,
         flag: OutputFlag,
         update: Option<&'a SerializedGlobalsUpdate>,
+        kernel_state: KernelStateDesc,
     },
     SaveCompleted {
         notebook_id: NotebookId,

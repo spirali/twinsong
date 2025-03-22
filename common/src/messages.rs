@@ -55,6 +55,15 @@ pub enum OutputFlag {
     Fail,
 }
 
+impl OutputFlag {
+    pub fn is_final(&self) -> bool {
+        match self {
+            OutputFlag::Running => false,
+            OutputFlag::Success | OutputFlag::Fail => true,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Exception {
     pub message: String,

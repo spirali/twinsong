@@ -2,12 +2,12 @@ use crate::executor::FromExecutorMessage;
 use anyhow::anyhow;
 use comm::messages::{ComputeMsg, FromKernelMessage, ToKernelMessage};
 use comm::scopes::SerializedGlobals;
-use comm::{make_protocol_builder, parse_to_kernel_message, serialize_from_kernel_message, Codec};
-use futures_util::stream::{SplitSink, SplitStream, StreamExt};
+use comm::{Codec, make_protocol_builder, parse_to_kernel_message, serialize_from_kernel_message};
 use futures_util::SinkExt;
+use futures_util::stream::{SplitSink, SplitStream, StreamExt};
 use tokio::net::TcpStream;
 use tokio::runtime::Builder;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use tokio_util::bytes::Bytes;
 use uuid::Uuid;
 

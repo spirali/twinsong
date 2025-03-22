@@ -3,6 +3,7 @@ import {
   EditorGroupNode as EditorGroup,
   EditorNode,
   EditorNodeId,
+  KernelState,
   NotebookDesc,
   NotebookId,
   OutputCellFlag,
@@ -52,6 +53,7 @@ interface OutputMsg {
   flag: OutputCellFlag;
   value: OutputValue;
   update: null | SerializedGlobalsUpdate;
+  kernel_state: KernelState;
 }
 
 interface SaveCompletedMsg {
@@ -145,7 +147,7 @@ export function processMessage(
         type: "kernel_changed",
         notebook_id: message.notebook_id,
         run_id: message.run_id,
-        kernel_state: { type: "Running" },
+        kernel_state: { type: "Ready" },
       });
       break;
     }
@@ -167,6 +169,7 @@ export function processMessage(
         flag: message.flag,
         value: message.value,
         update: message.update,
+        kernel_state: message.kernel_state,
       });
       break;
     }

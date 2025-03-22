@@ -1,5 +1,5 @@
 use crate::client_messages::{
-    serialize_client_message, KernelStateDesc, NotebookDesc, RunDesc, ToClientMessage,
+    KernelStateDesc, NotebookDesc, RunDesc, ToClientMessage, serialize_client_message,
 };
 use anyhow::anyhow;
 use axum::extract::ws::Message;
@@ -222,6 +222,7 @@ pub(crate) struct Run {
     title: String,
     output_cells: Vec<OutputCell>,
     kernel: KernelState,
+    queue: usize,
     globals: SerializedGlobals,
     created: Timestamp,
 }
@@ -238,6 +239,7 @@ impl Run {
             title,
             output_cells,
             kernel,
+            queue: 0,
             globals,
             created,
         }
@@ -246,7 +248,15 @@ impl Run {
         self.created
     }
     pub fn set_crashed_kernel(&mut self, message: String) {
+        self.queue = 0;
         self.kernel = KernelState::Crashed(message)
+    }
+    pub fn queue_increment(&mut self) {
+        self.queue += 1;
+    }
+    pub fn queue_decrement(&mut self) {
+        assert!(self.queue > 0);
+        self.queue -= 1;
     }
     pub fn set_running_kernel(&mut self, kernel_id: KernelId) {
         assert!(matches!(self.kernel, KernelState::Init(id) if id == kernel_id));
@@ -296,6 +306,21 @@ impl Run {
             last.flag = flag;
         } else {
             panic!("Output cell with id {} not found", cell_id);
+        }
+    }
+
+    pub fn kernel_state_desc(&self) -> KernelStateDesc {
+        match self.kernel_state() {
+            KernelState::Init(_) => KernelStateDesc::Init,
+            KernelState::Running(_) => {
+                if self.queue > 0 {
+                    KernelStateDesc::Running
+                } else {
+                    KernelStateDesc::Ready
+                }
+            }
+            KernelState::Crashed(s) => KernelStateDesc::Crashed { message: s.clone() },
+            KernelState::Closed => KernelStateDesc::Closed,
         }
     }
 }
@@ -434,14 +459,7 @@ impl Notebook {
                     id: *run_id,
                     title: &run.title,
                     output_cells: &run.output_cells,
-                    kernel_state: match run.kernel_state() {
-                        KernelState::Init(_) => KernelStateDesc::Init,
-                        KernelState::Running(_) => KernelStateDesc::Running,
-                        KernelState::Crashed(s) => KernelStateDesc::Crashed {
-                            message: s.as_str(),
-                        },
-                        KernelState::Closed => KernelStateDesc::Closed,
-                    },
+                    kernel_state: run.kernel_state_desc(),
                     globals: &run.globals,
                 }
             })
