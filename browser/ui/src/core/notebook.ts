@@ -8,6 +8,7 @@ export type EditorNodeId = string;
 export type KernelState =
   | { type: "Crashed"; message: string }
   | { type: "Init" }
+  | { type: "Ready" }
   | { type: "Running" }
   | { type: "Closed" };
 

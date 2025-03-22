@@ -10,7 +10,7 @@ import {
   LuGlobe,
   LuLoaderCircle,
   LuPlus,
-  LuSave
+  LuSave,
 } from "react-icons/lu";
 import Editor from "react-simple-code-editor";
 import {

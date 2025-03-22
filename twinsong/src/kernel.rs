@@ -5,16 +5,16 @@ use crate::state::AppStateRef;
 use anyhow::bail;
 use axum::body::Bytes;
 use comm::messages::{FromKernelMessage, ToKernelMessage};
-use comm::{make_protocol_builder, parse_from_kernel_message, serialize_to_kernel_message, Codec};
-use futures_util::stream::{SplitSink, SplitStream, StreamExt};
+use comm::{Codec, make_protocol_builder, parse_from_kernel_message, serialize_to_kernel_message};
 use futures_util::SinkExt;
+use futures_util::stream::{SplitSink, SplitStream, StreamExt};
 use std::env::temp_dir;
 use std::fs::File;
 use std::process::Stdio;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::process::Child;
 use tokio::spawn;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use tokio::sync::oneshot;
 use tokio::task::spawn_local;
 use tracing::log;
@@ -90,7 +90,7 @@ impl KernelHandle {
 
     pub fn send_message(&mut self, message: ToKernelMessage) {
         match &mut self.state {
-            KernelHandleState::Init(ref mut pending_msgs) => {
+            KernelHandleState::Init(pending_msgs) => {
                 pending_msgs.push(message);
             }
             KernelHandleState::Ready(sender) => {

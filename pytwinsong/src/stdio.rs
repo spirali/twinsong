@@ -1,6 +1,6 @@
 use crate::executor::FromExecutorMessage;
 use comm::messages::{KernelOutputValue, OutputFlag};
-use pyo3::{pyclass, pymethods, PyResult};
+use pyo3::{PyResult, pyclass, pymethods};
 use tokio::sync::mpsc::UnboundedSender;
 use uuid::Uuid;
 

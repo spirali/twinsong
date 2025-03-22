@@ -1,14 +1,14 @@
 use crate::client_messages::{
-    serialize_client_message, DirEntry, DirEntryType, LoadNotebookMsg, RunCodeMsg, SaveNotebookMsg,
-    ToClientMessage,
+    DirEntry, DirEntryType, LoadNotebookMsg, RunCodeMsg, SaveNotebookMsg, ToClientMessage,
+    serialize_client_message,
 };
-use crate::kernel::{spawn_kernel, KernelCtx};
+use crate::kernel::{KernelCtx, spawn_kernel};
 use crate::notebook::{
-    generate_new_notebook_path, KernelId, KernelState, Notebook, NotebookId, OutputCell,
-    OutputCellId, OutputValue, Run, RunId,
+    KernelId, KernelState, Notebook, NotebookId, OutputCell, OutputCellId, OutputValue, Run, RunId,
+    generate_new_notebook_path,
 };
 use crate::state::{AppState, AppStateRef};
-use crate::storage::{deserialize_notebook, serialize_notebook, SerializedNotebook};
+use crate::storage::{SerializedNotebook, deserialize_notebook, serialize_notebook};
 use anyhow::bail;
 use axum::extract::ws::Message;
 use comm::messages::{ComputeMsg, FromKernelMessage, ToKernelMessage};
@@ -83,6 +83,7 @@ pub(crate) fn run_code(state: &mut AppState, msg: RunCodeMsg) -> anyhow::Result<
     let run = notebook.find_run_by_id_mut(msg.run_id)?;
     let code = msg.editor_node.to_code_group();
     run.add_output_cell(OutputCell::new(msg.cell_id, msg.editor_node));
+    run.queue_increment();
     if let Some(kernel) = run
         .kernel_id()
         .and_then(|kernel_id| state.get_kernel_by_id_mut(kernel_id))
@@ -110,6 +111,11 @@ pub(crate) fn process_kernel_message(
         } => {
             let value = OutputValue::new(value);
             let notebook = state.find_notebook_by_id_mut(kernel_ctx.notebook_id)?;
+            let run = notebook.find_run_by_id_mut(kernel_ctx.run_id)?;
+            if flag.is_final() {
+                run.queue_decrement();
+            }
+            let kernel_state = run.kernel_state_desc();
             notebook.send_message(ToClientMessage::Output {
                 notebook_id: kernel_ctx.notebook_id,
                 run_id: kernel_ctx.run_id,
@@ -117,7 +123,9 @@ pub(crate) fn process_kernel_message(
                 value: &value,
                 flag,
                 update: update.as_ref(),
+                kernel_state,
             });
+            // TODO: Remove double lookup, this is just because of lifetime problems
             let run = notebook.find_run_by_id_mut(kernel_ctx.run_id)?;
             if let Some(update) = update {
                 run.update_globals(update)

@@ -4,7 +4,7 @@ import {
   LuMenu,
   LuMessageSquare,
   LuPlus,
-  LuX
+  LuX,
 } from "react-icons/lu";
 import { closeRun, newRun } from "../core/actions";
 import { Notebook, Run } from "../core/notebook";
