@@ -236,13 +236,14 @@ fn create_tuple(py: Python, ctx: &mut BuildCtx, obj: &Bound<PyTuple>) -> JsonObj
     }
 }
 
-fn create_module(py: Python, ctx: &mut BuildCtx, obj: &Bound<PyModule>) -> JsonObject {
+fn create_module(_py: Python, _ctx: &mut BuildCtx, obj: &Bound<PyModule>) -> JsonObject {
     let name = PyModuleMethods::name(obj);
-    let dict = PyModuleMethods::dict(obj);
-    let children = PyDictMethods::iter(&dict)
-        .map(|(k, v)| (k.to_string(), create_jobject_helper(py, ctx, &v)))
-        .collect();
-    //let children = Vec::new();
+    // TODO: Enable, but there are some tricky modules like seaborn that needs to be solved
+    //let dict = PyModuleMethods::dict(obj);
+    // let children = PyDictMethods::iter(&dict)
+    //     .map(|(k, v)| (k.to_string(), create_jobject_helper(py, ctx, &v)))
+    //     .collect();
+    let children = Vec::new();
     JsonObject {
         id: 0,
         repr: format!(
