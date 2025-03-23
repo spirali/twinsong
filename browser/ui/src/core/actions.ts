@@ -52,7 +52,7 @@ export function extractRunNode(
     id: node.id,
     type: "Group",
     scope: node.scope,
-    children: [child],
+    children: [extractRunNode(child, path.slice(1))],
   };
 }
 
