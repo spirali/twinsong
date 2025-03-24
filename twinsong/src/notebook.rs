@@ -366,32 +366,16 @@ impl Notebook {
         ];*/
         let editor_root = EditorGroup {
             id: EditorId::new(Uuid::new_v4()),
-            name: "root".to_string(),
+            name: "project".to_string(),
             scope: ScopeType::Own,
             children: vec![
-                EditorNode::Group(EditorGroup {
+                EditorNode::Cell(EditorCell {
                     id: EditorId::new(Uuid::new_v4()),
-                    name: "init".to_string(),
-                    children: vec![EditorNode::Cell(EditorCell {
-                        id: EditorId::new(Uuid::new_v4()),
-                        code: "import pandas as pd\nimport numpy as np".to_string(),
-                    })],
-                    scope: ScopeType::Own,
+                    code: "print(\"Hello world\")\n\nx = 10\nx".to_string(),
                 }),
-                EditorNode::Group(EditorGroup {
+                EditorNode::Cell(EditorCell {
                     id: EditorId::new(Uuid::new_v4()),
-                    name: "main".to_string(),
-                    children: vec![
-                        EditorNode::Cell(EditorCell {
-                            id: EditorId::new(Uuid::new_v4()),
-                            code: "print(\"Hello world\")\n\nx = 10\nx".to_string(),
-                        }),
-                        EditorNode::Cell(EditorCell {
-                            id: EditorId::new(Uuid::new_v4()),
-                            code: "".to_string(),
-                        }),
-                    ],
-                    scope: ScopeType::Inherit,
+                    code: "".to_string(),
                 }),
             ],
         };
