@@ -29,12 +29,12 @@ Twinsong is an alternative to Jupyter notebooks. It reimagines interactive progr
 - **Batch Execution**: Evaluate entire subtrees at once with a single command
 - **Scoped Memory Spaces**: Define hierarchical scopes - subtrees can have their own memory space
 
+### Variable Inspection
+
 <p align="center">
 <img width="80%" src="docs/imgs/screenshot3.png">
 </p>
 
-
-### Variable Inspection
 - **Memory Exploration**: Examine global variables and their structure
 - **Type Information**: View detailed type information for complex data structures
 - **Hierarchical Display**: Navigate nested data structures in an intuitive interface
