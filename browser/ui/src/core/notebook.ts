@@ -64,6 +64,7 @@ export interface OutputCell {
   values: OutputValue[];
   flag: OutputCellFlag;
   editor_node: EditorNode;
+  called_id: EditorNodeId;
 }
 
 export type RunViewMode = "outputs" | "workspace";

@@ -64,6 +64,7 @@ export function runCode(
   pushNotification: PushNotification,
 ) {
   const node = extractRunNode(notebook.editor_root, path);
+  const calledId = path[path.length - 1];
   let run_id = notebook.current_run_id;
   let flag: OutputCellFlag = "Pending";
   if (run_id === null) {
@@ -96,6 +97,7 @@ export function runCode(
       values: [],
       flag,
       editor_node: node,
+      called_id: calledId,
     },
     run_id: run_id,
   });
@@ -105,6 +107,7 @@ export function runCode(
     run_id: run_id,
     cell_id: cell_id,
     editor_node: node,
+    called_id: calledId,
   });
 }
 

@@ -113,7 +113,7 @@ const OutputCellView: React.FC<{
 
   return (
     <div
-      className={`border-l-6 pl-1 ${notebook.selected_editor_node_id == props.cell.editor_node.id ? "border-orange-200" : "border-white"}`}
+      className={`border-l-6 pl-1 ${notebook.selected_editor_node_id === props.cell.called_id ? "border-orange-200" : "border-white"}`}
     >
       <div ref={ref} className="border border-gray-300 shadow-sm mb-2 mr-6">
         {/* Smaller Status Bar */}

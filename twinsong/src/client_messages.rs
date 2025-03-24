@@ -41,6 +41,7 @@ pub(crate) struct RunCodeMsg {
     pub run_id: RunId,
     pub cell_id: OutputCellId,
     pub editor_node: EditorGroup,
+    pub called_id: EditorId,
 }
 
 #[derive(Debug, Deserialize)]
