@@ -65,16 +65,22 @@ class Kernel:
         self.run_id = run_id
         self.last_cell_id = None
         self.last_editor_node = None
+        self.last_called_id = None
         self.last_update = None
         self.editor_root_id = str(uuid.uuid4())
 
-    def run_code(self, code):
+    def run_code(self, code, called_id=None):
         cell_id = str(uuid.uuid4())
         if isinstance(code, str):
-            children = [{"type": "Cell", "id": str(uuid.uuid4()), "code": code}]
+            called_id = str(uuid.uuid4())
+            children = [{"type": "Cell", "id": called_id, "code": code}]
         elif isinstance(code, list):
+            if called_id is None:
+                raise Exception("Called ID not provided when code is list")
             children = code
         else:
+            if called_id is None:
+                called_id = code["id"]
             children = [code]
         editor_node = {
             "name": "",
@@ -83,6 +89,7 @@ class Kernel:
             "children": children,
         }
         self.last_editor_node = editor_node
+        self.last_called_id = called_id
         outputs = []
         self.client.send_message(
             {
@@ -92,6 +99,7 @@ class Kernel:
                 "code": code,
                 "cell_id": cell_id,
                 "editor_node": editor_node,
+                "called_id": called_id,
             }
         )
         while True:

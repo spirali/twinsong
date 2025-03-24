@@ -82,7 +82,7 @@ pub(crate) fn run_code(state: &mut AppState, msg: RunCodeMsg) -> anyhow::Result<
     let notebook = state.find_notebook_by_id_mut(msg.notebook_id)?;
     let run = notebook.find_run_by_id_mut(msg.run_id)?;
     let code = msg.editor_node.to_code_group();
-    run.add_output_cell(OutputCell::new(msg.cell_id, msg.editor_node));
+    run.add_output_cell(OutputCell::new(msg.cell_id, msg.editor_node, msg.called_id));
     run.queue_increment();
     if let Some(kernel) = run
         .kernel_id()

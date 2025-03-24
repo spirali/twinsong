@@ -104,6 +104,7 @@ interface RunCodeMsg {
   run_id: RunId;
   cell_id: EditorNodeId;
   editor_node: EditorNode;
+  called_id: EditorNodeId;
 }
 
 interface LoadNotebookMsg {

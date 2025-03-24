@@ -114,15 +114,17 @@ pub(crate) struct OutputCell {
     values: Vec<OutputValue>,
     flag: OutputFlag,
     editor_node: EditorGroup,
+    called_id: EditorId,
 }
 
 impl OutputCell {
-    pub fn new(id: OutputCellId, editor_node: EditorGroup) -> Self {
+    pub fn new(id: OutputCellId, editor_node: EditorGroup, called_id: EditorId) -> Self {
         OutputCell {
             id,
             values: Vec::new(),
             flag: OutputFlag::Running,
             editor_node,
+            called_id,
         }
     }
 }

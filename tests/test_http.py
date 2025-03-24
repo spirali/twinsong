@@ -115,6 +115,7 @@ def test_save_notebook_plain(client):
             "output_cells": [
                 {
                     "editor_node": k.last_editor_node,
+                    "called_id": k.last_called_id,
                     "flag": "Success",
                     "id": cell_id,
                     "values": [
