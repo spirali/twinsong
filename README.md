@@ -6,22 +6,50 @@
 
 Twinsong is an alternative to Jupyter notebooks. It reimagines interactive programming by moving away from the linear "document-style" execution of Jupyter notebooks. Twinsong provides a flexible coding environment where code and outputs are separated. Twinsong also enables better memory state inspection and multi-kernel execution over the same notebook.
 
+## Key Features
+
+### Separated Code & Outputs
+
 <p align="center">
 <img width="80%" src="docs/imgs/screenshot1.png">
 </p>
+
+- **Clean Code View**: Code remains uncluttered as outputs are displayed separately
+- **Preserved Results History**: Re-evaluating a cell does not overwrite previous results - Twinsong tracks which code generated past outputs
+- **Multi-kernel Support**: Run multiple kernel instances over the same code simultaneously
+- **Execution History**: Twinsong preserves the history of cell evaluations
+
+### Tree-structured Code Organization
 
 <p align="center">
 <img width="80%" src="docs/imgs/screenshot2.png">
 </p>
 
-## Features
+- **Hierarchical Code**: Organize your code in a tree structure rather than linear cells
+- **Batch Execution**: Evaluate entire subtrees at once with a single command
+- **Scoped Memory Spaces**: Define hierarchical scopes - subtrees can have their own memory space
 
-- **Compact Code** – Code remains uncluttered as outputs are displayed separately.
-- **Memory State Inspection** – Gain insights into variable states and execution history.
-- **Preserved Results** – Re-evaluating a cell does not overwrite previous results. TwinSong tracks the code that generated past outputs.
-- **Multiple Kernel Instances** – The separation of code and outputs allows multiple kernel instances to run over the same code at once.
-- **Rust Backend** – The backend is written in Rust. Package is statically linked, no dependencies needed.
-- **Clean Python Kernel** - The Python kernel is a clean Python instance with a Rust module that avoids loading additional Python modules or starting additional Python threads.
+<p align="center">
+<img width="80%" src="docs/imgs/screenshot3.png">
+</p>
+
+
+### Variable Inspection
+- **Memory Exploration**: Examine global variables and their structure
+- **Type Information**: View detailed type information for complex data structures
+- **Hierarchical Display**: Navigate nested data structures in an intuitive interface
+
+
+### Git-friendly Notebook Format
+- **Separate Storage**: Code, runs, and user settings are stored separately
+- **Avoid Merge Conflicts**: Prevent conflicts that arise just from cell evaluation
+- **Selective Versioning**: Version code alone or include specific runs
+
+### Powerful Backend
+- **Rust Implementation**: Core is written in Rust for performance and reliability
+- **No Dependencies**: Package is statically linked with no external dependencies
+- **Clean Python Kernel**: Kernel uses a clean Python instance just with a Rust module, avoiding loading unnecessary Python modules or starting additional Python threads
+
 
 ## Status
 
@@ -41,6 +69,30 @@ Start TwinSong itself:
 ```
 twinsong
 ```
+
+## Current Limitations
+
+Twinsong is currently in an experimental phase with some limitations:
+
+- Backward compatibility of notebook formats is not yet guaranteed
+- Some libraries (like Plotly and Matplotlib) don't display visualizations correctly yet
+- Limited keyboard shortcuts compared to mature environments
+- Only Python kernel is currently supported
+
+## Project Status
+
+Development is currently concentrated on core functionality and stability. The roadmap includes:
+
+- Import/export with Jupyter notebook format
+- Support commonly used modules used in Jupyter
+- Enhanced debugging capabilities
+- Additional keyboard shortcuts and productivity features
+
+
+## Contributing
+
+Issues and contributions are welcome! Please file issues on GitHub if you encounter problems or have suggestions for improvements.
+
 
 ## Building locally
 
@@ -66,29 +118,6 @@ maturin develop -r
 
 cargo build --release --package twinsong
 ```
-
-## Roadmap
-
-* ~~Python kernel~~ (released)
-* ~~Basic UI~~ (released)
-* ~~Cell evaluation~~ (released)
-* ~~Stdout streaming~~ (released)
-    * stderr streaming
-* ~~Loading/Saving notebook~~ (dev)
-    * autosave
-    * directory changing
-* ~~Object inspection~~ (dev)
-*   * ``ts.log``
-* Stopping kernels & cell evaluations
-* ~~Closing runs~~ (dev) & notebooks
-* Automatical code reloading
-* Modal code editor (?)
-* More keyboard shortcuts
-* Making sure that important packages are running with nice outputs:
-    * ~~pandas~~ (released)
-    * tqdm
-    * plotly
-
 
 
 ## License
