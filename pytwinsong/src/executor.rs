@@ -6,8 +6,8 @@ use comm::messages::{
     OwnCodeScope,
 };
 use comm::scopes::SerializedGlobals;
-use pyo3::types::PyStringMethods;
 use pyo3::types::{PyAnyMethods, PyDict, PyTracebackMethods};
+use pyo3::types::{PyNone, PyStringMethods};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyErr, PyResult, Python};
 use tokio::runtime::Builder;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
@@ -50,19 +50,24 @@ fn eval_code<'a>(
     py: Python<'a>,
     code: &str,
     globals: &Bound<'a, PyDict>,
+    parent: Option<&Bound<'a, PyDict>>,
     locals: &Bound<'a, PyDict>,
     stdout: &'a Bound<PyAny>,
     return_last: bool,
 ) -> PyResult<Bound<'a, PyAny>> {
     let run_module = py.import("twinsong.driver.run")?;
+    let parent = parent
+        .map(|x| x.clone().into_any())
+        .unwrap_or_else(|| PyNone::get(py).to_owned().into_any());
     run_module
         .getattr("run_code")?
-        .call1((code, globals, locals, stdout, return_last))
+        .call1((code, globals, parent, locals, stdout, return_last))
 }
 
 struct CodeEnv<'a> {
     leaf: &'a CodeLeaf,
     globals: Bound<'a, PyDict>,
+    parent: Option<Bound<'a, PyDict>>,
     locals: Bound<'a, PyDict>,
 }
 
@@ -91,12 +96,13 @@ fn collect_code_leafs<'a, 'b>(
                 }
             }
             CodeNode::Leaf(leaf) => {
-                let (globals, locals) = scope_storage
-                    .make_globals_and_locals(py, parent_scopes)
+                let (globals, parent, locals) = scope_storage
+                    .make_globals_parent_and_locals(py, parent_scopes)
                     .unwrap();
                 out.push(CodeEnv {
                     leaf,
                     globals,
+                    parent,
                     locals,
                 })
             }
@@ -124,6 +130,7 @@ fn run_code(
             py,
             &code.leaf.code,
             &code.globals,
+            code.parent.as_ref(),
             &code.locals,
             &stdout,
             false,
@@ -133,6 +140,7 @@ fn run_code(
         py,
         &last.leaf.code,
         &last.globals,
+        last.parent.as_ref(),
         &last.locals,
         &stdout,
         true,

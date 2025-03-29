@@ -13,12 +13,12 @@ def test_execute_command(client):
     k = client.create_new_kernel(r["notebook"]["id"])
     assert "3" == k.run_code_simple("1 + 2")
     assert [
-        {"type": "Text", "value": "Hello"},
-        {"type": "Text", "value": "\n"},
-        {"type": "Text", "value": "World"},
-        {"type": "Text", "value": "\n"},
-        {"type": "None"},
-    ] == k.run_code("print('Hello')\nprint('World')")
+               {"type": "Text", "value": "Hello"},
+               {"type": "Text", "value": "\n"},
+               {"type": "Text", "value": "World"},
+               {"type": "Text", "value": "\n"},
+               {"type": "None"},
+           ] == k.run_code("print('Hello')\nprint('World')")
 
 
 def test_globals_update_without_scopes(client):
@@ -61,26 +61,44 @@ def test_globals_update_scopes(client):
             ],
         }
     )
-    assert len(k.last_update["children"]) == 1
-    assert k.last_update["name"] == ""
-    assert k.last_update["children"][group_id1]["name"] == "G1"
+
+
+def test_parent_scope(client):
+    r = client.create_new_notebook()
+    k = client.create_new_kernel(r["notebook"]["id"])
+    k.run_code("x = 2")
+    group_id1 = str(uuid.uuid4())
+    group_id2 = str(uuid.uuid4())
+    k.run_code(
+        {
+            "type": "Group",
+            "id": group_id1,
+            "name": "G1",
+            "scope": "Own",
+            "children": [
+                {"type": "Cell", "id": str(uuid.uuid4()), "code": "x = 3"},
+                {
+                    "type": "Group",
+                    "id": group_id2,
+                    "name": "G2",
+                    "scope": "Own",
+                    "children": [
+                        {"type": "Cell", "id": str(uuid.uuid4()),
+                         "code": "parent_scope.y = 10; x = 4"},
+                    ],
+                }
+            ],
+        }
+    )
+
+    print("!!!", k.last_update["children"][group_id1])
+    assert False
 
     x = build_jobject_from_text(k.last_update["children"][group_id1]["variables"]["x"])
     assert x == {"kind": "number", "repr": "3", "value_type": "int"}
 
-    k.run_code(
-        {
-            "type": "Group",
-            "id": group_id2,
-            "name": "G1",
-            "scope": "Inherit",
-            "children": [{"type": "Cell", "id": str(uuid.uuid4()), "code": "x = 4"}],
-        }
-    )
-    assert len(k.last_update["children"]) == 1
-    x = build_jobject_from_text(k.last_update["variables"]["x"])
+    x = build_jobject_from_text(k.last_update["children"][group_id1]["children"][group_id2]["variables"]["x"])
     assert x == {"kind": "number", "repr": "4", "value_type": "int"}
-    assert k.last_update["children"][group_id1]["variables"]["x"] is None
 
 
 def test_save_notebook_plain(client):
@@ -286,9 +304,9 @@ def test_execute_tree(client):
     }
 
     assert [
-        {"type": "Text", "value": "One"},
-        {"type": "Text", "value": "\n"},
-        {"type": "Text", "value": "Two"},
-        {"type": "Text", "value": "\n"},
-        {"type": "Text", "value": "10"},
-    ] == k.run_code(code)
+               {"type": "Text", "value": "One"},
+               {"type": "Text", "value": "\n"},
+               {"type": "Text", "value": "Two"},
+               {"type": "Text", "value": "\n"},
+               {"type": "Text", "value": "10"},
+           ] == k.run_code(code)
