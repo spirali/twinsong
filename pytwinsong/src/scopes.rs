@@ -28,15 +28,20 @@ impl ScopedPyGlobals {
         }
     }
 
-    pub fn make_globals_and_locals<'a>(
+    #[allow(clippy::type_complexity)]
+    pub fn make_globals_parent_and_locals<'a>(
         &mut self,
         py: Python<'a>,
         scope_path: &[&OwnCodeScope],
-    ) -> PyResult<(Bound<'a, PyDict>, Bound<'a, PyDict>)> {
+    ) -> PyResult<(
+        Bound<'a, PyDict>,
+        Option<Bound<'a, PyDict>>,
+        Bound<'a, PyDict>,
+    )> {
         if scope_path.is_empty() {
             let globals = PyDict::new(py);
             let locals = self.variables.bind_borrowed(py).to_owned();
-            Ok((globals, locals))
+            Ok((globals.clone(), None, locals))
         } else {
             let scope = &scope_path[0];
             let entry = self
@@ -44,9 +49,14 @@ impl ScopedPyGlobals {
                 .entry(scope.id)
                 .or_insert_with(|| ScopedPyGlobals::new(py));
             entry.update_name(&scope.name);
-            let (globals, locals) = entry.make_globals_and_locals(py, &scope_path[1..])?;
-            globals.update(self.variables.bind_borrowed(py).as_mapping())?;
-            Ok((globals, locals))
+            let (globals, mut parent, locals) =
+                entry.make_globals_parent_and_locals(py, &scope_path[1..])?;
+            let variables = self.variables.bind_borrowed(py);
+            globals.update(variables.as_mapping())?;
+            if parent.is_none() {
+                parent = Some(variables.to_owned());
+            }
+            Ok((globals, parent, locals))
         }
     }
 
