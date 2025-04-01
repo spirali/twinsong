@@ -6,8 +6,10 @@ import { useDispatch } from "./StateProvider";
 import ErrorScreen from "./ErrorScreen";
 import LoadingScreen from "./LoadingScreen";
 import { usePushNotification } from "./NotificationProvider";
+import Cookies from 'js-cookie';
 
 const WsContext = createContext<SendJsonMessage | null>(null);
+
 
 declare global {
   interface Window {
@@ -34,8 +36,9 @@ export const WsProvider = (props: { children: JSX.Element }) => {
       setError("Connection lost");
     }
     if (readyState === ReadyState.OPEN) {
+      const authToken = Cookies.get('authToken');
       sendJsonMessage({
-        type: "login",
+        token: authToken,
       });
       sendJsonMessage({
         type: "QueryDir",

@@ -6,6 +6,8 @@ import json
 import time
 import uuid
 import contextlib
+import random
+import string
 
 TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(TESTS_DIR)
@@ -27,8 +29,14 @@ def work_dir(path):
         os.chdir(old)
 
 
+@pytest.fixture(scope="session")
+def key():
+    chars = string.ascii_uppercase + string.digits
+    return "".join(random.choice(chars) for _ in range(10))
+
+
 @pytest.fixture
-def http_service(tmp_path):
+def http_service(tmp_path, key):
     global PORT
     PORT += 1
     with work_dir(tmp_path):
@@ -37,7 +45,7 @@ def http_service(tmp_path):
         env = os.environ.copy()
         env["RUST_LOG"] = "DEBUG"
         p = subprocess.Popen(
-            [BIN_DIR, "--port", str(PORT)],
+            [BIN_DIR, "--port", str(PORT), "--key", key],
             stdout=log,
             stderr=subprocess.STDOUT,
             env=env,
@@ -122,9 +130,9 @@ class Kernel:
 
 
 class Client:
-    def __init__(self, ws):
+    def __init__(self, ws, key):
         self.ws = ws
-        self.send_message({"type": "login"})
+        self.send_message({"token": key})
 
     def send_message(self, data):
         self.ws.send(json.dumps(data))
@@ -168,5 +176,5 @@ class Client:
 
 
 @pytest.fixture
-def client(ws):
-    yield Client(ws)
+def client(ws, key):
+    yield Client(ws, key)
