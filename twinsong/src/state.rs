@@ -2,6 +2,8 @@ use crate::client_messages::KernelInfo;
 use crate::kernel::KernelHandle;
 use crate::notebook::{KernelId, Notebook, NotebookId};
 use anyhow::anyhow;
+use rand::Rng;
+use rand::distr::Alphanumeric;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -11,19 +13,33 @@ pub(crate) struct AppState {
     id_counter: u32,
     kernel_port: u16,
     http_port: u16,
+    secret_key: String,
 }
 
 pub(crate) type AppStateRef = Arc<Mutex<AppState>>;
 
+pub fn generate_key() -> String {
+    rand::rng()
+        .sample_iter(&Alphanumeric)
+        .take(26)
+        .map(char::from)
+        .collect()
+}
+
 impl AppState {
-    pub fn new(http_port: u16) -> Self {
+    pub fn new(http_port: u16, secret_key: Option<String>) -> Self {
         AppState {
             notebooks: HashMap::new(),
             kernels: HashMap::new(),
             id_counter: 0,
             kernel_port: 0,
             http_port,
+            secret_key: secret_key.unwrap_or_else(generate_key),
         }
+    }
+
+    pub(crate) fn secret_key(&self) -> &str {
+        &self.secret_key
     }
 
     pub(crate) fn kernel_list(&self) -> Vec<KernelInfo> {

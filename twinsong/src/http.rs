@@ -5,6 +5,7 @@ use crate::reactor::{
     close_run, load_notebook, new_notebook, query_dir, run_code, save_notebook, start_kernel,
 };
 use crate::state::{AppState, AppStateRef};
+use anyhow::bail;
 use axum::Router;
 use axum::body::Body;
 use axum::extract::ws::{Message, WebSocket};
@@ -15,6 +16,7 @@ use axum::routing::{any, get};
 use futures_util::SinkExt;
 use futures_util::StreamExt;
 use futures_util::stream::{SplitSink, SplitStream};
+use serde::Deserialize;
 use std::io::Write;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
@@ -25,7 +27,7 @@ pub(crate) async fn http_server_main(state: AppStateRef, port: u16) -> anyhow::R
         .route("/assets/{name}", get(get_assets))
         .route("/twinsong.jpeg", get(twinsong_jpeg))
         .route("/ws", any(ws_handler))
-        .with_state(state);
+        .with_state(state.clone());
     let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}")).await?;
 
     {
@@ -37,7 +39,10 @@ pub(crate) async fn http_server_main(state: AppStateRef, port: u16) -> anyhow::R
         stdout.set_color(ColorSpec::new().set_fg(None))?;
         write!(&mut stdout, " v{}", env!("CARGO_PKG_VERSION"))?;
         stdout.set_color(ColorSpec::new().set_bold(true))?;
-        writeln!(&mut stdout, "\n\n   ➜ http://127.0.0.1:{port}\n")?;
+        write!(&mut stdout, "\n\n   ➜ http://127.0.0.1:{port}",)?;
+        stdout.set_color(ColorSpec::new().set_fg(Some(Color::Ansi256(248))))?;
+        writeln!(&mut stdout, "?k={}\n", state.lock().unwrap().secret_key())?;
+        stdout.reset()?;
     }
     axum::serve(listener, app).await?;
     Ok(())
@@ -90,12 +95,20 @@ async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppStateRef>) -> i
     })
 }
 
+#[derive(Deserialize)]
+struct Token {
+    token: String,
+}
+
 async fn handle_socket(mut socket: WebSocket, state_ref: &AppStateRef) -> anyhow::Result<()> {
     if let Some(msg) = socket.recv().await {
         let msg = msg?;
-        if let Message::Text(_text) = msg {
-            // TODO: Implement loging with TOKEN
-            //let state = state_ref.lock().unwrap();
+        if let Message::Text(text) = msg {
+            let token = serde_json::from_str::<Token>(&text)?;
+            if token.token != state_ref.lock().unwrap().secret_key() {
+                tracing::debug!("Invalid authentication");
+                bail!("Invalid token");
+            }
         } else {
             tracing::error!("Invalid first message");
         }
