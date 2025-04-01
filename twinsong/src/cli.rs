@@ -9,6 +9,9 @@ use std::sync::{Arc, Mutex};
 struct Args {
     #[arg(long, default_value = "4050")]
     port: u16,
+
+    #[arg(long)]
+    key: Option<String>,
 }
 
 pub async fn server_cli(args: Option<Vec<String>>) {
@@ -27,7 +30,7 @@ pub async fn server_cli(args: Option<Vec<String>>) {
     local
         .run_until(async move {
             tracing_subscriber::fmt::init();
-            let state = Arc::new(Mutex::new(AppState::new(args.port)));
+            let state = Arc::new(Mutex::new(AppState::new(args.port, args.key)));
             init_kernel_manager(&state).await.unwrap();
             http_server_main(state, args.port).await.unwrap();
         })
