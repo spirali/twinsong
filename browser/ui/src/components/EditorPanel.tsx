@@ -3,11 +3,9 @@ import "prismjs/components/prism-python";
 import "prismjs/themes/prism.css";
 import React, { useCallback } from "react";
 import {
-  LuArrowBigUp,
   LuChevronDown,
   LuChevronRight,
   LuFolderPlus,
-  LuGlobe,
   LuLoaderCircle,
   LuPlus,
   LuSave,
@@ -31,6 +29,8 @@ import { NodeToolbar } from "./EditorToolbar";
 import { usePushNotification } from "./NotificationProvider";
 import { useDispatch } from "./StateProvider";
 import { useSendCommand } from "./WsProvider";
+import { GoArrowUpLeft } from "react-icons/go";
+import { FaRegSquare } from "react-icons/fa6";
 
 const EditorNamedNodeRenderer: React.FC<{
   notebook: Notebook;
@@ -119,9 +119,9 @@ const EditorNamedNodeRenderer: React.FC<{
           </button>
           <div className="mr-2 text-purple-400">
             {node.scope === EditorScope.Own ? (
-              <LuGlobe size={18} />
+              <FaRegSquare size={18} />
             ) : (
-              <LuArrowBigUp size={18} />
+              <GoArrowUpLeft size={18} />
             )}
           </div>
           {node.name}
