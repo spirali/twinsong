@@ -1,3 +1,8 @@
+# Unreleased
+
+* token authetication
+* new scope icons
+* `parent_scope` introduced
 
 # 0.2.0
 
