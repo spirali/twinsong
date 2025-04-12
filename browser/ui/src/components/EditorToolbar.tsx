@@ -1,8 +1,6 @@
 import React from "react";
 import {
-  LuArrowBigUp,
   LuFolderPlus,
-  LuGlobe,
   LuPencil,
   LuPlus,
   LuTrash2,
@@ -20,6 +18,8 @@ import {
 } from "../core/notebook";
 import { focusId } from "./EditorPanel";
 import { useDispatch } from "./StateProvider";
+import { GoArrowUpLeft } from "react-icons/go";
+import { FaRegSquare } from "react-icons/fa6";
 
 const NodeButton: React.FC<{
   onClick: () => void;
@@ -73,9 +73,9 @@ export const NodeToolbar: React.FC<{
           isGroup={isGroup}
         >
           {node.scope === EditorScope.Own ? (
-            <LuGlobe size={14} />
+            <FaRegSquare size={14} />
           ) : (
-            <LuArrowBigUp size={14} />
+            <GoArrowUpLeft size={14} />
           )}
         </NodeButton>
       )}
