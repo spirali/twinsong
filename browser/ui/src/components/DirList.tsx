@@ -50,9 +50,9 @@ const NotebookList = () => {
               title: "New notebook name",
               value: "",
               okText: "Create a new notebook",
-              onCancel: () => { },
+              onCancel: () => {},
               onConfirm: (value: string) => {
-                sendCommand({ type: "CreateNewNotebook", filename: value })
+                sendCommand({ type: "CreateNewNotebook", filename: value });
               },
             },
           });

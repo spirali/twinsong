@@ -29,7 +29,6 @@ import { NodeToolbar } from "./EditorToolbar";
 import { usePushNotification } from "./NotificationProvider";
 import { useDispatch } from "./StateProvider";
 import { useSendCommand } from "./WsProvider";
-import { GoArrowUpLeft } from "react-icons/go";
 import { TbCircleDashed } from "react-icons/tb";
 
 const EditorNamedNodeRenderer: React.FC<{
@@ -117,13 +116,11 @@ const EditorNamedNodeRenderer: React.FC<{
               <LuChevronRight size={16} />
             )}
           </button>
-          <div className="mr-2 text-purple-400">
-            {node.scope === EditorScope.Own ? (
+          {node.scope === EditorScope.Own && depth > 0 && (
+            <div className="mr-1 text-purple-400">
               <TbCircleDashed size={18} />
-            ) : (
-              <GoArrowUpLeft size={18} />
-            )}
-          </div>
+            </div>
+          )}
           {node.name}
         </div>
         <div>

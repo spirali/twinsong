@@ -1,10 +1,5 @@
 import React from "react";
-import {
-  LuFolderPlus,
-  LuPencil,
-  LuPlus,
-  LuTrash2,
-} from "react-icons/lu";
+import { LuFolderPlus, LuPencil, LuPlus, LuTrash2 } from "react-icons/lu";
 import {
   newEditorCode,
   newEditorGroup,
@@ -18,7 +13,6 @@ import {
 } from "../core/notebook";
 import { focusId } from "./EditorPanel";
 import { useDispatch } from "./StateProvider";
-import { GoArrowUpLeft } from "react-icons/go";
 import { TbCircleDashed } from "react-icons/tb";
 
 const NodeButton: React.FC<{
@@ -72,11 +66,7 @@ export const NodeToolbar: React.FC<{
           }}
           isGroup={isGroup}
         >
-          {node.scope === EditorScope.Own ? (
-            <TbCircleDashed size={14} />
-          ) : (
-            <GoArrowUpLeft size={14} />
-          )}
+          <TbCircleDashed size={14} />
         </NodeButton>
       )}
       {isGroup && (
