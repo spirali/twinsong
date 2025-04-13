@@ -148,8 +148,8 @@ class Client:
         self.send_message({"type": "LoadNotebook", "path": path})
         return self.receive_message()
 
-    def create_new_notebook(self):
-        self.send_message({"type": "CreateNewNotebook"})
+    def create_new_notebook(self, filename: str = "test"):
+        self.send_message({"type": "CreateNewNotebook", "filename": filename})
         r = self.receive_message()
         assert r["type"] == "NewNotebook"
         return r

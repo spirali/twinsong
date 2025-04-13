@@ -83,6 +83,7 @@ export type ToClientMessage =
 
 interface CreateNewNotebookMsg {
   type: "CreateNewNotebook";
+  filename: string,
 }
 
 interface CreateNewKernelMsg {

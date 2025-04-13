@@ -3,6 +3,7 @@
 * token authetication
 * new scope icons
 * `parent_scope` introduced
+* dialog for name of a new notebook
 
 # 0.2.0
 
