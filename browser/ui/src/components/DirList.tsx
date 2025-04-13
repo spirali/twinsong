@@ -44,13 +44,24 @@ const NotebookList = () => {
     <div className="w-80 bg-gray-100 h-full">
       <button
         onClick={() => {
-          sendCommand({ type: "CreateNewNotebook" });
+          dispatch({
+            type: "set_dialog",
+            dialog: {
+              title: "New notebook name",
+              value: "",
+              okText: "Create a new notebook",
+              onCancel: () => { },
+              onConfirm: (value: string) => {
+                sendCommand({ type: "CreateNewNotebook", filename: value })
+              },
+            },
+          });
         }}
         className="bg-gray-100 text-black px-4 py-2 rounded hover:bg-gray-200"
       >
         <div className="flex items-center">
           <LuSquarePlus className="w-4 h-4 mr-2" />
-          Add notebook
+          New notebook
         </div>
       </button>
       <div

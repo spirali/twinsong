@@ -12,7 +12,6 @@ use jiff::Timestamp;
 use nutype::nutype;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::Path;
 use tokio::sync::mpsc::UnboundedSender;
 use uuid::Uuid;
 
@@ -458,14 +457,4 @@ impl Notebook {
             runs,
         }
     }
-}
-
-pub(crate) fn generate_new_notebook_path() -> anyhow::Result<String> {
-    for i in 1..300 {
-        let candidate = format!("notebook_{i}.tsnb");
-        if !std::fs::exists(Path::new(&candidate)).unwrap_or(true) {
-            return Ok(candidate);
-        }
-    }
-    Err(anyhow!("Cannot generate new notebook path"))
 }

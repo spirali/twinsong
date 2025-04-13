@@ -5,7 +5,6 @@ use crate::client_messages::{
 use crate::kernel::{KernelCtx, spawn_kernel};
 use crate::notebook::{
     KernelId, KernelState, Notebook, NotebookId, OutputCell, OutputCellId, OutputValue, Run, RunId,
-    generate_new_notebook_path,
 };
 use crate::state::{AppState, AppStateRef};
 use crate::storage::{SerializedNotebook, deserialize_notebook, serialize_notebook};
@@ -22,11 +21,15 @@ use uuid::Uuid;
 pub(crate) fn new_notebook(
     state: &mut AppState,
     state_ref: &AppStateRef,
+    mut filename: String,
     sender: UnboundedSender<Message>,
 ) -> anyhow::Result<()> {
+    if !filename.ends_with(".tsnb") {
+        filename.push_str(".tsnb");
+    }
     let notebook_id = state.new_notebook_id();
     tracing::debug!("Creating new notebook {notebook_id}");
-    let mut notebook = Notebook::new(generate_new_notebook_path()?);
+    let mut notebook = Notebook::new(filename);
     notebook.set_observer(sender.clone());
     notebook.send_message(ToClientMessage::NewNotebook {
         notebook: notebook.notebook_desc(notebook_id),

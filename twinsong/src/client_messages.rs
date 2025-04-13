@@ -26,7 +26,9 @@ pub(crate) struct NotebookRunMsg {
 }
 
 #[derive(Debug, Deserialize)]
-pub(crate) struct CreateNewNotebookMsg {}
+pub(crate) struct CreateNewNotebookMsg {
+    pub filename: String,
+}
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct CreateNewKernelMsg {

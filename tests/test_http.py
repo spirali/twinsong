@@ -197,8 +197,8 @@ def test_save_notebook_plain(client):
         "type": "DirList",
         "entries": [
             {"entry_type": "Notebook", "path": "copy.tsnb"},
-            {"entry_type": "LoadedNotebook", "path": "notebook_1.tsnb"},
             {"entry_type": "File", "path": "server.out.log"},
+            {"entry_type": "LoadedNotebook", "path": "test.tsnb"},
         ],
     }
     r = client.load_notebook("copy.tsnb")
@@ -228,8 +228,8 @@ def test_save_notebook_plain(client):
         "type": "DirList",
         "entries": [
             {"entry_type": "LoadedNotebook", "path": "copy.tsnb"},
-            {"entry_type": "LoadedNotebook", "path": "notebook_1.tsnb"},
             {"entry_type": "File", "path": "server.out.log"},
+            {"entry_type": "LoadedNotebook", "path": "test.tsnb"},
         ],
     }
 

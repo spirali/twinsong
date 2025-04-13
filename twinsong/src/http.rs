@@ -146,7 +146,9 @@ fn process_client_message(
     message: FromClientMessage,
 ) -> anyhow::Result<()> {
     match message {
-        FromClientMessage::CreateNewNotebook(_) => new_notebook(state, state_ref, sender.clone())?,
+        FromClientMessage::CreateNewNotebook(msg) => {
+            new_notebook(state, state_ref, msg.filename, sender.clone())?
+        }
         FromClientMessage::CreateNewKernel(msg) => {
             tracing::debug!("Creating new kernel for notebook {}", msg.notebook_id);
             start_kernel(state, state_ref, msg.notebook_id, msg.run_id, msg.run_title)?
