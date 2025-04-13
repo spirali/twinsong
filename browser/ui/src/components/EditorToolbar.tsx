@@ -19,7 +19,7 @@ import {
 import { focusId } from "./EditorPanel";
 import { useDispatch } from "./StateProvider";
 import { GoArrowUpLeft } from "react-icons/go";
-import { FaRegSquare } from "react-icons/fa6";
+import { TbCircleDashed } from "react-icons/tb";
 
 const NodeButton: React.FC<{
   onClick: () => void;
@@ -73,7 +73,7 @@ export const NodeToolbar: React.FC<{
           isGroup={isGroup}
         >
           {node.scope === EditorScope.Own ? (
-            <FaRegSquare size={14} />
+            <TbCircleDashed size={14} />
           ) : (
             <GoArrowUpLeft size={14} />
           )}

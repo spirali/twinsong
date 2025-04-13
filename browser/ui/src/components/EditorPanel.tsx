@@ -30,7 +30,7 @@ import { usePushNotification } from "./NotificationProvider";
 import { useDispatch } from "./StateProvider";
 import { useSendCommand } from "./WsProvider";
 import { GoArrowUpLeft } from "react-icons/go";
-import { FaRegSquare } from "react-icons/fa6";
+import { TbCircleDashed } from "react-icons/tb";
 
 const EditorNamedNodeRenderer: React.FC<{
   notebook: Notebook;
@@ -119,7 +119,7 @@ const EditorNamedNodeRenderer: React.FC<{
           </button>
           <div className="mr-2 text-purple-400">
             {node.scope === EditorScope.Own ? (
-              <FaRegSquare size={18} />
+              <TbCircleDashed size={18} />
             ) : (
               <GoArrowUpLeft size={18} />
             )}
