@@ -7,6 +7,7 @@ mod stdio;
 use crate::executor::start_executor;
 use crate::jobject::create_jobject_string;
 use pyo3::prelude::*;
+use std::ffi::OsString;
 use tokio::runtime::Builder;
 
 #[pyfunction]
@@ -19,8 +20,25 @@ fn get_argv(py: Python) -> PyResult<Vec<String>> {
     py.import("sys")?.getattr("argv")?.extract()
 }
 
+fn get_executable(py: Python) -> PyResult<OsString> {
+    py.import("sys")?.getattr("executable")?.extract()
+}
+
 #[pyfunction]
 fn start_server() -> PyResult<()> {
+    if std::env::var("TWINSONG_PYTHON").is_err() {
+        Python::with_gil(|py| {
+            if let Ok(value) = get_executable(py) {
+                unsafe {
+                    /* SAFETY
+                       This function is called at the beginning before the whole server is started,
+                       moreover we are holding GIL.
+                    */
+                    std::env::set_var("TWINSONG_PYTHON", value);
+                }
+            }
+        });
+    }
     let args: Vec<String> = Python::with_gil(get_argv)?;
     Builder::new_current_thread()
         .enable_all()

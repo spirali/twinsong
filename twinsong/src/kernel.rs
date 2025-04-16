@@ -10,6 +10,7 @@ use futures_util::SinkExt;
 use futures_util::stream::{SplitSink, SplitStream, StreamExt};
 use std::env::temp_dir;
 use std::fs::File;
+use std::path::PathBuf;
 use std::process::Stdio;
 use tokio::net::{TcpListener, TcpStream};
 use tokio::process::Child;
@@ -109,7 +110,10 @@ pub fn spawn_kernel(
     kernel_ctx: KernelCtx,
     kernel_port: u16,
 ) -> anyhow::Result<KernelHandle> {
-    let program = which::which("python")?;
+    let program = std::env::var("TWINSONG_PYTHON")
+        .map(PathBuf::from)
+        .or_else(|_| which::which("python"))
+        .or_else(|_| which::which("python3"))?;
     let mut cmd = tokio::process::Command::new(program);
     let stdout_path = temp_dir().join("kernel.out");
     let stderr_path = temp_dir().join("kernel.err");
