@@ -4,6 +4,7 @@
 * new scope icons
 * `parent_scope` introduced
 * dialog for name of a new notebook
+* more robust finding python binary
 
 # 0.2.0
 
