@@ -1,4 +1,4 @@
-# Unreleased
+# 0.3.0
 
 * token authetication
 * new scope icons
