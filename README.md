@@ -22,7 +22,7 @@ Twinsong is an alternative to Jupyter notebooks. It reimagines interactive progr
 ### Tree-structured Code Organization
 
 <p align="center">
-<img width="80%" src="docs/imgs/screenshot2.png">
+<img width="60%" src="docs/imgs/screenshot2.png">
 </p>
 
 - **Hierarchical Code**: Organize your code in a tree structure rather than linear cells
@@ -87,6 +87,10 @@ Development is currently concentrated on core functionality and stability. The r
 - Support commonly used modules used in Jupyter
 - Enhanced debugging capabilities
 - Additional keyboard shortcuts and productivity features
+
+## Docs
+
+- Blogpost introducing Twinsong: https://spirali.github.io/blog/twinsong/
 
 
 ## Contributing
