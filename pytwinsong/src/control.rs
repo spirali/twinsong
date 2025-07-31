@@ -1,4 +1,4 @@
-use crate::executor::FromExecutorMessage;
+use crate::executor::{FromExecutorMessage, ToExecutorMessage};
 use anyhow::anyhow;
 use comm::messages::{ComputeMsg, FromKernelMessage, ToKernelMessage};
 use comm::scopes::SerializedGlobals;
@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 pub fn start_control_process() -> (
     UnboundedSender<FromExecutorMessage>,
-    UnboundedReceiver<ComputeMsg>,
+    UnboundedReceiver<ToExecutorMessage>,
 ) {
     let (c_sender, c_receiver) = unbounded_channel();
     let (o_sender, o_receiver) = unbounded_channel();
@@ -32,7 +32,7 @@ pub fn start_control_process() -> (
 }
 
 async fn controller_main(
-    c_sender: UnboundedSender<ComputeMsg>,
+    c_sender: UnboundedSender<ToExecutorMessage>,
     o_receiver: UnboundedReceiver<FromExecutorMessage>,
 ) -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
@@ -82,6 +82,9 @@ async fn forward_sender(
                     update,
                 }
             }
+            FromExecutorMessage::SaveStateResponse { path, result } => {
+                FromKernelMessage::SaveStateResponse { path, result }
+            }
         };
         let msg = serialize_from_kernel_message(out_msg)?;
         sender.send(msg.into()).await?
@@ -91,13 +94,16 @@ async fn forward_sender(
 
 async fn handle_recv(
     mut receiver: SplitStream<Codec>,
-    c_sender: UnboundedSender<ComputeMsg>,
+    c_sender: UnboundedSender<ToExecutorMessage>,
 ) -> anyhow::Result<()> {
     while let Some(message) = receiver.next().await {
         let message = message?;
         match parse_to_kernel_message(&message)? {
             ToKernelMessage::Compute(msg) => {
-                c_sender.send(msg).unwrap();
+                c_sender.send(ToExecutorMessage::Compute(msg)).unwrap();
+            }
+            ToKernelMessage::SaveState(path) => {
+                c_sender.send(ToExecutorMessage::SaveState(path)).unwrap();
             }
         }
     }

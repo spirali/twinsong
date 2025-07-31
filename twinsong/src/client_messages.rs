@@ -17,6 +17,7 @@ pub(crate) enum FromClientMessage {
     QueryDir,
     CloseRun(NotebookRunMsg),
     KernelList,
+    Fork(ForkMsg),
 }
 
 #[derive(Debug, Deserialize)]
@@ -44,6 +45,12 @@ pub(crate) struct RunCodeMsg {
     pub cell_id: OutputCellId,
     pub editor_node: EditorGroup,
     pub called_id: EditorId,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct ForkMsg {
+    pub notebook_id: NotebookId,
+    pub run_id: RunId,
 }
 
 #[derive(Debug, Deserialize)]
