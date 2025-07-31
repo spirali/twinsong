@@ -2,13 +2,14 @@ use crate::control::start_control_process;
 use crate::scopes::ScopedPyGlobals;
 use crate::stdio::RedirectedStdio;
 use comm::messages::{
-    CodeGroup, CodeLeaf, CodeNode, CodeScope, ComputeMsg, Exception, KernelOutputValue, OutputFlag,
-    OwnCodeScope,
+    CodeGroup, CodeLeaf, CodeNode, CodeScope, ComputeMsg, Exception, FromKernelMessage,
+    KernelOutputValue, OutputFlag, OwnCodeScope,
 };
 use comm::scopes::SerializedGlobals;
 use pyo3::types::{PyAnyMethods, PyDict, PyTracebackMethods};
 use pyo3::types::{PyNone, PyStringMethods};
 use pyo3::{Bound, IntoPyObjectExt, PyAny, PyErr, PyResult, Python, intern};
+use std::path::{Path, PathBuf};
 use tokio::runtime::Builder;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use uuid::Uuid;
@@ -21,6 +22,16 @@ pub enum FromExecutorMessage {
         flag: OutputFlag,
         update: Option<SerializedGlobals>,
     },
+    SaveStateResponse {
+        path: PathBuf,
+        result: Result<(), String>,
+    },
+}
+
+#[derive(Debug)]
+pub enum ToExecutorMessage {
+    Compute(ComputeMsg),
+    SaveState(PathBuf),
 }
 
 pub fn start_executor() {
@@ -58,7 +69,7 @@ fn eval_code<'a>(
     let run_module = py.import(intern!(py, "twinsong.driver.run"))?;
     let parent = parent
         .map(|x| x.clone().into_any())
-        .unwrap_or_else(|| PyNone::get(py).to_owned().into_any());
+        .unwrap_or_else(|| PyNone::get(py).into_bound_py_any(py).unwrap());
     run_module.getattr(intern!(py, "run_code"))?.call1((
         code,
         globals,
@@ -191,33 +202,55 @@ fn create_traceback(py: &Python, e: PyErr) -> PyResult<Exception> {
 
 async fn executor_main(
     o_sender: UnboundedSender<FromExecutorMessage>,
-    mut c_receiver: UnboundedReceiver<ComputeMsg>,
+    mut c_receiver: UnboundedReceiver<ToExecutorMessage>,
 ) -> anyhow::Result<()> {
     let mut py_scopes = Python::with_gil(ScopedPyGlobals::new);
     while let Some(msg) = c_receiver.recv().await {
         tracing::debug!("New command: {:?}", msg);
-        let stdout = RedirectedStdio::new(o_sender.clone(), msg.cell_id);
-        let out_msg = Python::with_gil(|py| {
-            let stdout = stdout.into_bound_py_any(py).unwrap();
-            match run_code(py, &mut py_scopes, &msg.code, stdout) {
-                Ok(output) => FromExecutorMessage::Output {
-                    value: output,
-                    cell_id: msg.cell_id,
-                    flag: OutputFlag::Success,
-                    update: Some(py_scopes.serialize(py)),
-                },
-                Err(e) => FromExecutorMessage::Output {
-                    value: KernelOutputValue::Exception {
-                        value: create_traceback(&py, e).unwrap(),
-                    },
-                    cell_id: msg.cell_id,
-                    flag: OutputFlag::Fail,
-                    update: Some(py_scopes.serialize(py)),
-                },
+        match msg {
+            ToExecutorMessage::Compute(msg) => {
+                let stdout = RedirectedStdio::new(o_sender.clone(), msg.cell_id);
+                let out_msg = Python::with_gil(|py| {
+                    let stdout = stdout.into_bound_py_any(py).unwrap();
+                    match run_code(py, &mut py_scopes, &msg.code, stdout) {
+                        Ok(output) => FromExecutorMessage::Output {
+                            value: output,
+                            cell_id: msg.cell_id,
+                            flag: OutputFlag::Success,
+                            update: Some(py_scopes.serialize(py)),
+                        },
+                        Err(e) => FromExecutorMessage::Output {
+                            value: KernelOutputValue::Exception {
+                                value: create_traceback(&py, e).unwrap(),
+                            },
+                            cell_id: msg.cell_id,
+                            flag: OutputFlag::Fail,
+                            update: Some(py_scopes.serialize(py)),
+                        },
+                    }
+                });
+                tracing::debug!("Send output: {:?}", out_msg);
+                o_sender.send(out_msg).unwrap();
             }
-        });
-        tracing::debug!("Send output: {:?}", out_msg);
-        o_sender.send(out_msg).unwrap();
+            ToExecutorMessage::SaveState(path) => {
+                let r = Python::with_gil(|py| write_data(py, &path, &py_scopes));
+                let out_msg = FromExecutorMessage::SaveStateResponse {
+                    path,
+                    result: r.map_err(|e| e.to_string()),
+                };
+                tracing::debug!("Send output: {:?}", out_msg);
+                o_sender.send(out_msg).unwrap();
+            }
+        }
     }
     Ok(())
+}
+
+fn write_data(py: Python, path: &Path, py_scopes: &ScopedPyGlobals) -> PyResult<()> {
+    let scopes_dict = py_scopes.as_py_dict(py)?;
+    let run_module = py.import(intern!(py, "twinsong.driver.storage"))?;
+    run_module
+        .getattr(intern!(py, "save_data"))?
+        .call1((path, scopes_dict))
+        .map(|_| ())
 }

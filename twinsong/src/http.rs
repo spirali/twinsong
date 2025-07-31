@@ -2,7 +2,8 @@ use crate::client_messages::{
     FromClientMessage, ToClientMessage, parse_client_message, serialize_client_message,
 };
 use crate::reactor::{
-    close_run, load_notebook, new_notebook, query_dir, run_code, save_notebook, start_kernel,
+    close_run, fork_run, load_notebook, new_notebook, query_dir, run_code, save_notebook,
+    start_kernel,
 };
 use crate::state::{AppState, AppStateRef};
 use anyhow::bail;
@@ -155,6 +156,9 @@ fn process_client_message(
         }
         FromClientMessage::RunCode(msg) => {
             run_code(state, msg)?;
+        }
+        FromClientMessage::Fork(msg) => {
+            fork_run(state, msg)?;
         }
         FromClientMessage::SaveNotebook(msg) => {
             save_notebook(state, state_ref, msg)?;

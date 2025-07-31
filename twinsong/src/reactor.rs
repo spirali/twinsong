@@ -1,5 +1,5 @@
 use crate::client_messages::{
-    DirEntry, DirEntryType, LoadNotebookMsg, RunCodeMsg, SaveNotebookMsg, ToClientMessage,
+    DirEntry, DirEntryType, ForkMsg, LoadNotebookMsg, RunCodeMsg, SaveNotebookMsg, ToClientMessage,
     serialize_client_message,
 };
 use crate::kernel::{KernelCtx, spawn_kernel};
@@ -13,6 +13,8 @@ use axum::extract::ws::Message;
 use comm::messages::{ComputeMsg, FromKernelMessage, ToKernelMessage};
 use comm::scopes::SerializedGlobals;
 use jiff::Timestamp;
+use rand::Rng;
+use rand::distr::Alphanumeric;
 use std::path::Path;
 use tokio::spawn;
 use tokio::sync::mpsc::UnboundedSender;
@@ -99,6 +101,20 @@ pub(crate) fn run_code(state: &mut AppState, msg: RunCodeMsg) -> anyhow::Result<
     Ok(())
 }
 
+pub(crate) fn fork_run(state: &mut AppState, msg: ForkMsg) -> anyhow::Result<()> {
+    tracing::debug!("Forking kernel {:?}", msg);
+    let notebook = state.find_notebook_by_id_mut(msg.notebook_id)?;
+    let run = notebook.find_run_by_id_mut(msg.run_id)?;
+    let (_, path) = tempfile::NamedTempFile::new()?.keep()?;
+    if let Some(kernel) = run
+        .kernel_id()
+        .and_then(|kernel_id| state.get_kernel_by_id_mut(kernel_id))
+    {
+        kernel.send_message(ToKernelMessage::SaveState(path));
+    }
+    Ok(())
+}
+
 pub(crate) fn process_kernel_message(
     state: &mut AppState,
     kernel_ctx: &KernelCtx,
@@ -134,6 +150,9 @@ pub(crate) fn process_kernel_message(
                 run.update_globals(update)
             }
             run.add_output(OutputCellId::new(cell_id), value, flag);
+        }
+        FromKernelMessage::SaveStateResponse { path, result } => {
+            dbg!(path, result);
         }
     }
     Ok(())
