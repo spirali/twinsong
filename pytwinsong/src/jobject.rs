@@ -147,7 +147,7 @@ fn container_repr(obj: &Bound<PyAny>, len: usize) -> String {
             }
         }
     }
-    format!("{} items", len)
+    format!("{len} items")
 }
 
 fn short_type(obj: &Bound<PyAny>) -> Cow<'static, str> {

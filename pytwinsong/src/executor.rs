@@ -31,7 +31,7 @@ pub fn start_executor() {
         .unwrap()
         .block_on(async {
             if let Err(e) = executor_main(o_sender, c_receiver).await {
-                panic!("Error: {:?}", e);
+                panic!("Error: {e:?}");
             }
         });
 }

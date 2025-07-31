@@ -121,7 +121,7 @@ pub fn spawn_kernel(
     let stderr_file = File::create(&stderr_path).expect("Cannot log file");
 
     cmd.env("KERNEL_ID", kernel_ctx.kernel_id.to_string())
-        .env("KERNEL_CONNECT", format!("127.0.0.1:{}", kernel_port))
+        .env("KERNEL_CONNECT", format!("127.0.0.1:{kernel_port}"))
         .stdout(Stdio::from(stdout_file))
         .stderr(Stdio::from(stderr_file))
         .arg("-m")

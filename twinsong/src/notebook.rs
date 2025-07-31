@@ -306,7 +306,7 @@ impl Run {
             last.values.push(value);
             last.flag = flag;
         } else {
-            panic!("Output cell with id {} not found", cell_id);
+            panic!("Output cell with id {cell_id} not found");
         }
     }
 

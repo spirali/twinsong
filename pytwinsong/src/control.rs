@@ -24,7 +24,7 @@ pub fn start_control_process() -> (
             .unwrap()
             .block_on(async {
                 if let Err(e) = controller_main(c_sender, o_receiver).await {
-                    panic!("Error: {:?}", e);
+                    panic!("Error: {e:?}");
                 }
             });
     });
