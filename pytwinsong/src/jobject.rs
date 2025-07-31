@@ -2,7 +2,7 @@ use pyo3::types::{
     PyAnyMethods, PyDict, PyDictMethods, PyFloat, PyInt, PyList, PyListMethods, PyModule,
     PyModuleMethods, PyString, PyStringMethods, PyTuple, PyTupleMethods, PyType, PyTypeMethods,
 };
-use pyo3::{Bound, PyAny, PyResult, Python};
+use pyo3::{Bound, PyAny, PyResult, Python, intern};
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 
@@ -281,12 +281,12 @@ fn try_create_dataclass(
     ctx: &mut BuildCtx,
     obj: &Bound<PyAny>,
 ) -> PyResult<Option<JsonObject>> {
-    let m = py.import("dataclasses")?;
-    let f = m.getattr("is_dataclass")?;
+    let m = py.import(intern!(py, "dataclasses"))?;
+    let f = m.getattr(intern!(py, "is_dataclass"))?;
     if !(f.call1((obj,))?.is_truthy()?) {
         return Ok(None);
     }
-    let f = m.getattr("fields")?;
+    let f = m.getattr(intern!(py, "fields"))?;
     let r = f.call1((obj,))?;
     let fields = r.downcast_exact::<PyTuple>()?;
     let mut len = 0;
@@ -294,7 +294,7 @@ fn try_create_dataclass(
         .iter()
         .map(|field| {
             len += 1;
-            let name = field.getattr("name")?.to_string();
+            let name = field.getattr(intern!(py, "name"))?.to_string();
             let child = obj.getattr(&name)?;
             Ok((name, create_jobject_helper(py, ctx, &child)))
         })
@@ -347,8 +347,8 @@ fn create_jobject_helper<'a>(
         let value_type = string_value(obj.get_type().qualname());
         let repr = string_value(obj.repr());
         let kind = if let Ok(true) = py
-            .import("builtins")
-            .and_then(|m| m.getattr("callable"))
+            .import(intern!(py, "builtins"))
+            .and_then(|m| m.getattr(intern!(py, "callable")))
             .and_then(|f| f.call1((obj,)))
             .and_then(|r| r.is_truthy())
         {
