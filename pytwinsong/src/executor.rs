@@ -8,7 +8,7 @@ use comm::messages::{
 use comm::scopes::SerializedGlobals;
 use pyo3::types::{PyAnyMethods, PyDict, PyTracebackMethods};
 use pyo3::types::{PyNone, PyStringMethods};
-use pyo3::{Bound, IntoPyObjectExt, PyAny, PyErr, PyResult, Python};
+use pyo3::{Bound, IntoPyObjectExt, PyAny, PyErr, PyResult, Python, intern};
 use tokio::runtime::Builder;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use uuid::Uuid;
@@ -36,8 +36,8 @@ pub fn start_executor() {
         });
 }
 
-fn try_repr_html(obj: &Bound<PyAny>) -> PyResult<Option<String>> {
-    if let Ok(repr_html) = obj.getattr("_repr_html_") {
+fn try_repr_html(py: Python, obj: &Bound<PyAny>) -> PyResult<Option<String>> {
+    if let Ok(repr_html) = obj.getattr(intern!(py, "_repr_html_")) {
         let html_repr = repr_html.call0()?;
         let str: String = html_repr.extract()?;
         Ok(Some(str))
@@ -55,13 +55,18 @@ fn eval_code<'a>(
     stdout: &'a Bound<PyAny>,
     return_last: bool,
 ) -> PyResult<Bound<'a, PyAny>> {
-    let run_module = py.import("twinsong.driver.run")?;
+    let run_module = py.import(intern!(py, "twinsong.driver.run"))?;
     let parent = parent
         .map(|x| x.clone().into_any())
         .unwrap_or_else(|| PyNone::get(py).to_owned().into_any());
-    run_module
-        .getattr("run_code")?
-        .call1((code, globals, parent, locals, stdout, return_last))
+    run_module.getattr(intern!(py, "run_code"))?.call1((
+        code,
+        globals,
+        parent,
+        locals,
+        stdout,
+        return_last,
+    ))
 }
 
 struct CodeEnv<'a> {
@@ -148,7 +153,7 @@ fn run_code(
     if result.is_none() {
         return Ok(KernelOutputValue::None);
     }
-    Ok(if let Some(value) = try_repr_html(&result)? {
+    Ok(if let Some(value) = try_repr_html(py, &result)? {
         KernelOutputValue::Html { value }
     } else {
         let repr = result.repr()?;

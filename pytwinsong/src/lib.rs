@@ -6,6 +6,7 @@ mod stdio;
 
 use crate::executor::start_executor;
 use crate::jobject::create_jobject_string;
+use pyo3::intern;
 use pyo3::prelude::*;
 use std::ffi::OsString;
 use tokio::runtime::Builder;
@@ -17,11 +18,15 @@ fn start_kernel() -> PyResult<()> {
 }
 
 fn get_argv(py: Python) -> PyResult<Vec<String>> {
-    py.import("sys")?.getattr("argv")?.extract()
+    py.import(intern!(py, "sys"))?
+        .getattr(intern!(py, "argv"))?
+        .extract()
 }
 
 fn get_executable(py: Python) -> PyResult<OsString> {
-    py.import("sys")?.getattr("executable")?.extract()
+    py.import(intern!(py, "sys"))?
+        .getattr(intern!(py, "executable"))?
+        .extract()
 }
 
 #[pyfunction]
@@ -32,7 +37,7 @@ fn start_server() -> PyResult<()> {
                 unsafe {
                     /* SAFETY
                        This function is called at the beginning before the whole server is started,
-                       moreover we are holding GIL.
+                        moreover, we are holding GIL.
                     */
                     std::env::set_var("TWINSONG_PYTHON", value);
                 }
