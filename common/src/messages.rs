@@ -1,4 +1,4 @@
-use crate::scopes::SerializedGlobalsUpdate;
+use crate::scopes::{SerializedGlobals, SerializedGlobalsUpdate};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use uuid::Uuid;
@@ -43,6 +43,7 @@ pub struct ComputeMsg {
 pub enum ToKernelMessage {
     Compute(ComputeMsg),
     SaveState(PathBuf),
+    LoadState(PathBuf),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -99,5 +100,9 @@ pub enum FromKernelMessage {
     SaveStateResponse {
         path: PathBuf,
         result: Result<(), String>,
+    },
+    LoadStateResponse {
+        path: PathBuf,
+        result: Result<SerializedGlobals, String>,
     },
 }
