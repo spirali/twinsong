@@ -1,6 +1,7 @@
 use crate::control::start_control_process;
 use crate::scopes::ScopedPyGlobals;
 use crate::stdio::RedirectedStdio;
+use comm::messages::FromKernelMessage::LoadStateResponse;
 use comm::messages::{
     CodeGroup, CodeLeaf, CodeNode, CodeScope, ComputeMsg, Exception, FromKernelMessage,
     KernelOutputValue, OutputFlag, OwnCodeScope,
@@ -26,12 +27,17 @@ pub enum FromExecutorMessage {
         path: PathBuf,
         result: Result<(), String>,
     },
+    LoadStateResponse {
+        path: PathBuf,
+        result: Result<SerializedGlobals, String>,
+    },
 }
 
 #[derive(Debug)]
 pub enum ToExecutorMessage {
     Compute(ComputeMsg),
     SaveState(PathBuf),
+    LoadState(PathBuf),
 }
 
 pub fn start_executor() {
@@ -241,6 +247,27 @@ async fn executor_main(
                 tracing::debug!("Send output: {:?}", out_msg);
                 o_sender.send(out_msg).unwrap();
             }
+            ToExecutorMessage::LoadState(path) => {
+                let out_msg = if let Ok((scopes, serialized)) = Python::with_gil(|py| {
+                    read_data(py, &path).and_then(|mut scopes| {
+                        let s = scopes.serialize(py);
+                        Ok((scopes, s))
+                    })
+                }) {
+                    py_scopes = scopes;
+                    FromExecutorMessage::LoadStateResponse {
+                        path,
+                        result: Ok(serialized),
+                    }
+                } else {
+                    FromExecutorMessage::LoadStateResponse {
+                        path,
+                        result: Err("Failed to load state".to_string()),
+                    }
+                };
+                tracing::debug!("Send output: {:?}", out_msg);
+                o_sender.send(out_msg).unwrap();
+            }
         }
     }
     Ok(())
@@ -253,4 +280,13 @@ fn write_data(py: Python, path: &Path, py_scopes: &ScopedPyGlobals) -> PyResult<
         .getattr(intern!(py, "save_data"))?
         .call1((path, scopes_dict))
         .map(|_| ())
+}
+
+fn read_data(py: Python, path: &Path) -> PyResult<ScopedPyGlobals> {
+    let run_module = py.import(intern!(py, "twinsong.driver.storage"))?;
+    let data: Bound<PyDict> = run_module
+        .getattr(intern!(py, "load_data"))?
+        .call1((path,))?
+        .extract()?;
+    Ok(ScopedPyGlobals::from_dict(py, &data)?)
 }

@@ -5,6 +5,7 @@ import toml
 import psutil
 import time
 
+from conftest import Kernel
 from utils import build_jobject_from_text
 
 
@@ -339,4 +340,61 @@ def test_fork(client):
     r = client.create_new_notebook()
     notebook_id = r["notebook"]["id"]
     k = client.create_new_kernel(r["notebook"]["id"])
-    client.send_message({"type": "Fork", "notebook_id": notebook_id, "run_id": k.run_id})
+    group_id1 = str(uuid.uuid4())
+    k.run_code(
+        {
+            "type": "Group",
+            "id": group_id1,
+            "name": "G1",
+            "scope": "Own",
+            "children": [
+                {"type": "Cell", "id": str(uuid.uuid4()), "code": "x = 3"},
+            ],
+        }
+    )
+    new_run_id = str(uuid.uuid4())
+    new_run_name = "Forked Run"
+    client.send_message(
+        {
+            "type": "Fork",
+            "notebook_id": notebook_id,
+            "run_id": k.run_id,
+            "new_run_id": new_run_id,
+            "new_run_name": new_run_name,
+        }
+    )
+    r = client.receive_message()
+    assert r["type"] == "KernelReady"
+    r = client.receive_message()
+    x = r["globals"]["children"][group_id1]["variables"].pop("x")
+    x = build_jobject_from_text(x)
+    assert x == {'repr': '3', 'value_type': 'int', 'kind': 'number'}
+    assert r == {
+        "globals": {
+            "children": {
+                group_id1: {
+                    "children": {},
+                    "name": "G1",
+                    "variables": {},
+                }
+            },
+            "name": "",
+            "variables": {},
+        },
+        "notebook_id": notebook_id,
+        "run_id": new_run_id,
+        "type": "NewGlobals",
+    }
+    new_kernel = Kernel(client, notebook_id, new_run_id)
+    r = new_kernel.run_code(
+        {
+            "type": "Group",
+            "id": group_id1,
+            "name": "G1",
+            "scope": "Own",
+            "children": [
+                {"type": "Cell", "id": str(uuid.uuid4()), "code": "x + 1"},
+            ],
+        }
+    )
+    assert r == [{'type': 'Text', 'value': '4'}]

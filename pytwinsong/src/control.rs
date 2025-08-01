@@ -85,6 +85,9 @@ async fn forward_sender(
             FromExecutorMessage::SaveStateResponse { path, result } => {
                 FromKernelMessage::SaveStateResponse { path, result }
             }
+            FromExecutorMessage::LoadStateResponse { path, result } => {
+                FromKernelMessage::LoadStateResponse { path, result }
+            }
         };
         let msg = serialize_from_kernel_message(out_msg)?;
         sender.send(msg.into()).await?
@@ -104,6 +107,9 @@ async fn handle_recv(
             }
             ToKernelMessage::SaveState(path) => {
                 c_sender.send(ToExecutorMessage::SaveState(path)).unwrap();
+            }
+            ToKernelMessage::LoadState(path) => {
+                c_sender.send(ToExecutorMessage::LoadState(path)).unwrap();
             }
         }
     }

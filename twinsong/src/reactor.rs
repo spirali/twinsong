@@ -8,16 +8,17 @@ use crate::notebook::{
 };
 use crate::state::{AppState, AppStateRef};
 use crate::storage::{SerializedNotebook, deserialize_notebook, serialize_notebook};
-use anyhow::bail;
+use anyhow::{anyhow, bail};
 use axum::extract::ws::Message;
 use comm::messages::{ComputeMsg, FromKernelMessage, ToKernelMessage};
 use comm::scopes::SerializedGlobals;
 use jiff::Timestamp;
 use rand::Rng;
 use rand::distr::Alphanumeric;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tokio::spawn;
 use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::oneshot;
 use uuid::Uuid;
 
 pub(crate) fn new_notebook(
@@ -47,7 +48,7 @@ pub(crate) fn start_kernel(
     notebook_id: NotebookId,
     run_id: RunId,
     run_title: String,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<KernelId> {
     let kernel_port = state.kernel_port();
     let notebook = state.find_notebook_by_id_mut(notebook_id)?;
     let kernel_id = KernelId::new(Uuid::new_v4());
@@ -79,7 +80,7 @@ pub(crate) fn start_kernel(
             });
         }
     }
-    Ok(())
+    Ok(kernel_id)
 }
 
 pub(crate) fn run_code(state: &mut AppState, msg: RunCodeMsg) -> anyhow::Result<()> {
@@ -101,16 +102,67 @@ pub(crate) fn run_code(state: &mut AppState, msg: RunCodeMsg) -> anyhow::Result<
     Ok(())
 }
 
-pub(crate) fn fork_run(state: &mut AppState, msg: ForkMsg) -> anyhow::Result<()> {
+async fn fork_process(
+    state_ref: &AppStateRef,
+    path: PathBuf,
+    msg: ForkMsg,
+    store_reader: oneshot::Receiver<Result<(), String>>,
+) -> anyhow::Result<()> {
+    let result = store_reader.await?;
+    result.map_err(|e| anyhow!(e))?;
+    let receiver = {
+        let mut state = state_ref.lock().unwrap();
+        let kernel_id = start_kernel(
+            &mut state,
+            &state_ref,
+            msg.notebook_id,
+            msg.new_run_id,
+            msg.new_run_name,
+        )?;
+        state
+            .get_kernel_by_id_mut(kernel_id)
+            .unwrap()
+            .load_state(path)
+    };
+    let result = receiver.await?;
+    let result = result.map_err(|e| anyhow!(e))?;
+    let mut state = state_ref.lock().unwrap();
+    if let Ok(notebook) = state.find_notebook_by_id_mut(msg.notebook_id) {
+        notebook.send_message(ToClientMessage::NewGlobals {
+            notebook_id: msg.notebook_id,
+            run_id: msg.new_run_id,
+            globals: result,
+        });
+    }
+    Ok(())
+}
+
+pub(crate) fn fork_run(
+    state: &mut AppState,
+    state_ref: &AppStateRef,
+    msg: ForkMsg,
+) -> anyhow::Result<()> {
     tracing::debug!("Forking kernel {:?}", msg);
     let notebook = state.find_notebook_by_id_mut(msg.notebook_id)?;
     let run = notebook.find_run_by_id_mut(msg.run_id)?;
     let (_, path) = tempfile::NamedTempFile::new()?.keep()?;
+    let state_ref = state_ref.clone();
     if let Some(kernel) = run
         .kernel_id()
         .and_then(|kernel_id| state.get_kernel_by_id_mut(kernel_id))
     {
-        kernel.send_message(ToKernelMessage::SaveState(path));
+        let sender = kernel.store_state(path.clone());
+        spawn(async move {
+            let notebook_id = msg.notebook_id;
+            if let Err(err) = fork_process(&state_ref, path, msg, sender).await {
+                let mut state = state_ref.lock().unwrap();
+                if let Ok(notebook) = state.find_notebook_by_id_mut(notebook_id) {
+                    notebook.send_message(ToClientMessage::Error {
+                        message: &format!("Fork failed: {err}"),
+                    });
+                }
+            }
+        });
     }
     Ok(())
 }
@@ -152,7 +204,14 @@ pub(crate) fn process_kernel_message(
             run.add_output(OutputCellId::new(cell_id), value, flag);
         }
         FromKernelMessage::SaveStateResponse { path, result } => {
-            dbg!(path, result);
+            if let Some(kernel) = state.get_kernel_by_id_mut(kernel_ctx.kernel_id) {
+                kernel.on_store_response(result);
+            }
+        }
+        FromKernelMessage::LoadStateResponse { path, result } => {
+            if let Some(kernel) = state.get_kernel_by_id_mut(kernel_ctx.kernel_id) {
+                kernel.on_load_response(result);
+            }
         }
     }
     Ok(())

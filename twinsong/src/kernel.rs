@@ -5,6 +5,7 @@ use crate::state::AppStateRef;
 use anyhow::bail;
 use axum::body::Bytes;
 use comm::messages::{FromKernelMessage, ToKernelMessage};
+use comm::scopes::SerializedGlobals;
 use comm::{Codec, make_protocol_builder, parse_from_kernel_message, serialize_to_kernel_message};
 use futures_util::SinkExt;
 use futures_util::stream::{SplitSink, SplitStream, StreamExt};
@@ -35,9 +36,10 @@ pub(crate) struct KernelCtx {
 pub(crate) struct KernelHandle {
     state: KernelHandleState,
     kill_sender: oneshot::Sender<()>,
-    pending_messages: Vec<ToKernelMessage>,
     kernel_ctx: KernelCtx,
     pid: u32,
+    on_save_sender: Vec<oneshot::Sender<Result<(), String>>>,
+    on_load_sender: Vec<oneshot::Sender<Result<SerializedGlobals, String>>>,
 }
 
 impl KernelHandle {
@@ -45,9 +47,10 @@ impl KernelHandle {
         KernelHandle {
             kill_sender,
             state: KernelHandleState::Init(Vec::new()),
-            pending_messages: Vec::new(),
             kernel_ctx,
             pid,
+            on_save_sender: Vec::new(),
+            on_load_sender: Vec::new(),
         }
     }
 
@@ -57,6 +60,18 @@ impl KernelHandle {
             notebook_id: self.kernel_ctx.notebook_id,
             run_id: self.kernel_ctx.run_id,
             pid: self.pid,
+        }
+    }
+
+    pub fn on_store_response(&mut self, result: Result<(), String>) {
+        if self.on_save_sender.len() > 0 {
+            let _ = self.on_save_sender.remove(0).send(result);
+        }
+    }
+
+    pub fn on_load_response(&mut self, result: Result<SerializedGlobals, String>) {
+        if self.on_load_sender.len() > 0 {
+            let _ = self.on_load_sender.remove(0).send(result);
         }
     }
 
@@ -88,6 +103,23 @@ impl KernelHandle {
     // pub fn set_failed(&mut self, message: String) {
     //     self.state = KernelHandleState::Failed(message)
     // }
+
+    pub fn store_state(&mut self, path: PathBuf) -> oneshot::Receiver<Result<(), String>> {
+        let (sender, receiver) = oneshot::channel();
+        self.on_save_sender.push(sender);
+        self.send_message(ToKernelMessage::SaveState(path));
+        receiver
+    }
+
+    pub fn load_state(
+        &mut self,
+        path: PathBuf,
+    ) -> oneshot::Receiver<Result<SerializedGlobals, String>> {
+        let (sender, receiver) = oneshot::channel();
+        self.on_load_sender.push(sender);
+        self.send_message(ToKernelMessage::LoadState(path));
+        receiver
+    }
 
     pub fn send_message(&mut self, message: ToKernelMessage) {
         match &mut self.state {
@@ -124,9 +156,9 @@ pub fn spawn_kernel(
         .env("KERNEL_CONNECT", format!("127.0.0.1:{kernel_port}"))
         .stdout(Stdio::from(stdout_file))
         .stderr(Stdio::from(stderr_file))
+        .kill_on_drop(true)
         .arg("-m")
-        .arg("twinsong.driver")
-        .kill_on_drop(true);
+        .arg("twinsong.driver");
     tracing::debug!("Spawning new kernel command {:?}", &cmd);
     let child = cmd.spawn()?;
     let pid = child.id().unwrap_or(0);

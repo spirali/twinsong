@@ -1,10 +1,12 @@
 use crate::jobject::create_jobject_string;
 use comm::messages::OwnCodeScope;
 use comm::scopes::{ScopeId, SerializedGlobals};
-use pyo3::types::{PyDict, PyDictMethods};
-use pyo3::{Bound, BoundObject, IntoPy, IntoPyObjectExt, Py, PyResult, Python, intern};
+use pyo3::exceptions::PyValueError;
+use pyo3::types::{PyAnyMethods, PyDict, PyDictMethods};
+use pyo3::{Bound, BoundObject, IntoPy, IntoPyObjectExt, Py, PyErr, PyResult, Python, intern};
 use std::collections::HashMap;
 use std::sync::Arc;
+use uuid::Uuid;
 
 #[derive(Debug)]
 pub(crate) struct ScopedPyGlobals {
@@ -20,6 +22,37 @@ impl ScopedPyGlobals {
             variables: PyDict::new(py).unbind(),
             children: HashMap::new(),
         }
+    }
+
+    pub fn from_dict(py: Python, dict: &Bound<PyDict>) -> PyResult<Self> {
+        let Some(name) = dict.get_item(intern!(py, "name"))? else {
+            return Err(PyValueError::new_err("Missing 'name' in serialized struct"));
+        };
+        let Some(variables) = dict.get_item(intern!(py, "variables"))? else {
+            return Err(PyValueError::new_err(
+                "Missing 'variables' in serialized struct",
+            ));
+        };
+        let children = dict.get_item(intern!(py, "children"))?;
+
+        Ok(ScopedPyGlobals {
+            name: name.extract()?,
+            variables: variables.extract()?,
+            children: if let Some(children) = children {
+                let map: HashMap<String, Bound<PyDict>> = children.extract()?;
+                let mut result = HashMap::with_capacity(map.len());
+                for (k, v) in map.iter() {
+                    result.insert(
+                        Uuid::parse_str(&k)
+                            .map_err(|_| PyValueError::new_err("Cannot read UUID"))?,
+                        ScopedPyGlobals::from_dict(py, v)?,
+                    );
+                }
+                result
+            } else {
+                HashMap::new()
+            },
+        })
     }
 
     pub fn update_name(&mut self, name: &str) {
