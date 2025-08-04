@@ -3,3 +3,4 @@ websockets
 maturin
 toml
 psutil
+dill
