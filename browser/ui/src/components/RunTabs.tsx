@@ -6,7 +6,7 @@ import {
   LuPlus,
   LuX,
 } from "react-icons/lu";
-import { closeRun, newRun } from "../core/actions";
+import { closeRun, forkRun, newRun } from "../core/actions";
 import { Notebook, Run } from "../core/notebook";
 import { PopupMenu } from "./PopupMenu";
 import RunView from "./RunView";
@@ -15,31 +15,45 @@ import { StatusIndicator } from "./StatusIndicator";
 import Workspace from "./Workspace";
 import { useSendCommand } from "./WsProvider";
 
-const RunMenu = () => (
-  <PopupMenu
-    createButton={(toggleMenu) => (
-      <button
-        onClick={toggleMenu}
-        className="flex items-center justify-center p-2 rounded-md hover:bg-gray-100 focus:outline-none"
-        aria-label="Menu"
-      >
-        <LuMenu size={24} />
-      </button>
-    )}
-    items={[
-      {
-        icon: "ban",
-        title: "Interrupt computation",
-        onClick: () => {},
-      },
-      {
-        icon: "square",
-        title: "Stop kernel",
-        onClick: () => {},
-      },
-    ]}
-  />
-);
+const RunMenu: React.FC<{ notebook: Notebook; run: Run }> = (props: {
+  notebook: Notebook;
+  run: Run;
+}) => {
+  const dispatch = useDispatch()!;
+  const sendCommand = useSendCommand()!;
+  return (
+    <PopupMenu
+      createButton={(toggleMenu) => (
+        <button
+          onClick={toggleMenu}
+          className="flex items-center justify-center p-2 rounded-md hover:bg-gray-100 focus:outline-none"
+          aria-label="Menu"
+        >
+          <LuMenu size={24} />
+        </button>
+      )}
+      items={[
+        {
+          icon: "fork",
+          title: "Fork kernel",
+          onClick: () => {
+            forkRun(props.notebook.id, props.run, dispatch, sendCommand);
+          },
+        },
+        {
+          icon: "ban",
+          title: "Interrupt computation",
+          onClick: () => {},
+        },
+        {
+          icon: "square",
+          title: "Stop kernel",
+          onClick: () => {},
+        },
+      ]}
+    />
+  );
+};
 
 /*
   const isComputing = false;
@@ -242,7 +256,7 @@ const RunTabs: React.FC<{ notebook: Notebook }> = (props: {
       ) : (
         <div className="flex-grow pl-1 pr-2 pt-2 pb-2 bg-white">
           <div className="mb-2 flex ml-2">
-            <RunMenu />
+            <RunMenu notebook={notebook} run={run} />
             <ViewSwitch notebook={notebook} run={run} />
             <StatusIndicator status={run.kernel_state} />
             {/* {(run.kernel_state.type !== "Running" ||

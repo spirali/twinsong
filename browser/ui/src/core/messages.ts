@@ -56,6 +56,13 @@ interface OutputMsg {
   kernel_state: KernelState;
 }
 
+interface NewGlobalsMsg {
+  type: "NewGlobals";
+  notebook_id: NotebookId;
+  run_id: RunId;
+  globals: SerializedGlobals;
+}
+
 interface SaveCompletedMsg {
   type: "SaveCompleted";
   notebook_id: NotebookId;
@@ -78,6 +85,7 @@ export type ToClientMessage =
   | KernelReadyMsg
   | KernelCrashedMsg
   | OutputMsg
+  | NewGlobalsMsg
   | SaveCompletedMsg
   | DirList;
 
@@ -119,11 +127,20 @@ interface CloseRunMsg {
   run_id: RunId;
 }
 
+interface ForkRunMsg {
+  type: "Fork";
+  notebook_id: NotebookId;
+  run_id: RunId;
+  new_run_id: RunId;
+  new_run_title: string;
+}
+
 export type FromClientMessage =
   | CreateNewNotebookMsg
   | CreateNewKernelMsg
   | RunCodeMsg
   | CloseRunMsg
+  | ForkRunMsg
   | LoadNotebookMsg
   | SaveNotebookMsg;
 
@@ -175,6 +192,15 @@ export function processMessage(
       });
       break;
     }
+    case "NewGlobals": {
+      dispatch({
+        type: "new_globals",
+        notebook_id: message.notebook_id,
+        run_id: message.run_id,
+        globals: message.globals,
+      });
+      break;
+    }
     case "SaveCompleted": {
       dispatch({
         type: "save_notebook",
@@ -197,6 +223,10 @@ export function processMessage(
     }
     case "Error": {
       pushNotification(message.message, "error");
+      break;
+    }
+    default: {
+      console.log("Unknown message", message);
     }
   }
 }
