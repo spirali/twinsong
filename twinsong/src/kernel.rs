@@ -64,13 +64,13 @@ impl KernelHandle {
     }
 
     pub fn on_store_response(&mut self, result: Result<(), String>) {
-        if self.on_save_sender.len() > 0 {
+        if !self.on_save_sender.is_empty() {
             let _ = self.on_save_sender.remove(0).send(result);
         }
     }
 
     pub fn on_load_response(&mut self, result: Result<SerializedGlobals, String>) {
-        if self.on_load_sender.len() > 0 {
+        if !self.on_load_sender.is_empty() {
             let _ = self.on_load_sender.remove(0).send(result);
         }
     }

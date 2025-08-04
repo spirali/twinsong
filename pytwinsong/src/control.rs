@@ -1,6 +1,6 @@
 use crate::executor::{FromExecutorMessage, ToExecutorMessage};
 use anyhow::anyhow;
-use comm::messages::{ComputeMsg, FromKernelMessage, ToKernelMessage};
+use comm::messages::{FromKernelMessage, ToKernelMessage};
 use comm::scopes::SerializedGlobals;
 use comm::{Codec, make_protocol_builder, parse_to_kernel_message, serialize_from_kernel_message};
 use futures_util::SinkExt;

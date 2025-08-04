@@ -9,7 +9,6 @@ use crate::jobject::create_jobject_string;
 use pyo3::intern;
 use pyo3::prelude::*;
 use std::ffi::OsString;
-use std::path::Path;
 use tokio::runtime::Builder;
 
 #[pyfunction]
