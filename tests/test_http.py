@@ -360,7 +360,7 @@ def test_fork(client):
             "notebook_id": notebook_id,
             "run_id": k.run_id,
             "new_run_id": new_run_id,
-            "new_run_name": new_run_name,
+            "new_run_title": new_run_name,
         }
     )
     r = client.receive_message()
