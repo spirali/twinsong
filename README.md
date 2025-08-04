@@ -54,6 +54,7 @@ are separated. Twinsong also enables better memory state inspection and multi-ke
 - **No Dependencies**: Package is statically linked with no external dependencies.
 - **Clean Python Kernel**: Kernel uses a clean Python instance just with a Rust module, avoiding loading unnecessary
   Python modules or starting additional Python threads.
+  * Optional dependency of kernel is serialziation library `dill` for some advance features
 
 ## Status
 
