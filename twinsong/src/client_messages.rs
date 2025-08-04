@@ -52,7 +52,7 @@ pub(crate) struct ForkMsg {
     pub notebook_id: NotebookId,
     pub run_id: RunId,
     pub new_run_id: RunId,
-    pub new_run_name: String,
+    pub new_run_title: String,
 }
 
 #[derive(Debug, Deserialize)]

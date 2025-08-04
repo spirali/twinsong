@@ -10,6 +10,7 @@ import {
   Notebook,
   NotebookId,
   OutputCellFlag,
+  Run,
   RunId,
 } from "./notebook";
 import { InsertType, State, StateAction } from "./state";
@@ -126,6 +127,29 @@ export function closeRun(
     type: "CloseRun",
     notebook_id: notebook_id,
     run_id: run_id,
+  });
+}
+
+export function forkRun(
+  notebook_id: NotebookId,
+  run: Run,
+  dispatch: Dispatch<StateAction>,
+  sendCommand: SendCommand,
+) {
+  const new_run_id = uuidv4();
+  const new_run_title = `Fork of ${run.title}`;
+  dispatch({
+    type: "fresh_run",
+    notebook_id: notebook_id,
+    run_id: new_run_id,
+    run_title: new_run_title,
+  });
+  sendCommand({
+    type: "Fork",
+    notebook_id: notebook_id,
+    run_id: run.id,
+    new_run_id,
+    new_run_title,
   });
 }
 

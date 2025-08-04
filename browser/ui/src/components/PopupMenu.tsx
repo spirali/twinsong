@@ -1,9 +1,15 @@
 import { LuBan, LuSquare } from "react-icons/lu";
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { TbRowInsertBottom, TbRowInsertTop } from "react-icons/tb";
+import { TbRowInsertBottom, TbRowInsertTop, TbArrowFork } from "react-icons/tb";
 import { PiTreeView } from "react-icons/pi";
 
-type Icon = "ban" | "square" | "insert_above" | "insert_below" | "insert_child";
+type Icon =
+  | "ban"
+  | "square"
+  | "insert_above"
+  | "insert_below"
+  | "insert_child"
+  | "fork";
 
 export interface MenuItem {
   icon: Icon;
@@ -23,6 +29,8 @@ function getIcon(name: Icon): ReactNode {
       return <TbRowInsertBottom size={18} className="mr-2" />;
     case "insert_child":
       return <PiTreeView size={18} className="mr-2" />;
+    case "fork":
+      return <TbArrowFork size={18} className="mr-2" />;
   }
 }
 

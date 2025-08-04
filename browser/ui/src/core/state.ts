@@ -1,5 +1,5 @@
 import { applyGlobalsUpdate } from "./jobject";
-import { SerializedGlobalsUpdate } from "./messages";
+import { SerializedGlobals, SerializedGlobalsUpdate } from "./messages";
 import {
   EditorGroupNode,
   EditorNode,
@@ -141,6 +141,13 @@ interface SetDialog {
   dialog: DialogConfig | null;
 }
 
+interface NewGlobals {
+  type: "new_globals";
+  notebook_id: NotebookId;
+  run_id: RunId;
+  globals: SerializedGlobals;
+}
+
 export type StateAction =
   | AddNotebookAction
   | FreshRunAction
@@ -159,6 +166,7 @@ export type StateAction =
   | ToggleOpenObjectAction
   | UpdateEditorNode
   | RemoveEditorNode
+  | NewGlobals
   | SetDialog;
 
 export interface DialogConfig {
@@ -506,6 +514,25 @@ export function stateReducer(state: State, action: StateAction): State {
       };
       return updateNotebooks(state, new_notebook);
     }
+    case "new_globals": {
+      const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
+      const new_notebook = {
+        ...notebook,
+        runs: notebook.runs.map((r) => {
+          const globals = applyGlobalsUpdate(action.globals, null);
+          if (r.id == action.run_id) {
+            return {
+              ...r,
+              globals,
+            } as Run;
+          } else {
+            return r;
+          }
+        }),
+      };
+      return updateNotebooks(state, new_notebook);
+    }
+
     case "set_current_run": {
       const notebook = state.notebooks.find((n) => n.id == action.notebook_id)!;
       const new_notebook = { ...notebook, current_run_id: action.run_id };

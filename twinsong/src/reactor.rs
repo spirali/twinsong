@@ -109,6 +109,7 @@ async fn fork_process(
     store_reader: oneshot::Receiver<Result<(), String>>,
 ) -> anyhow::Result<()> {
     let result = store_reader.await?;
+    tracing::debug!("Kernel {} saved before forking", msg.run_id);
     result.map_err(|e| anyhow!(e))?;
     let receiver = {
         let mut state = state_ref.lock().unwrap();
@@ -117,7 +118,7 @@ async fn fork_process(
             &state_ref,
             msg.notebook_id,
             msg.new_run_id,
-            msg.new_run_name,
+            msg.new_run_title,
         )?;
         state
             .get_kernel_by_id_mut(kernel_id)
@@ -125,6 +126,7 @@ async fn fork_process(
             .load_state(path)
     };
     let result = receiver.await?;
+    tracing::debug!("Kernel {} started & loaded", msg.new_run_id);
     let result = result.map_err(|e| anyhow!(e))?;
     let mut state = state_ref.lock().unwrap();
     if let Ok(notebook) = state.find_notebook_by_id_mut(msg.notebook_id) {

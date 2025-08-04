@@ -14,12 +14,12 @@ def test_execute_command(client):
     k = client.create_new_kernel(r["notebook"]["id"])
     assert "3" == k.run_code_simple("1 + 2")
     assert [
-               {"type": "Text", "value": "Hello"},
-               {"type": "Text", "value": "\n"},
-               {"type": "Text", "value": "World"},
-               {"type": "Text", "value": "\n"},
-               {"type": "None"},
-           ] == k.run_code("print('Hello')\nprint('World')")
+        {"type": "Text", "value": "Hello"},
+        {"type": "Text", "value": "\n"},
+        {"type": "Text", "value": "World"},
+        {"type": "Text", "value": "\n"},
+        {"type": "None"},
+    ] == k.run_code("print('Hello')\nprint('World')")
 
 
 def test_globals_update_without_scopes(client):
@@ -328,12 +328,12 @@ def test_execute_tree(client):
     }
 
     assert [
-               {"type": "Text", "value": "One"},
-               {"type": "Text", "value": "\n"},
-               {"type": "Text", "value": "Two"},
-               {"type": "Text", "value": "\n"},
-               {"type": "Text", "value": "10"},
-           ] == k.run_code(code)
+        {"type": "Text", "value": "One"},
+        {"type": "Text", "value": "\n"},
+        {"type": "Text", "value": "Two"},
+        {"type": "Text", "value": "\n"},
+        {"type": "Text", "value": "10"},
+    ] == k.run_code(code)
 
 
 def test_fork(client):
@@ -368,7 +368,7 @@ def test_fork(client):
     r = client.receive_message()
     x = r["globals"]["children"][group_id1]["variables"].pop("x")
     x = build_jobject_from_text(x)
-    assert x == {'repr': '3', 'value_type': 'int', 'kind': 'number'}
+    assert x == {"repr": "3", "value_type": "int", "kind": "number"}
     assert r == {
         "globals": {
             "children": {
@@ -397,4 +397,4 @@ def test_fork(client):
             ],
         }
     )
-    assert r == [{'type': 'Text', 'value': '4'}]
+    assert r == [{"type": "Text", "value": "4"}]
