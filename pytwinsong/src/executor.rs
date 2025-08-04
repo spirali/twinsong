@@ -1,10 +1,9 @@
 use crate::control::start_control_process;
 use crate::scopes::ScopedPyGlobals;
 use crate::stdio::RedirectedStdio;
-use comm::messages::FromKernelMessage::LoadStateResponse;
 use comm::messages::{
-    CodeGroup, CodeLeaf, CodeNode, CodeScope, ComputeMsg, Exception, FromKernelMessage,
-    KernelOutputValue, OutputFlag, OwnCodeScope,
+    CodeGroup, CodeLeaf, CodeNode, CodeScope, ComputeMsg, Exception, KernelOutputValue, OutputFlag,
+    OwnCodeScope,
 };
 use comm::scopes::SerializedGlobals;
 use pyo3::types::{PyAnyMethods, PyDict, PyTracebackMethods};
@@ -249,9 +248,9 @@ async fn executor_main(
             }
             ToExecutorMessage::LoadState(path) => {
                 let out_msg = if let Ok((scopes, serialized)) = Python::with_gil(|py| {
-                    read_data(py, &path).and_then(|mut scopes| {
+                    read_data(py, &path).map(|mut scopes| {
                         let s = scopes.serialize(py);
-                        Ok((scopes, s))
+                        (scopes, s)
                     })
                 }) {
                     py_scopes = scopes;
@@ -288,5 +287,5 @@ fn read_data(py: Python, path: &Path) -> PyResult<ScopedPyGlobals> {
         .getattr(intern!(py, "load_data"))?
         .call1((path,))?
         .extract()?;
-    Ok(ScopedPyGlobals::from_dict(py, &data)?)
+    ScopedPyGlobals::from_dict(py, &data)
 }

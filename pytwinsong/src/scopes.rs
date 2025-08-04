@@ -3,7 +3,7 @@ use comm::messages::OwnCodeScope;
 use comm::scopes::{ScopeId, SerializedGlobals};
 use pyo3::exceptions::PyValueError;
 use pyo3::types::{PyAnyMethods, PyDict, PyDictMethods};
-use pyo3::{Bound, BoundObject, IntoPy, IntoPyObjectExt, Py, PyErr, PyResult, Python, intern};
+use pyo3::{Bound, BoundObject, Py, PyResult, Python, intern};
 use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -43,7 +43,7 @@ impl ScopedPyGlobals {
                 let mut result = HashMap::with_capacity(map.len());
                 for (k, v) in map.iter() {
                     result.insert(
-                        Uuid::parse_str(&k)
+                        Uuid::parse_str(k)
                             .map_err(|_| PyValueError::new_err("Cannot read UUID"))?,
                         ScopedPyGlobals::from_dict(py, v)?,
                     );
@@ -114,11 +114,11 @@ impl ScopedPyGlobals {
     }
 
     pub fn as_py_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
-        let mut result = PyDict::new(py);
+        let result = PyDict::new(py);
         result.set_item(intern!(py, "name"), self.name.clone())?;
         result.set_item(intern!(py, "variables"), self.variables.bind(py).clone())?;
         if !self.children.is_empty() {
-            let mut children = PyDict::new(py);
+            let children = PyDict::new(py);
             for (k, v) in self.children.iter() {
                 children.set_item(k.to_string(), v.as_py_dict(py)?)?;
             }

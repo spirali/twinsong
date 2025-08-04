@@ -13,8 +13,6 @@ use axum::extract::ws::Message;
 use comm::messages::{ComputeMsg, FromKernelMessage, ToKernelMessage};
 use comm::scopes::SerializedGlobals;
 use jiff::Timestamp;
-use rand::Rng;
-use rand::distr::Alphanumeric;
 use std::path::{Path, PathBuf};
 use tokio::spawn;
 use tokio::sync::mpsc::UnboundedSender;
@@ -115,7 +113,7 @@ async fn fork_process(
         let mut state = state_ref.lock().unwrap();
         let kernel_id = start_kernel(
             &mut state,
-            &state_ref,
+            state_ref,
             msg.notebook_id,
             msg.new_run_id,
             msg.new_run_title,
@@ -205,12 +203,12 @@ pub(crate) fn process_kernel_message(
             }
             run.add_output(OutputCellId::new(cell_id), value, flag);
         }
-        FromKernelMessage::SaveStateResponse { path, result } => {
+        FromKernelMessage::SaveStateResponse { path: _, result } => {
             if let Some(kernel) = state.get_kernel_by_id_mut(kernel_ctx.kernel_id) {
                 kernel.on_store_response(result);
             }
         }
-        FromKernelMessage::LoadStateResponse { path, result } => {
+        FromKernelMessage::LoadStateResponse { path: _, result } => {
             if let Some(kernel) = state.get_kernel_by_id_mut(kernel_ctx.kernel_id) {
                 kernel.on_load_response(result);
             }
